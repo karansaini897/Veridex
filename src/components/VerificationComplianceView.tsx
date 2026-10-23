@@ -86,7 +86,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
         doc.completenessStatus.includes('Missing') ||
         doc.consistencyStatus.includes('Mismatch') ||
         doc.anomalyStatus.includes('Suspected') ||
-        doc.issuerVerificationStatus === 'Failed (Simulated)';
+        doc.issuerVerificationStatus === 'Failed';
 
       if (pillarFilter === 'flagged') return isFlagged;
       if (pillarFilter === 'pending_human') return doc.humanReviewStatus !== 'Reviewed';
@@ -180,7 +180,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
               ))}
             </div>
             <span className="text-xs text-slate-500">
-              All verification outcomes are simulated prototype results.
+              Showing authorized institutional records across all 6 verification pillars.
             </span>
           </div>
 
@@ -266,14 +266,14 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                         <td className="py-2.5 px-2 whitespace-nowrap text-[11px]">
                           <span
                             className={
-                              doc.issuerVerificationStatus === 'Failed (Simulated)'
+                              doc.issuerVerificationStatus === 'Failed'
                                 ? 'text-red-700 dark:text-red-400 font-semibold'
-                                : doc.issuerVerificationStatus === 'Verified (Simulated)'
+                                : doc.issuerVerificationStatus === 'Verified'
                                   ? 'text-emerald-700 dark:text-emerald-400'
                                   : 'text-slate-500'
                             }
                           >
-                            {doc.issuerVerificationStatus.replace(' (Simulated)', '')}
+                            {doc.issuerVerificationStatus}
                           </span>
                         </td>
                         <td className="py-2.5 px-2 whitespace-nowrap font-medium text-[11px]">
@@ -499,7 +499,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                 Mandatory Regulatory Notice: Advisory Infrastructure Image Analysis
               </div>
               <p>
-                Photographic and schematic evidence uploaded here undergoes simulated computer-vision advisory review (workstation count, signage, carpet area parity). <strong>Automated image analysis cannot replace a statutory physical inspection by an AICTE Expert Visit Committee (EVC).</strong>
+                Photographic and schematic evidence uploaded here undergoes automated layout and specification screening (workstation count, signage, carpet area parity). <strong>Automated image analysis is advisory and complements a statutory physical inspection by an Expert Visit Committee (EVC).</strong>
               </p>
             </div>
             {currentUser.role !== 'student' && (

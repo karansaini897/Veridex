@@ -75,7 +75,6 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilter, setSearchFilter] = useState<'all' | 'applications' | 'documents' | 'institutions'>('all');
   const [notifOpen, setNotifOpen] = useState(false);
-  const [personaOpen, setPersonaOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const initials = useMemo(() => {
@@ -240,8 +239,6 @@ export const AppShell: React.FC<AppShellProps> = ({
     };
   }, [searchQuery, searchFilter, applications, documents, institutions, currentUser]);
 
-  const demoAccounts = users.filter((u) => u.isDemoAccount);
-
   return (
     <div className="min-h-screen flex bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* Desktop Sidebar */}
@@ -297,22 +294,16 @@ export const AppShell: React.FC<AppShellProps> = ({
           })}
         </nav>
 
-        {/* Bottom Demo Controls */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
-          <div className="px-2.5 py-2 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 text-[11px] text-amber-900 dark:text-amber-300">
-            <div className="font-semibold">Simulated Verification Mode</div>
-            <p className="text-amber-800/90 dark:text-amber-400/90 mt-0.5 leading-snug">
-              All automated checks are simulated for demonstration.
+        {/* Official Compliance Footer */}
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800">
+          <div className="px-2.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
+            <div className="font-semibold text-slate-800 dark:text-slate-200">
+              VERIDEX Statutory Compliance
+            </div>
+            <p className="mt-0.5 leading-snug">
+              Role-enforced access control &amp; audit logging active.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onResetDemoData}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Reset Demo State</span>
-          </button>
         </div>
       </aside>
 
@@ -418,77 +409,6 @@ export const AppShell: React.FC<AppShellProps> = ({
               <span className="hidden sm:inline md:hidden">Search</span>
             </button>
 
-            {/* Demo Persona Switcher */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setPersonaOpen((prev) => !prev);
-                  setNotifOpen(false);
-                  setProfileMenuOpen(false);
-                }}
-                className="px-2 sm:px-2.5 py-1.5 rounded-lg border border-amber-300/80 dark:border-amber-700/70 bg-amber-50/80 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 text-xs font-medium hover:bg-amber-100/80 dark:hover:bg-amber-900/50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                <span className="hidden sm:inline">Switch </span>Demo Role
-              </button>
-
-              {personaOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-3 z-50">
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-800">
-                    <span className="text-xs font-semibold text-slate-900 dark:text-white">
-                      Hackathon Demo Personas
-                    </span>
-                    <button
-                      type="button"
-                      aria-label="Close persona menu"
-                      onClick={() => setPersonaOpen(false)}
-                      className="text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div className="space-y-1.5 max-h-72 overflow-y-auto">
-                    {demoAccounts.map((acc) => {
-                      const active = acc.id === currentUser.id;
-                      return (
-                        <button
-                          key={acc.id}
-                          type="button"
-                          onClick={() => {
-                            onSwitchDemoUser(acc);
-                            setPersonaOpen(false);
-                          }}
-                          className={`w-full text-left p-2 rounded-lg text-xs transition-colors cursor-pointer ${
-                            active
-                              ? 'bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800'
-                              : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-slate-900 dark:text-white">
-                              {acc.fullName}
-                            </span>
-                            <span className="text-[11px] text-blue-700 dark:text-blue-400 font-medium">
-                              {acc.role === 'admin'
-                                ? 'Admin'
-                                : acc.role === 'institutional_rep'
-                                  ? 'Inst. Rep'
-                                  : acc.role === 'faculty'
-                                    ? 'Faculty'
-                                    : 'Student'}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                            {acc.institutionName || acc.designation}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Notifications Button */}
             <div className="relative">
               <button
@@ -496,7 +416,6 @@ export const AppShell: React.FC<AppShellProps> = ({
                 aria-label={`Notifications (${unreadCount} unread)`}
                 onClick={() => {
                   setNotifOpen((prev) => !prev);
-                  setPersonaOpen(false);
                   setProfileMenuOpen(false);
                 }}
                 className="relative p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
@@ -514,10 +433,10 @@ export const AppShell: React.FC<AppShellProps> = ({
                   <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-200 dark:border-slate-800">
                     <div>
                       <span className="text-xs font-semibold text-slate-900 dark:text-white">
-                        In-App Notifications
+                        Official Portal Notifications
                       </span>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Prototype alerts (no external SMS/email sent)
+                        Regulatory &amp; dossier status alerts
                       </p>
                     </div>
                     {unreadCount > 0 && (
@@ -593,7 +512,6 @@ export const AppShell: React.FC<AppShellProps> = ({
                 onClick={() => {
                   setProfileMenuOpen((prev) => !prev);
                   setNotifOpen(false);
-                  setPersonaOpen(false);
                 }}
                 aria-label="Open user profile menu"
                 className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"

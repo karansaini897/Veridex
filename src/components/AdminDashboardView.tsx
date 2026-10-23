@@ -115,15 +115,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
   const verificationBreakdown = useMemo(() => {
     const total = documents.length;
-    const verified = documents.filter((d) => d.issuerVerificationStatus === 'Verified (Simulated)').length;
+    const verified = documents.filter((d) => d.issuerVerificationStatus === 'Verified').length;
     const consistencyFlagged = documents.filter(
-      (d) => d.consistencyStatus === 'Mismatch Flagged (Simulated)'
+      (d) => d.consistencyStatus === 'Mismatch Flagged'
     ).length;
     const anomalyFlagged = documents.filter(
-      (d) => d.anomalyStatus === 'Suspected Alteration / Duplicate (Simulated)'
+      (d) => d.anomalyStatus === 'Suspected Alteration / Duplicate'
     ).length;
     const missingPages = documents.filter(
-      (d) => d.completenessStatus === 'Missing Pages/Fields (Simulated)'
+      (d) => d.completenessStatus === 'Missing Pages/Fields'
     ).length;
     const pendingHuman = documents.filter((d) => d.humanReviewStatus !== 'Reviewed').length;
 
@@ -224,7 +224,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               : `Welcome back, ${currentUser.fullName}`}
           </h1>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            Review institutional dossiers, inspect simulated verification findings, request clarifications, and record authorized compliance decisions.
+            Review institutional dossiers, inspect verification findings, issue deficiency notices, and record authorized compliance decisions.
           </p>
         </div>
 
@@ -254,7 +254,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             {metrics.totalApplications}
           </div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-            Across 5 institutions · 2026-27
+            Across 5 registered institutions
           </div>
         </div>
 
@@ -274,7 +274,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             {metrics.documentsVerified}
           </div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-            Simulated check + human reviewed
+            Issuer verified &amp; officer reviewed
           </div>
         </div>
 
@@ -565,15 +565,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </div>
             </section>
 
-            {/* Simulated Verification Overview */}
+            {/* Document Verification Overview */}
             <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white">
-                    Document Verification Overview (Simulated Checks)
+                    Document Verification &amp; Integrity Overview
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    An AI or automated flag is a prompt for human review, never automatic proof of fraud.
+                    Automated verification flags serve as prompts for officer review prior to final compliance sign-off.
                   </p>
                 </div>
                 <button

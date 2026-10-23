@@ -156,7 +156,7 @@ test('computeDashboardMetrics aggregates counts accurately from records', () => 
   ] as ApplicationRecord[];
   const docs = [
     {
-      issuerVerificationStatus: 'Verified (Simulated)',
+      issuerVerificationStatus: 'Verified',
       humanReviewStatus: 'Reviewed',
       expiryDate: '2027-08-01',
     },

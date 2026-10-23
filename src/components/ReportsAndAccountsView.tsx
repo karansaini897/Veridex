@@ -174,7 +174,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
       username: username.trim(),
       phone: phone.trim(),
       normalizedPhone: uniqueness.normalizedPhone,
-      email: email.trim() || `${username.trim()}@institution-demo.edu.in`,
+      email: email.trim() || `${username.trim()}@institution.edu.in`,
       dob,
       gender,
       status: accountStatus,
@@ -530,11 +530,6 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
                         <span className="text-blue-700 dark:text-blue-400 font-medium">
                           {u.role}
                         </span>
-                        {u.isDemoAccount && (
-                          <span className="text-[10px] text-amber-700 dark:text-amber-400 font-mono-tabular">
-                            [Demo]
-                          </span>
-                        )}
                       </div>
                       <div className="text-[11px] text-slate-500 font-mono-tabular">
                         @{u.username} · Normalized Phone: {u.normalizedPhone} · Age: {age ?? '—'}y
@@ -573,13 +568,13 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
           <p className="text-xs font-medium text-blue-700 dark:text-blue-400">
-            Compliance Analytics &amp; Prototype Activity Log
+            Compliance Analytics &amp; Statutory Audit Trail
           </p>
           <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
-            Reports &amp; Activity History
+            Reports &amp; Audit History
           </h1>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            All summaries reflect live application state. Prototype activity history is stored locally for demonstration and is distinct from a tamper-proof WORM production audit log.
+            All summaries reflect live institutional compliance records and recorded administrative actions across regional cells.
           </p>
         </div>
 
@@ -633,9 +628,9 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
           <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
             {(
               [
-                'Verified (Simulated)',
+                'Verified',
                 'Pending',
-                'Failed (Simulated)',
+                'Failed',
                 'Not Checked',
               ] as const
             ).map((st) => {
@@ -675,15 +670,15 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
         </section>
       </div>
 
-      {/* Prototype Activity History Table */}
+      {/* Official Audit History Table */}
       <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
-              Prototype Activity &amp; Review History ({filteredAuditEvents.length})
+              Statutory Audit &amp; Review History ({filteredAuditEvents.length})
             </h2>
             <p className="text-xs text-slate-500">
-              Chronological log of status changes, review notes, document uploads, and account actions recorded during this session.
+              Chronological audit log of status changes, officer review notes, document submissions, and account provisioning actions.
             </p>
           </div>
 

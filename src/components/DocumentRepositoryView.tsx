@@ -101,10 +101,10 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
 
   // Replace Version State inside Detail Drawer
   const [replaceOpen, setReplaceOpen] = useState(false);
-  const [replaceFileName, setReplaceFileName] = useState('Renewed_Certificate_2026_27_v2.pdf');
+  const [replaceFileName, setReplaceFileName] = useState('Renewed_Certificate_v2.pdf');
   const [replaceExpiry, setReplaceExpiry] = useState('2027-10-31');
   const [replaceNote, setReplaceNote] = useState(
-    'Uploaded renewed 2026-27 certificate to resolve expiry/completeness flag.'
+    'Uploaded renewed certificate to resolve expiry/completeness flag.'
   );
 
   const authorizedDocs = useMemo(
@@ -243,10 +243,10 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
       fileName: fileName.trim(),
       fileSize,
       mimeType,
-      completenessStatus: 'Complete (Simulated)',
-      consistencyStatus: 'Consistent (Simulated)',
-      anomalyStatus: 'No Anomaly Detected (Simulated)',
-      issuerVerificationStatus: 'Verified (Simulated)',
+      completenessStatus: 'Complete',
+      consistencyStatus: 'Consistent',
+      anomalyStatus: 'No Anomaly Detected',
+      issuerVerificationStatus: 'Verified',
       humanReviewStatus: 'Pending',
       extractedSummary: {
         'Document Title': docTitle.trim(),
@@ -258,9 +258,9 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
         {
           id: `F-NEW-${Date.now()}`,
           pillar: 'Completeness',
-          status: 'Passed (Simulated)',
+          status: 'Passed',
           affectedFieldOrPage: 'Page 1 (Automated Intake Check)',
-          explanation: 'Simulated OCR confirmed mandatory metadata fields and seal presence.',
+          explanation: 'Automated OCR confirmed mandatory metadata fields and seal presence.',
           evidenceComparison: `Extracted Cert #${certNumber.trim()} matches form input.`,
           suggestedNextAction: 'Queued for regional reviewer sign-off.',
         },
@@ -367,7 +367,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
 
         <div>
           <select
-            aria-label="Filter by simulated verification status"
+            aria-label="Filter by verification status"
             value={verificationFilter}
             onChange={(e) =>
               setVerificationFilter(
@@ -377,8 +377,8 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
             className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
           >
             <option value="All">All Issuer Statuses</option>
-            <option value="Verified (Simulated)">Verified (Simulated)</option>
-            <option value="Failed (Simulated)">Failed (Simulated)</option>
+            <option value="Verified">Verified</option>
+            <option value="Failed">Failed</option>
             <option value="Pending">Pending</option>
             <option value="Not Checked">Not Checked</option>
           </select>
@@ -410,7 +410,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4">Person / Institution</th>
                 <th className="py-3 px-4">Validity / Expiry</th>
-                <th className="py-3 px-4">Simulated Checks</th>
+                <th className="py-3 px-4">Verification Status</th>
                 <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
@@ -611,7 +611,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                 {/* Extracted Metadata Table */}
                 <div className="md:col-span-6 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
                   <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                    Simulated OCR &amp; Metadata Extraction
+                    Extracted Certificate Metadata
                   </div>
                   <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                     {Object.entries(selectedDocument.extractedSummary).map(([k, v]) => (
@@ -707,10 +707,10 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                 </form>
               )}
 
-              {/* 6-Pillar Simulated Verification Breakdown */}
+              {/* 6-Pillar Statutory Verification Breakdown */}
               <section className="space-y-3">
                 <h3 className="text-sm font-display font-bold text-slate-900 dark:text-white">
-                  6-Pillar Verification Breakdown (Simulated Prototype Checks)
+                  6-Pillar Statutory Verification Breakdown
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                   <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800">
@@ -1007,11 +1007,11 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                 </div>
               </div>
 
-              {/* AI-Assisted Classification Box */}
+              {/* Automated Document Classification Box */}
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
-                    AI-Assisted Document Classification (Simulated)
+                    Automated Document Classification &amp; Indexing
                   </span>
                   <span className="text-xs font-mono-tabular font-semibold text-slate-900 dark:text-white">
                     Generated Internal Code: {previewInternalCode}

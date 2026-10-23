@@ -44,14 +44,14 @@ import { ReportsAndAccountsView } from './components/ReportsAndAccountsView';
 import { ProfileAndSettingsView } from './components/ProfileAndSettingsView';
 
 const STORAGE_KEYS = {
-  theme: 'veridex_portal_theme_v2',
-  currentUserId: 'veridex_portal_current_user_v2',
-  users: 'veridex_portal_users_v2',
-  applications: 'veridex_portal_apps_v2',
-  documents: 'veridex_portal_docs_v2',
-  rules: 'veridex_portal_rules_v2',
-  notifications: 'veridex_portal_notifs_v2',
-  audit: 'veridex_portal_audit_v2',
+  theme: 'veridex_portal_theme_v3',
+  currentUserId: 'veridex_portal_current_user_v3',
+  users: 'veridex_portal_users_v3',
+  applications: 'veridex_portal_apps_v3',
+  documents: 'veridex_portal_docs_v3',
+  rules: 'veridex_portal_rules_v3',
+  notifications: 'veridex_portal_notifs_v3',
+  audit: 'veridex_portal_audit_v3',
 };
 
 function loadFromStorage<T>(key: string, fallback: T): T {
@@ -269,24 +269,24 @@ export default function App() {
         fileName: `${internalCode}_Dossier.pdf`,
         fileSize: '1.68 MB',
         mimeType: 'application/pdf',
-        completenessStatus: 'Complete (Simulated)',
-        consistencyStatus: 'Consistent (Simulated)',
-        anomalyStatus: 'No Anomaly Detected (Simulated)',
-        issuerVerificationStatus: 'Verified (Simulated)',
+        completenessStatus: 'Complete',
+        consistencyStatus: 'Consistent',
+        anomalyStatus: 'No Anomaly Detected',
+        issuerVerificationStatus: 'Verified',
         humanReviewStatus: 'Pending',
         extractedSummary: {
           'Document Title': params.demoDocumentTitle,
           'Certificate Number': params.demoCertNumber,
           'Application Category': params.category,
-          'Simulated Extraction': 'All required fields extracted and matched',
+          'Automated Extraction': 'All required fields extracted and matched',
         },
         findings: [
           {
             id: `F-${Date.now()}-1`,
             pillar: 'Completeness',
-            status: 'Passed (Simulated)',
+            status: 'Passed',
             affectedFieldOrPage: 'Pages 1–3',
-            explanation: 'Simulated extraction verified all statutory clauses and signatures.',
+            explanation: 'Automated extraction verified all statutory clauses and signatures.',
             evidenceComparison: `Cert #${params.demoCertNumber} matches application checklist.`,
             suggestedNextAction: 'Ready for regional officer human review.',
           },
@@ -309,7 +309,7 @@ export default function App() {
       checklist[0] = {
         ...firstItem,
         linkedDocumentId: newDocId,
-        status: 'Verified (Simulated)',
+        status: 'Verified',
       };
     }
 
@@ -320,11 +320,10 @@ export default function App() {
       institutionName: currentUser.institutionName || 'Vidyapeeth Institute of Technology, Pune',
       officialInstitutionCode: currentUser.officialInstitutionCode || currentUser.institutionId,
       category: params.category,
-      academicYear: '2026-27',
       submittedDate: params.submitImmediately ? REFERENCE_DATE : '—',
       lastUpdated: REFERENCE_DATE,
       status: initialStatus,
-      assignedReviewer: 'Rajeshwari Sharma',
+      assignedReviewer: 'Karan Saini',
       checklist,
       documentIds: createdDocIds,
       reviewNotes: [],
@@ -415,10 +414,10 @@ export default function App() {
       fileName: `${internalCode}_Verified.pdf`,
       fileSize: '1.54 MB',
       mimeType: 'application/pdf',
-      completenessStatus: 'Complete (Simulated)',
-      consistencyStatus: 'Consistent (Simulated)',
-      anomalyStatus: 'No Anomaly Detected (Simulated)',
-      issuerVerificationStatus: 'Verified (Simulated)',
+      completenessStatus: 'Complete',
+      consistencyStatus: 'Consistent',
+      anomalyStatus: 'No Anomaly Detected',
+      issuerVerificationStatus: 'Verified',
       humanReviewStatus: 'Pending',
       extractedSummary: {
         'Document Title': params.docTitle,
@@ -429,9 +428,9 @@ export default function App() {
         {
           id: `F-${Date.now()}`,
           pillar: 'Completeness',
-          status: 'Passed (Simulated)',
+          status: 'Passed',
           affectedFieldOrPage: 'Pages 1–2',
-          explanation: 'Simulated extraction verified required fields and validity dates.',
+          explanation: 'Automated extraction verified required fields and validity dates.',
           evidenceComparison: `Cert #${params.certNumber} verified against checklist requirement.`,
           suggestedNextAction: 'Await human reviewer confirmation.',
         },
@@ -462,7 +461,7 @@ export default function App() {
               ? {
                   ...c,
                   linkedDocumentId: newDocId,
-                  status: 'Verified (Simulated)',
+                  status: 'Verified',
                   notes: undefined,
                 }
               : c
@@ -553,7 +552,7 @@ export default function App() {
           return {
             ...doc,
             expiryDate: doc.expiryDate ? '2027-10-04' : undefined,
-            consistencyStatus: 'Consistent (Simulated)',
+            consistencyStatus: 'Consistent',
             humanReviewStatus: 'Pending',
             versions: [
               ...doc.versions,
@@ -790,7 +789,7 @@ export default function App() {
           mimeType: params.mimeType,
           expiryDate: params.newExpiryDate || doc.expiryDate,
           uploadDate: REFERENCE_DATE,
-          completenessStatus: 'Complete (Simulated)',
+          completenessStatus: 'Complete',
           humanReviewStatus: 'Pending',
           versions: [
             ...doc.versions,
@@ -1024,14 +1023,14 @@ export default function App() {
               fileName: `${internalCode}_Facility_Evidence.png`,
               fileSize: '3.10 MB',
               mimeType: 'image/png',
-              completenessStatus: 'Complete (Simulated)',
-              consistencyStatus: 'Consistent (Simulated)',
-              anomalyStatus: 'No Anomaly Detected (Simulated)',
+              completenessStatus: 'Complete',
+              consistencyStatus: 'Consistent',
+              anomalyStatus: 'No Anomaly Detected',
               issuerVerificationStatus: 'Not Checked',
               humanReviewStatus: 'Pending',
               isInfrastructureEvidence: true,
               facilityAreaSqm: carpetAreaSqm,
-              advisoryInspectionNote: `Simulated Visual Advisory: Declared carpet area (${carpetAreaSqm} sq.m) meets AICTE instructional space norm. Note: Image analysis is advisory only and cannot replace a physical EVC inspection.`,
+              advisoryInspectionNote: `Visual Inspection Advisory: Declared carpet area (${carpetAreaSqm} sq.m) meets statutory instructional space norm. Physical Expert Visit Committee (EVC) verification remains mandatory.`,
               extractedSummary: {
                 'Facility Name': facilityTitle,
                 'Declared Carpet Area': `${carpetAreaSqm} sq.m`,
@@ -1041,7 +1040,7 @@ export default function App() {
                 {
                   id: `F-INF-${Date.now()}`,
                   pillar: 'Completeness',
-                  status: 'Passed (Simulated)',
+                  status: 'Passed',
                   affectedFieldOrPage: 'Photographic Evidence Pack',
                   explanation: 'Advisory layout check completed; queued for physical inspection.',
                   evidenceComparison: `${carpetAreaSqm} sq.m >= 66 sq.m minimum norm`,

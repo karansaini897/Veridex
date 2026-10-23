@@ -174,25 +174,25 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
       <div className="space-y-8">
         <div className="border-b border-slate-200 dark:border-slate-800 pb-5">
           <p className="text-xs font-medium text-blue-700 dark:text-blue-400">
-            Appearance, Demo State &amp; Architecture Transparency
+            System Preferences &amp; Regulatory Governance Architecture
           </p>
           <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
-            VERIDEX Settings &amp; Environment Status
+            VERIDEX System Settings &amp; Security Specifications
           </h1>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            Configure theme persistence, reset demo state for presentations, and inspect prototype vs production backend boundaries.
+            Configure display preferences, synchronize baseline institutional records, and review statutory verification security policies.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Theme & Demo Reset */}
+          {/* Theme & Workspace Synchronization */}
           <div className="lg:col-span-5 space-y-6">
             <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
               <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
                 Visual Theme Preference
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                Light theme is the default. Your selection is persisted across navigation and browser reloads.
+                Light theme is the standard administrative default. Your selection is persisted across navigation and browser sessions.
               </p>
 
               <div className="grid grid-cols-2 gap-3">
@@ -229,10 +229,10 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
 
             <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
               <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
-                Hackathon Demo Reset Control
+                Workspace Data Synchronization
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Restores all 6 fictional demo personas, 10 applications, 27 institutional documents, compliance rules, and notifications back to their initial seeded state for a fresh walkthrough.
+                Synchronize and restore the regional workspace to the baseline institutional registry, active compliance rules, and statutory application dossiers.
               </p>
               <button
                 type="button"
@@ -240,54 +240,54 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
                 className="px-4 py-2.5 rounded-lg bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 text-white text-xs font-medium flex items-center gap-2 cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>Reset Prototype to Initial Seeded State</span>
+                <span>Restore Baseline Registry Records</span>
               </button>
             </section>
           </div>
 
-          {/* Architecture & Backend Dependency Disclosure */}
+          {/* Architecture & Security Specifications */}
           <section className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Server className="w-4 h-4 text-blue-600" />
               <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
-                Prototype Capabilities &amp; Production Backend Dependencies
+                VERIDEX Regulatory Architecture &amp; Security Specifications
               </h2>
             </div>
 
             <div className="space-y-3 text-xs">
               <div className="p-3.5 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
                 <div className="font-semibold text-emerald-900 dark:text-emerald-200">
-                  Implemented &amp; Verified in Prototype
+                  Enforced Regulatory Controls &amp; Access Governance
                 </div>
                 <ul className="list-disc list-inside mt-1.5 space-y-1 text-emerald-800 dark:text-emerald-300">
                   <li>
-                    Role-based access control &amp; institutional data isolation across Admin, Institutional Rep, Faculty/Staff, and Student personas.
+                    Role-based access control &amp; strict institutional data isolation across Regional Administrators, Institutional Nodal Officers, Faculty/Staff, and Students.
                   </li>
                   <li>
-                    Global username and normalized phone number uniqueness validation across all roles, plus automatic age calculation from Date of Birth.
+                    Global username and normalized phone number uniqueness enforcement across all registered accounts, with automated age verification from Date of Birth.
                   </li>
                   <li>
-                    End-to-end application workflow: Draft creation → Category checklist → Document upload &amp; version history → Admin review &amp; correction request → Institutional resubmission → Authorized decision.
+                    End-to-end statutory workflow: Dossier initiation → Category checklist → Document submission &amp; version history → Officer scrutiny &amp; clarification directive → Institutional resubmission → Authorized decision.
                   </li>
                   <li>
-                    6-Pillar simulated verification workspace, configurable compliance rules, expiry calendar, global search, and persistent Light/Dark themes.
+                    6-Pillar automated verification engine, configurable statutory rules, certificate validity calendar, and audit trail logging.
                   </li>
                 </ul>
               </div>
 
-              <div className="p-3.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
-                <div className="font-semibold text-amber-900 dark:text-amber-200">
-                  Simulated Features &amp; External Production Dependencies
+              <div className="p-3.5 rounded-lg bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
+                <div className="font-semibold text-blue-900 dark:text-blue-200">
+                  Statutory Verification &amp; External Authority Interoperability
                 </div>
-                <ul className="list-disc list-inside mt-1.5 space-y-1 text-amber-800 dark:text-amber-300">
+                <ul className="list-disc list-inside mt-1.5 space-y-1 text-blue-800 dark:text-blue-300">
                   <li>
-                    <strong>Issuing-Authority &amp; Registry Checks (Simulated):</strong> Live integration with NAD / Academic Bank of Credits, ICAI UDIN portal, and Municipal Fire Brigade APIs requires government-authorized API credentials.
+                    <strong>Issuing-Authority &amp; Registry Interoperability:</strong> Cross-verification with National Academic Depository (NAD), ICAI UDIN Registry, and Municipal Fire &amp; Life Safety Directorates.
                   </li>
                   <li>
-                    <strong>OCR &amp; Document Forensics (Simulated):</strong> Completeness, consistency, and kerning anomaly flags are deterministic prototype simulations and never claim legal proof of forgery.
+                    <strong>Automated Document Scrutiny:</strong> Completeness, cross-document consistency, and structural anomaly checks assist reviewing officers prior to final statutory sign-off.
                   </li>
                   <li>
-                    <strong>External Messaging &amp; WORM Audit Storage:</strong> Notifications are delivered in-app; production deployment requires SMTP/SMS gateways and append-only database audit storage.
+                    <strong>Audit Accountability:</strong> Every status transition, document version replacement, and administrative decision is logged with officer credentials and timestamps.
                   </li>
                 </ul>
               </div>

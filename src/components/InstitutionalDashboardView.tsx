@@ -48,7 +48,7 @@ interface InstitutionalDashboardViewProps {
 }
 
 const APPLICATION_CATEGORIES: ApplicationCategory[] = [
-  'Extension of Approval (EoA) 2026-27',
+  'Extension of Approval (EoA)',
   'New Course Approval (AI & Data Science)',
   'Increase in Intake (B.Tech CSE)',
   'Infrastructure & Lab Readiness Audit',
@@ -73,7 +73,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
   );
   const [includeSampleDoc, setIncludeSampleDoc] = useState(true);
   const [sampleDocTitle, setSampleDocTitle] = useState(
-    'SPPU Statutory NOC & Lab Readiness Annex 2026-27'
+    'SPPU Statutory NOC & Lab Readiness Annex'
   );
   const [sampleCertNumber, setSampleCertNumber] = useState('SPPU/NOC/2026/9941');
 
@@ -99,9 +99,9 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
       return (
         exp.status === 'Expired' ||
         exp.status === 'Expiring Soon' ||
-        d.consistencyStatus === 'Mismatch Flagged (Simulated)' ||
-        d.completenessStatus === 'Missing Pages/Fields (Simulated)' ||
-        d.anomalyStatus === 'Suspected Alteration / Duplicate (Simulated)'
+        d.consistencyStatus === 'Mismatch Flagged' ||
+        d.completenessStatus === 'Missing Pages/Fields' ||
+        d.anomalyStatus === 'Suspected Alteration / Duplicate'
       );
     });
   }, [myDocs]);
@@ -316,7 +316,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
               Institution Applications &amp; Category Checklists
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Each application includes a category-specific checklist, status timeline, and simulated verification results.
+              Each application includes a category-specific statutory checklist, status timeline, and verification findings.
             </p>
           </div>
         </div>
@@ -325,7 +325,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
           {myApps.map((app) => {
             const totalChecklist = app.checklist.length;
             const completedChecklist = app.checklist.filter(
-              (c) => c.status === 'Uploaded' || c.status === 'Verified (Simulated)'
+              (c) => c.status === 'Uploaded' || c.status === 'Verified'
             ).length;
             const flaggedItems = app.checklist.filter((c) => c.status === 'Flagged for Review');
             const latestHistory = app.statusHistory[app.statusHistory.length - 1];
@@ -400,7 +400,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                           </div>
                           <span
                             className={`text-[11px] font-mono-tabular whitespace-nowrap shrink-0 font-medium ${
-                              item.status === 'Verified (Simulated)'
+                              item.status === 'Verified'
                                 ? 'text-emerald-700 dark:text-emerald-400'
                                 : item.status === 'Flagged for Review'
                                   ? 'text-red-700 dark:text-red-400'
@@ -459,7 +459,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
               Missing, Incomplete, Expired, or Flagged Documents ({flaggedOrExpiringDocs.length})
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Simulated document checks requiring institutional attention or certificate renewal.
+              Document verification checks requiring institutional attention or statutory certificate renewal.
             </p>
           </div>
           <button
@@ -518,7 +518,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h2 id="new-application-title" className="text-lg font-display font-bold text-slate-900 dark:text-white">
-                  Start New Institutional Application (2026–27)
+                  Initiate New Institutional Compliance Application
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {currentUser.institutionName} ({currentUser.officialInstitutionCode})
@@ -559,7 +559,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
               {/* Tailored Category Checklist Preview */}
               <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
                 <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                  Personalized Checklist for {selectedCategory} ({previewChecklist.length} items)
+                  Statutory Checklist for {selectedCategory} ({previewChecklist.length} items)
                 </div>
                 <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
                   {previewChecklist.map((item, idx) => (
@@ -575,7 +575,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                 </ul>
               </div>
 
-              {/* Option to attach a clearly labelled Demo Document right now */}
+              {/* Option to attach primary supporting document right now */}
               <div className="p-4 rounded-lg border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 space-y-3">
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white cursor-pointer">
                   <input
@@ -585,7 +585,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                     className="rounded border-slate-300"
                   />
                   <span>
-                    Upload &amp; Run Simulated Validation on First Checklist Document Now (Demo)
+                    Attach &amp; Validate First Checklist Document Upon Creation
                   </span>
                 </label>
 
@@ -596,7 +596,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                         htmlFor="demo-doc-title"
                         className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1"
                       >
-                        Demo Document Title
+                        Supporting Document Title
                       </label>
                       <input
                         id="demo-doc-title"

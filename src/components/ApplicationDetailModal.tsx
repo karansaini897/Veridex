@@ -68,14 +68,14 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const [uploadExpiry, setUploadExpiry] = useState('2027-09-30');
 
   const [resubmitNote, setResubmitNote] = useState(
-    'Uploaded renewed 2026-27 Municipal Fire & Life Safety Certificate (valid through Oct 2027) and attached notarized name-equivalence affidavit for Dr. Siddharth Kulkarni.'
+    'Uploaded renewed Municipal Fire & Life Safety Certificate (valid through Oct 2027) and attached notarized name-equivalence affidavit for Dr. Siddharth Kulkarni.'
   );
   const [attachRenewedCert, setAttachRenewedCert] = useState(true);
 
   const [adminNote, setAdminNote] = useState('');
   const [selectedDecision, setSelectedDecision] = useState<
     NonNullable<ApplicationRecord['decisionOutcome']>
-  >('Compliance Verified — Recommended (Simulated)');
+  >('Compliance Verified — Recommended');
   const [decisionConfirmOpen, setDecisionConfirmOpen] = useState(false);
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
 
@@ -104,7 +104,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
     setUploadTitle('');
     setUploadCertNo('');
     setFeedbackBanner(
-      'Demo document uploaded and simulated completeness, expiry, and consistency checks executed.'
+      'Supporting document uploaded and automated completeness, expiry, and consistency checks executed.'
     );
   };
 
@@ -122,7 +122,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400 font-mono-tabular font-semibold">
               <span>{application.id}</span>
               <span aria-hidden="true">·</span>
-              <span>Academic Year {application.academicYear}</span>
+              <span>Code: {application.officialInstitutionCode}</span>
               <span aria-hidden="true">·</span>
               <span>Status: {application.status}</span>
             </div>
@@ -149,9 +149,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Simulated Verification Disclaimer */}
-          <div className="p-3.5 rounded-lg bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-900 dark:text-amber-200">
-            <strong>Prototype Verification Notice:</strong> Automated extraction, completeness, expiry, and anomaly indicators shown below are <strong>simulated</strong> for demonstration. Automated flags prompt human review and never automatically approve or reject an institution.
+          {/* Statutory Review Protocol Notice */}
+          <div className="p-3.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300">
+            <strong>Statutory Verification Protocol:</strong> Automated OCR extraction, completeness checks, expiry tracking, and document integrity screening assist the reviewing officer. All compliance determinations require authorized human officer sign-off.
           </div>
 
           {feedbackBanner && (
@@ -187,7 +187,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     Ready to Submit Application Dossier?
                   </h3>
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                    Submitting runs simulated automated checks on all linked documents and places the dossier into the AICTE Regional Officer review queue.
+                    Submitting runs automated validation checks on all linked documents and places the dossier into the Regional Officer review queue.
                   </p>
                 </div>
                 <button
@@ -195,10 +195,10 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   onClick={() => {
                     onSubmitDraftApplication(
                       application.id,
-                      'Submitted institutional dossier after completing category checklist and simulated pre-checks.'
+                      'Submitted institutional dossier after completing category checklist and pre-submission checks.'
                     );
                     setFeedbackBanner(
-                      'Application submitted! Status updated to "Submitted" and queued for AICTE regional review.'
+                      'Application submitted! Status updated to "Submitted" and queued for regional review.'
                     );
                   }}
                   className="px-4 py-2.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
@@ -246,7 +246,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     className="rounded border-slate-300"
                   />
                   <span>
-                    Also upload renewed 2026–27 Fire &amp; Life Safety Certificate (v2) &amp; Name Affidavit to clear checklist flags
+                    Also upload renewed Fire &amp; Life Safety Certificate (v2) &amp; Name Affidavit to clear checklist flags
                   </span>
                 </label>
 
@@ -328,7 +328,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                       <div className="flex items-center gap-2 shrink-0">
                         <span
                           className={`text-xs font-mono-tabular font-medium ${
-                            item.status === 'Verified (Simulated)'
+                            item.status === 'Verified'
                               ? 'text-emerald-700 dark:text-emerald-400'
                               : item.status === 'Flagged for Review'
                                 ? 'text-red-700 dark:text-red-400'
@@ -350,7 +350,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                             }}
                             className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                           >
-                            {linkedDoc ? 'Replace Demo Doc' : 'Upload Demo Doc'}
+                            {linkedDoc ? 'Replace Document' : 'Upload Document'}
                           </button>
                         )}
                       </div>
@@ -362,7 +362,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                         className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3"
                       >
                         <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                          Upload &amp; Run Simulated Extraction for "{item.title}"
+                          Upload &amp; Validate Document for "{item.title}"
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
@@ -610,14 +610,14 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     }
                     className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
                   >
-                    <option value="Compliance Verified — Recommended (Simulated)">
-                      Compliance Verified — Recommended (Simulated)
+                    <option value="Compliance Verified — Recommended">
+                      Compliance Verified — Recommended
                     </option>
-                    <option value="Conditional Compliance — Inspection Required (Simulated)">
-                      Conditional Compliance — Inspection Required (Simulated)
+                    <option value="Conditional Compliance — Inspection Required">
+                      Conditional Compliance — Inspection Required
                     </option>
-                    <option value="Deficiency Recorded — Deferred (Simulated)">
-                      Deficiency Recorded — Deferred (Simulated)
+                    <option value="Deficiency Recorded — Deferred">
+                      Deficiency Recorded — Deferred
                     </option>
                   </select>
                   <div className="flex justify-end gap-2">

@@ -144,7 +144,7 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
             {counts.valid}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">
-            Active validity across academic session
+            Active statutory validity
           </div>
         </div>
       </div>

@@ -278,8 +278,8 @@ export function suggestDocumentCategory(
  */
 export function buildCategoryChecklist(category: ApplicationCategory): ChecklistItem[] {
   const baseItems: Record<ApplicationCategory, Array<{ title: string; category: DocumentCategory; required: boolean }>> = {
-    'Extension of Approval (EoA) 2026-27': [
-      { title: 'University Continuation of Affiliation Letter (2026-27)', category: 'Approvals', required: true },
+    'Extension of Approval (EoA)': [
+      { title: 'University Continuation of Affiliation Letter', category: 'Approvals', required: true },
       { title: 'Municipal Fire & Life Safety Renewal Certificate', category: 'Infrastructure', required: true },
       { title: 'Principal & Senior Faculty Ph.D. Qualification Dossiers', category: 'Qualifications', required: true },
       { title: 'Audited Financial Statement & Corpus Fund Utilization', category: 'Financial & Trust Deeds', required: true },
@@ -317,7 +317,7 @@ export function buildCategoryChecklist(category: ApplicationCategory): Checklist
     ],
   };
 
-  const selected = baseItems[category] || baseItems['Extension of Approval (EoA) 2026-27'];
+  const selected = baseItems[category] || baseItems['Extension of Approval (EoA)'];
   return selected.map((item, idx) => ({
     id: `chk-${Date.now()}-${idx + 1}`,
     title: item.title,
@@ -405,7 +405,7 @@ export function computeDashboardMetrics(
 
   const documentsVerified = documents.filter(
     (d) =>
-      d.issuerVerificationStatus === 'Verified (Simulated)' &&
+      d.issuerVerificationStatus === 'Verified' &&
       d.humanReviewStatus === 'Reviewed'
   ).length;
 

@@ -14,7 +14,7 @@ export interface UserAccount {
   avatarUrl?: string;
   status: AccountStatus;
   role: Role;
-  password: string; // Demo credential for prototype verification
+  password: string;
   isDemoAccount: boolean;
   createdAt: string;
 
@@ -66,7 +66,7 @@ export type ApplicationStatus =
   | 'Decision Recorded';
 
 export type ApplicationCategory =
-  | 'Extension of Approval (EoA) 2026-27'
+  | 'Extension of Approval (EoA)'
   | 'New Course Approval (AI & Data Science)'
   | 'Increase in Intake (B.Tech CSE)'
   | 'Infrastructure & Lab Readiness Audit'
@@ -79,7 +79,7 @@ export interface ChecklistItem {
   required: boolean;
   documentCategory: DocumentCategory;
   linkedDocumentId?: string;
-  status: 'Pending Upload' | 'Uploaded' | 'Verified (Simulated)' | 'Flagged for Review';
+  status: 'Pending Upload' | 'Uploaded' | 'Verified' | 'Flagged for Review';
   notes?: string;
 }
 
@@ -109,14 +109,13 @@ export interface ApplicationRecord {
   institutionName: string;
   officialInstitutionCode: string;
   category: ApplicationCategory;
-  academicYear: string;
   submittedDate: string;
   lastUpdated: string;
   status: ApplicationStatus;
   decisionOutcome?:
-    | 'Compliance Verified — Recommended (Simulated)'
-    | 'Conditional Compliance — Inspection Required (Simulated)'
-    | 'Deficiency Recorded — Deferred (Simulated)';
+    | 'Compliance Verified — Recommended'
+    | 'Conditional Compliance — Inspection Required'
+    | 'Deficiency Recorded — Deferred';
   checklist: ChecklistItem[];
   documentIds: string[];
   reviewNotes: ReviewNote[];
@@ -145,8 +144,8 @@ export interface VerificationFinding {
   id: string;
   pillar: VerificationPillar;
   status:
-    | 'Passed (Simulated)'
-    | 'Flagged (Simulated)'
+    | 'Passed'
+    | 'Flagged'
     | 'Pending'
     | 'Unavailable'
     | 'Reviewed'
@@ -190,12 +189,12 @@ export interface DocumentRecord {
   fileName: string;
   fileSize: string;
   mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
-  completenessStatus: 'Complete (Simulated)' | 'Missing Pages/Fields (Simulated)';
-  consistencyStatus: 'Consistent (Simulated)' | 'Mismatch Flagged (Simulated)';
-  anomalyStatus: 'No Anomaly Detected (Simulated)' | 'Suspected Alteration / Duplicate (Simulated)';
+  completenessStatus: 'Complete' | 'Missing Pages/Fields';
+  consistencyStatus: 'Consistent' | 'Mismatch Flagged';
+  anomalyStatus: 'No Anomaly Detected' | 'Suspected Alteration / Duplicate';
   issuerVerificationStatus:
-    | 'Verified (Simulated)'
-    | 'Failed (Simulated)'
+    | 'Verified'
+    | 'Failed'
     | 'Pending'
     | 'Unavailable'
     | 'Not Checked';
