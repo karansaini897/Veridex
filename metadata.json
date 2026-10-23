@@ -1,0 +1,6 @@
+{
+  "name": "AICTE Application Validation & Document Authentication Portal",
+  "description": "AI-assisted institutional application validation, document authentication, certificate expiry tracking, and regulatory compliance verification portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
