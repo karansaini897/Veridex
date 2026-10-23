@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'motion/react';
 import {
   Search,
   ArrowUpDown,
@@ -8,8 +9,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  FileWarning,
-  ShieldAlert,
   SlidersHorizontal,
 } from 'lucide-react';
 import {
@@ -247,8 +246,14 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       </div>
 
       {/* 5 Summary Metrics */}
-      <section aria-label="Summary Metrics" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+      <motion.section
+        aria-label="Summary Metrics"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
+      >
+        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500 dark:text-slate-400">Total Applications</div>
           <div className="text-2xl font-display font-bold text-slate-900 dark:text-white font-mono-tabular mt-1">
             {metrics.totalApplications}
@@ -258,7 +263,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500 dark:text-slate-400">Pending Review</div>
           <div className="text-2xl font-display font-bold text-blue-700 dark:text-blue-400 font-mono-tabular mt-1">
             {metrics.pendingReview}
@@ -268,7 +273,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500 dark:text-slate-400">Documents Verified</div>
           <div className="text-2xl font-display font-bold text-emerald-700 dark:text-emerald-400 font-mono-tabular mt-1">
             {metrics.documentsVerified}
@@ -278,7 +283,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500 dark:text-slate-400">Expiring / Expired Docs</div>
           <div className="text-2xl font-display font-bold text-amber-700 dark:text-amber-400 font-mono-tabular mt-1">
             {metrics.expiringDocuments}
@@ -288,7 +293,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
+        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4 col-span-2 sm:col-span-1">
           <div className="text-xs text-slate-500 dark:text-slate-400">Requiring Additional Info</div>
           <div className="text-2xl font-display font-bold text-red-700 dark:text-red-400 font-mono-tabular mt-1">
             {metrics.requiringAdditionalInfo}
@@ -297,10 +302,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             Awaiting institution resubmission
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Main Applications Table */}
-      <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}
+        className="liquid-glass rounded-2xl overflow-hidden"
+      >
         <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -509,7 +519,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             </button>
           </div>
         )}
-      </section>
+      </motion.section>
 
       {/* Secondary Panels: Pending-Review Queue + Expiry Alerts + Verification Overview + Activity */}
       {!showFullTableOnly && (

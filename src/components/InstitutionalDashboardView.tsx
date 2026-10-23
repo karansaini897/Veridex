@@ -1,17 +1,11 @@
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Plus,
-  CheckCircle2,
   AlertTriangle,
-  Clock,
   ArrowRight,
-  FileText,
-  Upload,
-  Sparkles,
   X,
   Building2,
-  GraduationCap,
-  BookOpen,
 } from 'lucide-react';
 import {
   ApplicationCategory,
@@ -274,8 +268,13 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
       )}
 
       {/* Summary Strip */}
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+      <motion.section
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="grid grid-cols-2 sm:grid-cols-4 gap-4"
+      >
+        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500">Institution Applications</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-slate-900 dark:text-white mt-1">
             {myApps.length}
@@ -283,7 +282,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
           <div className="text-[11px] text-slate-500 mt-1">Scoped to {currentUser.officialInstitutionCode}</div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500">Action / Clarification Needed</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-red-700 dark:text-red-400 mt-1">
             {actionRequiredApps.length}
@@ -291,7 +290,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
           <div className="text-[11px] text-slate-500 mt-1">Awaiting institutional response</div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500">Authorized Repository Docs</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-blue-700 dark:text-blue-400 mt-1">
             {myDocs.length}
@@ -299,14 +298,14 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
           <div className="text-[11px] text-slate-500 mt-1">Linked to institutional dossiers</div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500">Flagged or Expiring Docs</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-amber-700 dark:text-amber-400 mt-1">
             {flaggedOrExpiringDocs.length}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Requires renewal or check</div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Institution's Applications & Personalized Checklists */}
       <section className="space-y-4">
@@ -507,14 +506,25 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
       </section>
 
       {/* Start New Application Modal */}
-      {newAppModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="new-application-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4"
-        >
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-5">
+      <AnimatePresence>
+        {newAppModalOpen && (
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-application-title"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 6 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              className="liquid-glass-elevated rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto space-y-5"
+            >
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h2 id="new-application-title" className="text-lg font-display font-bold text-slate-900 dark:text-white">
@@ -665,9 +675,10 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                 Create &amp; Submit Application Now
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

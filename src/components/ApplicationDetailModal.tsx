@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import {
   X,
   CheckCircle2,
@@ -109,15 +110,25 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   };
 
   return (
-    <div
+    <motion.div
       role="dialog"
       aria-modal="true"
       aria-labelledby="app-dossier-title"
-      className="fixed inset-0 z-50 flex justify-end bg-slate-950/60 backdrop-blur-xs"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+      className="fixed inset-0 z-50 flex justify-end bg-slate-950/65 backdrop-blur-md"
     >
-      <div className="bg-white dark:bg-slate-900 w-full max-w-4xl h-full flex flex-col border-l border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+      <motion.div
+        initial={{ x: 40, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: 32, opacity: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="liquid-glass-elevated w-full max-w-4xl h-full flex flex-col border-y-0 border-r-0 overflow-hidden"
+      >
         {/* Top Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4 bg-slate-50/70 dark:bg-slate-950/50">
+        <div className="px-6 py-4 border-b border-slate-200/70 dark:border-blue-400/15 flex items-start justify-between gap-4 liquid-glass-subtle">
           <div>
             <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400 font-mono-tabular font-semibold">
               <span>{application.id}</span>
@@ -717,7 +728,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             </section>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

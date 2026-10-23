@@ -1,0 +1,806 @@
+# Task: Integrate the Aura MotionSites Landing Page Design into My Existing Application
+
+I want you to integrate the following premium landing page design, originally specified through MotionSites, into my existing Google AI Studio application.
+
+**Reference:** https://motionsites.ai/?prompt=email-landing-page
+
+**Important:** Aura is the name used in the design reference. It is not necessarily the name of my existing application. Adapt the design to my existing app's identity, branding, content, and purpose wherever necessary. Do not rename my application to Aura unless that is already its name or I explicitly request it.
+
+## 1. CRITICAL INSTRUCTIONS: EXISTING PROJECT FIRST
+
+Before writing or modifying code:
+
+1. Inspect the entire existing project structure, including package.json, the current framework, components, routes, CSS, Tailwind configuration, assets, and environment variables.
+2. Identify the existing application's functionality, backend integrations, authentication, API connections, database operations, and current design system.
+3. Determine how the landing page can be integrated into the existing application without breaking anything.
+4. Reuse the current framework and architecture wherever practical. If the project already uses React, TypeScript, Vite, or Tailwind CSS, preserve the existing setup.
+5. Do not replace the entire project with a new scaffold, delete existing pages, reset configuration files unnecessarily, or overwrite working functionality.
+6. Do not remove or modify existing Supabase connections, environment variables, authentication flows, API calls, database schemas, or other integrations unless explicitly required and approved.
+7. If the current application uses a different framework, adapt the design to that framework instead of forcing an unnecessary migration.
+8. If this environment does not support a requested dependency or operation, explain the limitation and implement a compatible alternative.
+
+After inspecting the project, briefly explain your implementation plan and then proceed with the actual changes. Do not stop after providing a plan.
+
+## 2. DESIGN OBJECTIVE
+
+Reproduce the supplied MotionSites reference as closely as possible, preserving the specified visual details, component structure, animations, and content.
+
+The design should feel premium, cinematic, minimal, and AI-native.
+
+Visual direction:
+- Dark background: #0c0c0c.
+- White typography with carefully controlled opacity.
+- Cyan and deep-blue gradients.
+- Cinematic background video.
+- Liquid-glass surfaces with subtle borders and reflections.
+- Smooth motion, restrained transitions, and staggered entrance animations.
+- Apple-inspired interface details and a realistic desktop email client mockup.
+- Precise spacing, typography, alignment, and responsive layouts.
+
+Do not simplify the design into a generic SaaS landing page. Implement all nine specified sections.
+
+## 3. TECH STACK AND DEPENDENCIES
+
+The reference uses:
+
+- React 18.
+- TypeScript.
+- Vite.
+- Tailwind CSS.
+- Motion v12 or newer, imported from `motion/react`.
+- lucide-react.
+- @supabase/supabase-js where required by the existing project.
+
+Use compatible versions of these dependencies. Inspect package.json before installing anything. Do not downgrade or replace working dependencies without a reason.
+
+If the project already has a working setup, preserve it and install only the missing dependencies that are genuinely needed.
+
+### Tailwind configuration
+
+Extend the theme with:
+
+- Brand color: `#3D81E3`.
+- Sans font stack: `['Inter', 'system-ui', 'sans-serif']`.
+
+Preserve all existing Tailwind configuration and plugins.
+
+### Typography
+
+Add the Inter font import to the existing global stylesheet:
+
+`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');`
+
+Use:
+
+`html, body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }`
+
+Set the selection background to the equivalent of `bg-brand/30`.
+
+Keep the global background at #0c0c0c and the default text color white.
+
+## 4. GLOBAL BACKGROUND AND VISUAL EFFECTS
+
+Use the following looping background video, fixed behind the application content:
+
+`https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260508_064122_c4750c0e-7476-4b44-94a2-a85a65c63bf2.mp4`
+
+Implement it using an autoplaying, muted, looping, inline video with `object-cover`, fixed positioning, and pointer events disabled.
+
+Use the root wrapper equivalent of:
+
+`relative min-h-screen overflow-x-hidden bg-[#0c0c0c] text-white`
+
+Place the video behind all content, with suitable overlays to maintain readable text and adequate contrast. Ensure that it does not block clicks, keyboard interactions, or scrolling.
+
+Add the two desktop-only vertical guide lines at the edges of the 36rem content container, matching the supplied specifications.
+
+Provide a graceful fallback if the video fails to load. Respect reduced-motion preferences and avoid unnecessary background playback when the page is not visible.
+
+### SVG noise filters
+
+Implement the two SVG noise effects specified in the reference:
+
+1. A root-level filter for subtle grain on the shiny headline, using fractal noise with baseFrequency 0.9, two octaves, stitched tiles, the supplied color matrix, composite, and multiply blend.
+2. A pricing-section filter using fractal noise with baseFrequency 0.5, two octaves, alpha slope 0.075, composite, and overlay blend.
+
+Preserve the supplied filter parameters.
+
+SVG filter IDs must be unique across the rendered document. Use separate IDs for the root and pricing filters, updating their corresponding CSS references. Do not allow one filter definition to override another.
+
+## 5. SHARED COMPONENTS
+
+Implement reusable, typed React components for the following primitives.
+
+### AppleLogo
+
+Use the supplied inline SVG path and viewBox `0 0 384 512`, with `fill="currentColor"` and default dimensions equivalent to `w-4 h-4`.
+
+Use the exact path from the original specification.
+
+### LogoMark
+
+Use the supplied abstract four-quadrant curve mark, viewBox `0 0 256 256`, with a white fill and default dimensions equivalent to `w-8 h-8`.
+
+Use the exact path from the original specification.
+
+### AppleButton
+
+Create a rounded white pill containing the Apple logo, the label "Download Aura", and a ChevronRight icon.
+
+Required classes:
+
+`group inline-flex items-center justify-center gap-2 rounded-full bg-white text-black font-medium text-sm px-5 py-3 transition-all hover:bg-white/90 active:scale-[0.98]`
+
+The chevron should translate approximately 1px on group hover.
+
+Support typed `label` and `full` props. The default label is "Download Aura". The `full` prop should make the button fill its available width when needed.
+
+Make the button's destination configurable. Do not invent a download URL or claim that an actual application download exists if no destination has been configured.
+
+### SectionEyebrow
+
+Render a small white circular indicator and a label. Optionally render a tag pill with:
+
+`px-2 py-0.5 rounded-full border border-white/10 text-white/50`
+
+### Motion
+
+Use Motion components from `motion/react`.
+
+Implement the specified opacity, position, duration, easing, and stagger values. Use reusable animation variants where appropriate, without changing the reference's intended motion.
+
+Animations should be smooth and restrained. Disable or reduce nonessential movement for users who prefer reduced motion.
+
+### Liquid-glass utility
+
+Implement the supplied `.liquid-glass` treatment:
+
+- Nearly transparent white background.
+- Luminosity background blend.
+- 4px backdrop blur.
+- Inset highlight shadow.
+- A pseudo-element creating a subtle, gradient-based reflective border.
+- A masked border gradient with the supplied stops and 1.4px padding.
+- No pointer interception by the decorative pseudo-element.
+
+Preserve the exact gradient stops from the reference.
+
+Use this utility consistently across the inbox, feature cards, testimonials, and final CTA.
+
+## 6. SECTION 1: NAVBAR
+
+Container: `max-w-6xl mx-auto px-6`.
+
+Animate the navbar from opacity 0 and y -10 to opacity 1 and y 0, with duration 0.6 seconds and easeOut easing.
+
+Left:
+- LogoMark only.
+- Do not add the Aura wordmark next to it.
+
+Center:
+- Desktop-only navigation with `hidden md:flex gap-8`.
+- Links: Solutions, Pricing, Blog, Documentation, Careers.
+- Use `text-white/70 text-sm font-medium hover:text-white`.
+- Stagger entrance animations with delay `0.1 + index * 0.05`.
+
+Right:
+- Desktop: AppleButton with label "Download Aura".
+- Mobile: a 40px circular menu button with a subtle border and background.
+
+Make the mobile menu functional, keyboard-accessible, and responsive. Use the existing routing system where applicable. Do not leave inert navigation controls.
+
+If a destination page does not exist, do not invent a route that breaks the application.
+
+## 7. SECTION 2: HERO
+
+Create a centered hero section with:
+
+`pt-16 md:pt-28 pb-20 text-center flex flex-col items-center`
+
+### Headline
+
+Use a Motion h1 with a delay of 0.3 seconds, duration 0.8 seconds, and easing equivalent to `cubic-bezier(.22,1,.36,1)`.
+
+Classes:
+
+`text-4xl md:text-7xl font-semibold tracking-tight leading-[0.9]`
+
+Line 1: "Your email." in white.
+
+Line 2: "Revitalized" with the supplied shiny cyan and deep-blue gradient.
+
+Use the original gradient stops:
+
+`linear-gradient(to right, #091020 0%, #0B2551 12.5%, #A4F4FD 32.5%, #00d2ff 50%, #0B2551 67.5%, #091020 87.5%, #091020 100%)`
+
+Set the background size to `200% auto`, clip the background to the text, make the text transparent, and apply the root noise filter.
+
+Implement `.animate-shiny` using a 6-second linear infinite animation, moving the background position from -200% to 200%.
+
+### Description
+
+Enter with delay 0.5 seconds.
+
+Use:
+
+`mt-8 text-white/60 max-w-md text-base leading-[1.5]`
+
+Exact copy:
+
+"Aura is the premier inbox platform for the current era. It leverages powerful AI to organize, prioritize, and refine your messages into total clarity."
+
+### CTA
+
+Enter with delay 0.7 seconds.
+
+Render AppleButton and the secondary caption:
+
+"Download for Intel / Apple Silicon"
+
+Caption styling: `text-xs text-white/40`.
+
+## 8. SECTION 3: MACOS MENU BAR
+
+Create a full-width strip:
+
+`h-10 bg-black/40 backdrop-blur-md border-t border-b border-white/10`
+
+Inner container:
+
+`max-w-6xl mx-auto px-6 h-full flex items-center justify-between text-xs`
+
+Left:
+- AppleLogo at 14px.
+- Bold white "Aura".
+- Menu items: File, Edit, View, Go, Window, Help.
+- Items after index 2 should use `hidden sm:inline`.
+- Items after index 3 should use `hidden md:inline`.
+
+Right:
+- Search icon at 14px.
+- "Wed May 6 1:09 PM".
+
+Animate entrance with a 0.9-second delay.
+
+Preserve the specified sample date and time as reference content.
+
+## 9. SECTION 4: REALISTIC INBOX MOCKUP
+
+Container:
+
+`max-w-6xl mx-auto px-6 py-16 md:py-24`
+
+Outer window:
+- Rounded 2xl corners.
+- Hidden overflow.
+- White border at 10% opacity.
+- Background `#0e1014` at 90% opacity.
+- Strong backdrop blur.
+
+Animate from y 40 to y 0, with a delay of 1.1 seconds.
+
+### Window title bar
+
+Show three traffic-light circles:
+
+- Red: `#ff5f57`
+- Yellow: `#febc2e`
+- Green: `#28c840`
+
+Center label: "Aura — Inbox", styled `text-xs text-white/50`.
+
+### Body layout
+
+Use a 12-column grid with a height of 520px on desktop. At smaller breakpoints, allow vertical scrolling and adapt the panels so the mockup remains usable without horizontal page overflow.
+
+#### Sidebar: 3 columns
+
+Use a subtle dark background, right border, and 16px padding.
+
+Add:
+- A white "Compose with Aura" button with Sparkles icon.
+- Inbox, count 12, active.
+- Starred, count 3.
+- Sent.
+- Drafts, count 2.
+- Archive.
+- Trash.
+
+Use the supplied active and inactive styles.
+
+Add a "Labels" heading and four colored dots:
+
+- Work: `#00d2ff`
+- Personal: `#A4F4FD`
+- Travel: `#f59e0b`
+- Finance: `#10b981`
+
+#### Message list: 4 columns
+
+Add a search header with Search icon and placeholder "Search mail".
+
+Render all six messages, using the exact sample data below.
+
+1. Linear
+   - Subject: "Weekly product digest"
+   - Preview: "Your team shipped 23 issues this week..."
+   - Time: "9:41 AM"
+   - Unread and active.
+
+2. Sophia Chen
+   - Subject: "Re: Q3 roadmap review"
+   - Preview: "Thanks for sending the deck over. I had a few thoughts..."
+   - Time: "8:12 AM"
+   - Unread.
+
+3. Figma
+   - Subject: "Marcus commented on your file"
+   - Preview: "Love the new direction on the landing hero."
+   - Time: "Yesterday".
+
+4. Stripe
+   - Subject: "Payout of $12,480.00 sent"
+   - Preview: "Your payout is on its way to your bank..."
+   - Time: "Yesterday".
+
+5. Vercel
+   - Subject: "Deployment ready for aura-web"
+   - Preview: "Preview is live at aura-web-g3f.vercel.app"
+   - Time: "Mon".
+
+6. GitHub
+   - Subject: "[aura/core] PR #482 approved"
+   - Preview: "david-lim approved your pull request."
+   - Time: "Mon".
+
+Use readable typography, appropriate truncation, separators, and active/unread styling.
+
+Where practical, implement working interactions for selecting messages, searching, switching folders, and starring messages. Clearly treat the messages as sample demonstration data, not actual connected email.
+
+#### Reader: 5 columns
+
+Toolbar:
+- Reply.
+- Forward.
+- Archive.
+- Trash2.
+- MoreHorizontal aligned right.
+
+Use 28px icon buttons with hover backgrounds.
+
+Selected message:
+- Subject: "Weekly product digest".
+- Avatar: a rounded gradient circle from `#00d2ff` to `#0B2551`, containing "L".
+- Sender: "Linear".
+- Recipient/time: "to me · 9:41 AM".
+- Label pill: "Work".
+
+Summary card:
+- Sparkles icon in `#A4F4FD`.
+- Heading: "Summary by Aura".
+- Text: "Your team closed 23 issues, merged 14 PRs, and shipped 2 features. Top contributor: Marcus. No action needed."
+
+Email body, preserving these exact paragraphs:
+
+"Hi team,"
+
+"Here is your weekly digest of everything happening across your projects. This was a strong week with significant progress on the Q3 roadmap."
+
+"Twenty-three issues were closed, fourteen pull requests were merged, and two customer-facing features went out. The velocity trend continues to climb."
+
+"Let me know if you would like a deeper breakdown by project or contributor."
+
+"— The Linear team"
+
+Use `text-white/50` for the signature.
+
+Attachment:
+- Paperclip icon.
+- "digest-may-6.pdf".
+
+Use realistic spacing and message-reader styling.
+
+## 10. SECTION 5: FEATURE TRIAGE
+
+Container:
+
+`max-w-6xl mx-auto px-6 py-20 md:py-28`
+
+Use a two-column grid with `grid md:grid-cols-2 gap-10 md:gap-16 items-start`.
+
+### Left column
+
+Animate from y 20 to y 0 over 0.7 seconds.
+
+SectionEyebrow:
+- Label: "Triage".
+- Tag: "AI-native".
+
+Headline:
+
+"Clear your inbox"
+
+"in a single pass."
+
+Use a line break between the phrases and:
+
+`mt-5 text-3xl md:text-5xl font-semibold tracking-tight leading-[1.02]`
+
+Paragraph:
+
+"Aura reads every message, understands intent, and routes the noise away from the signal. Focus on what moves your day forward — the rest handles itself."
+
+Style: `mt-6 text-white/60 text-base leading-[1.6] max-w-md`.
+
+Chips:
+- Auto-categorize.
+- Snooze for later.
+- Silent newsletters.
+- One-tap unsubscribe.
+
+Use:
+
+`text-xs text-white/70 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.03]`
+
+### Right column
+
+Create a liquid-glass card with rounded 2xl corners and 20px padding.
+
+Heading: "Today · 42 messages triaged".
+
+Four sub-cards, each with liquid-glass, rounded-lg, and 12px padding.
+
+1. Priority (4), color `#ffffff`
+   - "Sophia Chen — Q3 review"
+   - "David Lim — contract signoff"
+
+2. Follow-up (7), color `#e5e5e5`
+   - "Marcus — design review"
+   - "Figma — comment thread"
+
+3. Updates (18), color `#a3a3a3`
+   - "Vercel — deploy ready"
+   - "GitHub — PR #482 merged"
+
+4. Archived (13), color `#525252`
+   - "Stripe payout · Newsletter · Receipts"
+
+Preserve the counts, labels, and text.
+
+## 11. SECTION 6: LOGO CLOUD
+
+Container:
+
+`max-w-6xl mx-auto px-6 py-16 md:py-20`
+
+Centered heading:
+
+"Trusted by the world's most thoughtful teams"
+
+Style: `text-xs uppercase tracking-widest text-white/40`.
+
+Grid:
+
+`mt-10 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-6`
+
+Logo names:
+- Linear
+- Vercel
+- Figma
+- Stripe
+- Ramp
+- Notion
+- Loom
+- Arc
+
+Use `text-sm font-semibold tracking-tight text-white/50 hover:text-white`.
+
+Fade in each name with a 0.05-second stagger.
+
+These are visual reference names, not verified customer endorsements. Do not imply that these companies officially endorse or use the application.
+
+## 12. SECTION 7: TESTIMONIALS
+
+Container:
+
+`max-w-6xl mx-auto px-6 py-20 md:py-28 border-t border-white/10`
+
+Use a three-column responsive grid.
+
+Each card uses `liquid-glass rounded-2xl p-6`.
+
+Quote styling:
+
+`text-sm text-white/80 leading-[1.6]`
+
+Figure caption:
+
+`mt-6 pt-5 border-t border-white/10`
+
+Name: `text-sm font-semibold`.
+
+Role: `text-xs text-white/50`.
+
+Company: `text-xs text-white font-semibold tracking-wide`.
+
+Use these supplied placeholder testimonials exactly:
+
+1. Quote: "Aura gave our leadership team four hours of their week back. It reads like email from the future."
+   - Parker Wilf
+   - Group Product Manager
+   - MERCURY
+
+2. Quote: "The command palette alone has changed how I process messages. I can't imagine going back to a traditional client."
+   - Andrew von Rosenbach
+   - Senior Engineering Program Manager
+   - COHERE
+
+3. Quote: "Triage that actually understands context. Our team stopped dreading Monday morning inboxes."
+   - Mathies Christensen
+   - Engineering Manager
+   - LUNAR
+
+Treat these as reference copy only. Do not represent them as verified testimonials from real customers unless independently confirmed.
+
+## 13. SECTION 8: PRICING
+
+Create the pricing section using the supplied custom CSS classes and preserve the cinematic typography, glass surfaces, and card layout.
+
+Use a section-specific SVG noise filter with its own unique ID.
+
+### Watermark
+
+Implement the following structure:
+
+`c3-watermark-container`
+
+Inside it:
+
+`c3-watermark-main`
+
+The first line:
+
+"Your email."
+
+The second line:
+
+"Revitalized"
+
+Use the supplied styles and responsive sizes.
+
+Desktop watermark:
+- Font size: 9rem.
+- Font weight: 800.
+- Line height: 0.9.
+- Letter spacing: -0.05em.
+- Centered vertical flex layout.
+- Maximum width: 1100px.
+- Top margin: 40px.
+
+The first line is white.
+
+The second line uses:
+
+`linear-gradient(to right, #091020 0%, #0B2551 25%, #A4F4FD 65%, #00d2ff 100%)`
+
+Clip the gradient to the text and apply the pricing noise filter.
+
+### Pricing state
+
+Implement a React state variable named `yearly` as a boolean.
+
+Provide an accessible toggle for switching between monthly and yearly billing.
+
+When yearly billing is active, update the Standard and Pro prices accordingly. The toggle must work, and the selected billing period must be visually clear.
+
+### Plan 1: Free
+
+Tier: "Free"
+
+Price: "Free"
+
+Description:
+
+"For creators taking their first steps with Forma."
+
+Features:
+- Up to 3 projects in the cloud.
+- Image export up to 1080p.
+- Basic editing tools.
+- Free templates and icons.
+- Access via web and mobile app.
+
+### Plan 2: Standard
+
+Monthly price: "$9,99/m"
+
+Yearly price: "$99,99/y"
+
+Description:
+
+"For freelancers and small teams who need more freedom and flexibility."
+
+Features:
+- Up to 50 projects in the cloud.
+- Export up to 4K.
+- Advanced editing toolkit.
+- Team collaboration (up to 5 members).
+- Access to premium template library.
+
+### Plan 3: Pro
+
+Apply the `c3-card-pro` class.
+
+Monthly price: "$19,99/m"
+
+Yearly price: "$199,99/y"
+
+Description:
+
+"For studios, agencies, and professional creators working with brands."
+
+Features:
+- Unlimited projects.
+- Export up to 8K + animations.
+- AI-powered content generation tools.
+- Unlimited team members.
+- Brand customization.
+
+Preserve the supplied pricing copy exactly, even where the wording references Forma or projects. Do not silently rewrite it.
+
+### Pricing cards
+
+Each card must contain:
+- Tier name.
+- Price.
+- Description.
+- Feature list with circular checkmark icons.
+- A "Choose Plan" button.
+
+Keep the buttons functional. If no payment or checkout integration exists, show a clear placeholder interaction or connect to the existing plan-selection flow. Do not claim that a subscription has been purchased or invent a payment backend.
+
+### Exact pricing CSS values
+
+Preserve the supplied declarations for the following classes:
+
+- `.c3-pricing-section`
+- `.c3-watermark-container`
+- `.c3-watermark-main`
+- `.c3-watermark-line-1`
+- `.c3-watermark-line-2`
+- `.c3-grid`
+- `.c3-card`
+- `.c3-card::before`
+- `.c3-card:hover`
+- `.c3-card-pro`
+- `.c3-tier-small`
+- `.c3-tier-large`
+- `.c3-desc`
+- `.c3-list li`
+- `.c3-check`
+- `.c3-btn`
+- `.c3-btn:hover`
+- `.c3-toggle-wrap`
+- `.c3-toggle`
+- `.c3-toggle-knob`
+- `.c3-toggle.active`
+- `.c3-toggle.active .c3-toggle-knob`
+
+Use the exact property values supplied in the original reference specification, including the 44px card radius, 580px minimum card height, 24px desktop grid gap, 20px grid translation, 14px backdrop blur, 12px hover translation, and specified transitions.
+
+### Responsive pricing layout
+
+At viewport widths up to 1024px:
+- Set watermark font size to 3.5rem.
+- Remove the watermark filter.
+- Use a solid cyan color for the second line instead of the desktop gradient.
+- Convert the pricing grid into a horizontally scrollable, scroll-snapping flex layout.
+- Use 320px fixed-basis cards with 16px gaps.
+- Remove the desktop horizontal translation.
+- Hide the scrollbar.
+- Center the billing toggle.
+
+Preserve the reference's responsive behaviour while ensuring that no card becomes inaccessible on smaller screens.
+
+## 14. SECTION 9: FINAL CTA
+
+Container:
+
+`max-w-6xl mx-auto px-6 py-20 md:py-32`
+
+Create a liquid-glass panel with:
+- Relative positioning.
+- Hidden overflow.
+- Rounded 3xl corners.
+- 32px horizontal padding.
+- 64px vertical padding on mobile.
+- 96px vertical padding on desktop.
+- Centered text.
+
+Add a radial glow overlay:
+
+`radial-gradient(600px circle at 50% 0%, rgba(255,255,255,0.15), transparent 70%)`
+
+Set overlay opacity to 0.3.
+
+Headline:
+
+"Close the tabs."
+
+"Open your day."
+
+Style:
+
+`text-4xl md:text-6xl font-semibold tracking-tight leading-[1.02]`
+
+Paragraph:
+
+"Join thousands of builders, founders, and operators who treat email like a tool — not an obligation."
+
+Style:
+
+`mt-6 text-white/60 max-w-md mx-auto text-sm leading-[1.6]`
+
+Buttons:
+1. AppleButton with label "Download Aura".
+2. A secondary pill button with text "Talk to sales" and ChevronRight.
+
+Secondary button styles:
+
+`rounded-full border border-white/15 text-white text-sm font-medium px-5 py-3 hover:bg-white/5`
+
+Use a configurable destination or existing contact flow for Talk to sales. Do not create a fake working link.
+
+## 15. CONTENT, FUNCTIONALITY, AND ACCESSIBILITY
+
+The design reference is the source of truth for visual content.
+
+Preserve:
+- All supplied headline strings.
+- All section headings.
+- All message subjects, previews, senders, and timestamps.
+- All summary and email body copy.
+- All feature labels and counts.
+- All pricing descriptions and prices.
+- All CTA labels.
+- All animation timings and gradient stops.
+
+Do not omit sections or replace detailed components with generic placeholders.
+
+At the same time:
+- Keep existing application features working.
+- Use semantic HTML.
+- Provide accessible names for icon-only buttons.
+- Support keyboard navigation and visible focus states.
+- Ensure readable contrast.
+- Use responsive layouts.
+- Respect reduced-motion preferences.
+- Handle missing assets and video loading errors gracefully.
+- Avoid unnecessary dependencies and duplicated CSS.
+- Avoid horizontal page overflow.
+- Do not expose secrets or credentials in client-side code.
+- Do not connect the mock inbox to a real email account unless the existing application already has an appropriate integration.
+
+Where the reference contains fictional sample data, keep it clearly identified as demonstration content.
+
+## 16. IMPLEMENTATION AND VERIFICATION
+
+Implement the design directly in the existing project.
+
+Do not merely generate a standalone example, a static screenshot, or an implementation plan.
+
+After implementation:
+
+1. Run the existing development or build workflow available in the environment.
+2. Resolve TypeScript errors, missing imports, missing dependencies, invalid Tailwind classes, and CSS issues.
+3. Verify that all nine sections render.
+4. Check that the navigation, mobile menu, inbox interactions, pricing toggle, and buttons behave appropriately.
+5. Verify the background video URL and provide a fallback if it is inaccessible.
+6. Inspect desktop, tablet, and mobile layouts.
+7. Confirm that existing routes, authentication, API integrations, database connections, and unrelated functionality remain intact.
+8. Review console and build errors and fix those introduced by your changes.
+9. Summarize the files changed, dependencies added, features implemented, and any remaining limitations.
+
+If the environment cannot execute a particular test or preview, state that honestly instead of claiming the test passed.
+
+**Final priority:** Reproduce the supplied MotionSites design as faithfully as possible inside my existing application while preserving its current architecture and functionality. Complete the implementation rather than stopping after analysis or scaffolding.

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence } from 'motion/react';
 import {
   AccountStatus,
   ApplicationCategory,
@@ -1143,23 +1144,26 @@ export default function App() {
       )}
 
       {/* Application Detail Slide-Over Modal */}
-      {selectedApplication && (
-        <ApplicationDetailModal
-          application={selectedApplication}
-          documents={documents}
-          currentUser={currentUser}
-          onClose={() => setSelectedApplicationId(null)}
-          onOpenDocument={(docId) => {
-            setSelectedApplicationId(null);
-            setActiveView('documents');
-            setSelectedDocumentId(docId);
-          }}
-          onAttachChecklistDocument={handleAttachChecklistDocument}
-          onSubmitDraftApplication={handleSubmitDraftApplication}
-          onResubmitApplication={handleResubmitApplication}
-          onAdminAction={handleAdminAction}
-        />
-      )}
+      <AnimatePresence>
+        {selectedApplication && (
+          <ApplicationDetailModal
+            key={selectedApplication.id}
+            application={selectedApplication}
+            documents={documents}
+            currentUser={currentUser}
+            onClose={() => setSelectedApplicationId(null)}
+            onOpenDocument={(docId) => {
+              setSelectedApplicationId(null);
+              setActiveView('documents');
+              setSelectedDocumentId(docId);
+            }}
+            onAttachChecklistDocument={handleAttachChecklistDocument}
+            onSubmitDraftApplication={handleSubmitDraftApplication}
+            onResubmitApplication={handleResubmitApplication}
+            onAdminAction={handleAdminAction}
+          />
+        )}
+      </AnimatePresence>
     </AppShell>
   );
 }
