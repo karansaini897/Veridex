@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import {
   Search,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   ArrowRight,
   AlertTriangle,
   CheckCircle2,
@@ -58,7 +60,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 }) => {
   const [tableSearch, setTableSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | ApplicationStatus>('All');
-  const [sortField, setSortField] = useState<'lastUpdated' | 'submittedDate' | 'institutionName' | 'id'>('lastUpdated');
+  const [sortField, setSortField] = useState<'lastUpdated' | 'submittedDate' | 'institutionName' | 'status' | 'id'>('lastUpdated');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [visibleLimit, setVisibleLimit] = useState(8);
 
@@ -82,8 +84,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         );
       })
       .sort((a, b) => {
-        const valA = a[sortField] || '';
-        const valB = b[sortField] || '';
+        const rawA = a[sortField] || '';
+        const rawB = b[sortField] || '';
+        const valA = sortField === 'submittedDate' && rawA === '—' ? '0000-00-00' : rawA;
+        const valB = sortField === 'submittedDate' && rawB === '—' ? '0000-00-00' : rawB;
         const cmp = valA.localeCompare(valB);
         return sortDirection === 'asc' ? cmp : -cmp;
       });
@@ -138,8 +142,31 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortField(field);
-      setSortDirection('desc');
+      setSortDirection(field === 'institutionName' || field === 'status' ? 'asc' : 'desc');
     }
+  };
+
+  const renderSortIndicator = (field: typeof sortField) => {
+    const isActive = sortField === field;
+    if (!isActive) {
+      return (
+        <span className="inline-flex items-center text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors" aria-hidden="true">
+          <ArrowUpDown className="w-3.5 h-3.5" />
+        </span>
+      );
+    }
+    return (
+      <span
+        className="inline-flex items-center gap-0.5 text-blue-700 dark:text-blue-400 font-bold"
+        aria-hidden="true"
+      >
+        {sortDirection === 'asc' ? (
+          <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
+        ) : (
+          <ArrowDown className="w-3.5 h-3.5 stroke-[2.5]" />
+        )}
+      </span>
+    );
   };
 
   const renderStatusText = (status: ApplicationStatus) => {
@@ -189,7 +216,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
           <p className="text-xs font-medium text-blue-700 dark:text-blue-400">
-            {currentUser.designation || 'AICTE Regional Compliance Workspace'}
+            {currentUser.designation || 'VERIDEX Regional Compliance Workspace'}
           </p>
           <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
             {showFullTableOnly
@@ -329,46 +356,80 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                <th className="py-3 px-4">
+                <th
+                  className="py-3 px-4"
+                  aria-sort={sortField === 'id' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                >
                   <button
                     type="button"
                     onClick={() => handleSort('id')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                    className={`group inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white cursor-pointer ${
+                      sortField === 'id' ? 'text-blue-700 dark:text-blue-400 font-bold' : ''
+                    }`}
                   >
                     <span>Ref ID</span>
-                    <ArrowUpDown className="w-3 h-3" />
+                    {renderSortIndicator('id')}
                   </button>
                 </th>
-                <th className="py-3 px-4">
+                <th
+                  className="py-3 px-4"
+                  aria-sort={sortField === 'institutionName' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                >
                   <button
                     type="button"
                     onClick={() => handleSort('institutionName')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                    className={`group inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white cursor-pointer ${
+                      sortField === 'institutionName' ? 'text-blue-700 dark:text-blue-400 font-bold' : ''
+                    }`}
                   >
                     <span>Institution</span>
-                    <ArrowUpDown className="w-3 h-3" />
+                    {renderSortIndicator('institutionName')}
                   </button>
                 </th>
                 <th className="py-3 px-4">Application Category</th>
-                <th className="py-3 px-4">
+                <th
+                  className="py-3 px-4"
+                  aria-sort={sortField === 'submittedDate' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                >
                   <button
                     type="button"
                     onClick={() => handleSort('submittedDate')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                    className={`group inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white cursor-pointer ${
+                      sortField === 'submittedDate' ? 'text-blue-700 dark:text-blue-400 font-bold' : ''
+                    }`}
                   >
                     <span>Submitted</span>
-                    <ArrowUpDown className="w-3 h-3" />
+                    {renderSortIndicator('submittedDate')}
                   </button>
                 </th>
-                <th className="py-3 px-4">Current Status</th>
-                <th className="py-3 px-4">
+                <th
+                  className="py-3 px-4"
+                  aria-sort={sortField === 'status' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleSort('status')}
+                    className={`group inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white cursor-pointer ${
+                      sortField === 'status' ? 'text-blue-700 dark:text-blue-400 font-bold' : ''
+                    }`}
+                  >
+                    <span>Current Status</span>
+                    {renderSortIndicator('status')}
+                  </button>
+                </th>
+                <th
+                  className="py-3 px-4"
+                  aria-sort={sortField === 'lastUpdated' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                >
                   <button
                     type="button"
                     onClick={() => handleSort('lastUpdated')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                    className={`group inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white cursor-pointer ${
+                      sortField === 'lastUpdated' ? 'text-blue-700 dark:text-blue-400 font-bold' : ''
+                    }`}
                   >
                     <span>Last Updated</span>
-                    <ArrowUpDown className="w-3 h-3" />
+                    {renderSortIndicator('lastUpdated')}
                   </button>
                 </th>
                 <th className="py-3 px-4 text-right">Action</th>

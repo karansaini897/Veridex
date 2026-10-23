@@ -177,7 +177,7 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
             Appearance, Demo State &amp; Architecture Transparency
           </p>
           <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
-            Portal Settings &amp; Environment Status
+            VERIDEX Settings &amp; Environment Status
           </h1>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
             Configure theme persistence, reset demo state for presentations, and inspect prototype vs production backend boundaries.

@@ -97,7 +97,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const roleBadgeLabel = (role: UserAccount['role']) => {
     switch (role) {
       case 'admin':
-        return 'AICTE Regional Admin';
+        return 'VERIDEX Regional Admin';
       case 'institutional_rep':
         return 'Institutional Representative';
       case 'faculty':
@@ -112,16 +112,23 @@ export const LoginView: React.FC<LoginViewProps> = ({
       {/* Top Bar */}
       <header className="flex items-center justify-between gap-8 px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center text-white font-display font-bold text-sm">
-            AV
+          <img
+            src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
+            alt="VERIDEX Logo"
+            className="h-9 w-auto rounded-md object-contain bg-white px-1 py-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+          />
+          <div>
+            <span className="font-display font-bold text-base tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0 block leading-tight">
+              VERIDEX
+            </span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block leading-tight">
+              Application Validation &amp; Document Authentication
+            </span>
           </div>
-          <span className="font-display font-semibold text-base tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0">
-            AICTE Validation &amp; Compliance Portal
-          </span>
         </div>
 
         <div className="hidden md:flex items-center gap-6 text-xs text-slate-600 dark:text-slate-400">
-          <span>Hackathon Prototype Environment</span>
+          <span>VERIDEX Prototype Environment</span>
           <span aria-hidden="true">·</span>
           <span>Simulated Verification Pipeline</span>
           <span aria-hidden="true">·</span>
@@ -147,7 +154,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         <section className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-8 shadow-xs">
           <div className="mb-6">
             <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">
-              Authorized Portal Sign-In
+              VERIDEX Authorized Sign-In
             </p>
             <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white tracking-tight">
               Sign in to your account
@@ -180,7 +187,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="e.g. rep.kashyap or +91 98220 33445"
+                placeholder="e.g. karan.saini or +91 98110 44210"
                 autoComplete="username"
                 className="w-full px-3.5 py-2.5 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
               />
@@ -289,8 +296,10 @@ export const LoginView: React.FC<LoginViewProps> = ({
                       ? `${account.institutionName} (${account.officialInstitutionCode})`
                       : account.designation}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 font-mono-tabular">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400 font-mono-tabular">
                     <span>User: {account.username}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>Pass: {account.password}</span>
                     <span aria-hidden="true">·</span>
                     <span>Phone: {account.phone}</span>
                   </div>
@@ -326,13 +335,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
             </div>
             <ol className="list-decimal list-inside space-y-1 text-slate-600 dark:text-slate-400">
               <li>
-                Launch as <strong>Dr. Arvind Kashyap</strong> (Institutional Rep, Vidyapeeth Pune) to create/submit an application or respond to the pending review request on <span className="font-mono-tabular">APP-2026-0104</span>.
+                Launch as <strong>Dr. Aashay Khadkikar</strong> (<span className="font-mono-tabular">aashay.khadkikar</span>, Institutional Rep, Vidyapeeth Pune) to create/submit an application or respond to the pending review request on <span className="font-mono-tabular">APP-2026-0104</span>.
               </li>
               <li>
-                Switch to <strong>Rajeshwari Sharma</strong> (AICTE Regional Admin) via the top bar or sign-in screen to inspect findings, request corrections, or record an authorized decision.
+                Switch to <strong>Karan Saini</strong> (<span className="font-mono-tabular">karan.saini</span>, VERIDEX Regional Admin) via the top bar or sign-in screen to sort applications, inspect findings, request corrections, or record an authorized decision.
               </li>
               <li>
-                Inspect role isolation using <strong>Dr. Siddharth Kulkarni</strong> (Faculty) and <strong>Ananya Deshmukh</strong> (Student).
+                Inspect role isolation using <strong>Dr. Shravani Salunkhe</strong> (<span className="font-mono-tabular">shravani.salunkhe</span>, Faculty), <strong>Shreya Kaulgud</strong> (<span className="font-mono-tabular">shreya.kaulgud</span>, Student), <strong>Prof. Gauri Sardal</strong> (<span className="font-mono-tabular">gauri.sardal</span>), and <strong>Dr. Rutvi Bharat Patkar</strong> (<span className="font-mono-tabular">rutvi.patkar</span>).
               </li>
             </ol>
           </div>
@@ -381,7 +390,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                     required
                     value={recoveryIdentifier}
                     onChange={(e) => setRecoveryIdentifier(e.target.value)}
-                    placeholder="e.g. rep.kashyap or +91 98220 33445"
+                    placeholder="e.g. aashay.khadkikar or +91 98220 33445"
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                   />
                 </div>

@@ -92,7 +92,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   const roleLabel = useMemo(() => {
     switch (currentUser.role) {
       case 'admin':
-        return 'AICTE Regional Admin';
+        return 'VERIDEX Regional Admin';
       case 'institutional_rep':
         return 'Institutional Representative';
       case 'faculty':
@@ -246,13 +246,18 @@ export const AppShell: React.FC<AppShellProps> = ({
     <div className="min-h-screen flex bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
-        <div className="h-14 px-5 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="w-7 h-7 rounded-md bg-blue-700 flex items-center justify-center text-white font-display font-bold text-xs shrink-0">
-            AV
-          </div>
+        <div className="h-14 px-4 flex items-center gap-2.5 border-b border-slate-200 dark:border-slate-800">
+          <img
+            src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
+            alt="VERIDEX Logo"
+            className="h-8 w-auto rounded-md object-contain bg-white px-1 py-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+          />
           <div className="min-w-0">
-            <div className="font-display font-bold text-sm text-slate-900 dark:text-white truncate">
-              AICTE Validation
+            <div className="font-display font-bold text-sm text-slate-900 dark:text-white truncate leading-tight">
+              VERIDEX
+            </div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate leading-tight">
+              Validation &amp; Compliance
             </div>
           </div>
         </div>
@@ -263,7 +268,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             {roleLabel}
           </div>
           <div className="text-xs font-semibold text-slate-900 dark:text-white mt-0.5 truncate">
-            {currentUser.institutionName || 'AICTE Compliance Bureau'}
+            {currentUser.institutionName || 'VERIDEX Compliance Bureau'}
           </div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono-tabular mt-0.5">
             {currentUser.officialInstitutionCode || currentUser.permissionLevel || currentUser.rollNumber}
@@ -320,9 +325,16 @@ export const AppShell: React.FC<AppShellProps> = ({
           />
           <aside className="relative w-64 max-w-xs bg-white dark:bg-slate-900 h-full flex flex-col border-r border-slate-200 dark:border-slate-800 z-10">
             <div className="h-14 px-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
-              <span className="font-display font-bold text-sm text-slate-900 dark:text-white">
-                AICTE Validation Portal
-              </span>
+              <div className="flex items-center gap-2">
+                <img
+                  src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
+                  alt="VERIDEX Logo"
+                  className="h-7 w-auto rounded-md object-contain bg-white px-1 py-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+                />
+                <span className="font-display font-bold text-sm text-slate-900 dark:text-white">
+                  VERIDEX
+                </span>
+              </div>
               <button
                 type="button"
                 aria-label="Close navigation menu"
@@ -360,7 +372,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Compact Top Bar */}
         <header className="h-14 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-30">
-          {/* Left: Mobile Trigger + Breadcrumb */}
+          {/* Left: Mobile Trigger + VERIDEX Brand + Breadcrumb */}
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
@@ -370,11 +382,22 @@ export const AppShell: React.FC<AppShellProps> = ({
             >
               <Menu className="w-4 h-4" />
             </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <img
+                src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
+                alt="VERIDEX Logo"
+                className="h-7 w-auto rounded-md object-contain bg-white px-1 py-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+              />
+              <span className="font-display font-bold text-xs sm:text-sm text-slate-900 dark:text-white tracking-tight">
+                VERIDEX
+              </span>
+            </div>
+            <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">|</span>
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 truncate">
-              <span className="hidden sm:inline font-medium text-slate-700 dark:text-slate-300">
+              <span className="hidden md:inline font-medium text-slate-700 dark:text-slate-300">
                 {roleLabel}
               </span>
-              <span className="hidden sm:inline" aria-hidden="true">/</span>
+              <span className="hidden md:inline" aria-hidden="true">/</span>
               <span className="font-semibold text-slate-900 dark:text-white capitalize truncate">
                 {navItems.find((n) => n.id === activeView)?.label || activeView}
               </span>
@@ -623,7 +646,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                       className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
                     >
                       <Settings className="w-4 h-4" />
-                      <span>Portal Settings</span>
+                      <span>VERIDEX Settings</span>
                     </button>
                   </div>
                   <div className="pt-1 border-t border-slate-200 dark:border-slate-800">
@@ -709,7 +732,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 <div className="text-xs text-slate-500 dark:text-slate-400 py-6 text-center space-y-2">
                   <p>Type to search across records you are authorized to access.</p>
                   <div className="flex flex-wrap justify-center gap-2 pt-1">
-                    {['APP-2026-0104', 'FAC-QUA-KAS-02', 'INF-FAC-VIT-01', 'Kulkarni', 'SPPU'].map((sample) => (
+                    {['APP-2026-0104', 'FAC-QUA-KAS-02', 'INF-FAC-VIT-01', 'Salunkhe', 'SPPU'].map((sample) => (
                       <button
                         key={sample}
                         type="button"

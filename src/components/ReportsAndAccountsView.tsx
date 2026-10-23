@@ -66,7 +66,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
   const [gender, setGender] = useState<UserAccount['gender']>('Prefer not to say');
   const [accountStatus, setAccountStatus] = useState<AccountStatus>('Active');
   const [assignedRole, setAssignedRole] = useState<Role>('institutional_rep');
-  const [password, setPassword] = useState('PortalAuth#2026');
+  const [password, setPassword] = useState('VeridexAuth#2026');
   const [institutionId, setInstitutionId] = useState('INST-PUNE-104');
 
   // Role-specific fields
@@ -131,7 +131,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `AICTE_Compliance_Summary_${REFERENCE_DATE}.csv`;
+    link.download = `VERIDEX_Compliance_Summary_${REFERENCE_DATE}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -209,7 +209,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
     if (!canUserPerformAdminAction(currentUser)) {
       return (
         <div className="p-6 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 text-xs text-red-800 dark:text-red-200">
-          <strong>Access Restricted:</strong> Account provisioning and role management are restricted to authorized AICTE Administrator accounts.
+          <strong>Access Restricted:</strong> Account provisioning and role management are restricted to authorized VERIDEX Administrator accounts.
         </div>
       );
     }
@@ -233,7 +233,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
           <section className="lg:col-span-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
             <h2 className="text-base font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <UserPlus className="w-4 h-4 text-blue-600" />
-              <span>Provision New Portal Account</span>
+              <span>Provision New VERIDEX Account</span>
             </h2>
 
             {formError && (

@@ -29,12 +29,12 @@ test('validateAccountUniqueness detects duplicate username and normalized phone 
   const existingUsers: UserAccount[] = [
     {
       id: 'u1',
-      fullName: 'Rajeshwari Sharma',
-      username: 'admin.sharma',
+      fullName: 'Karan Saini',
+      username: 'karan.saini',
       phone: '+91 98110 44210',
       normalizedPhone: '+919811044210',
-      email: 'r.sharma@aicte-demo.org.in',
-      dob: '1978-03-12',
+      email: 'karan.saini@veridex-aicte-demo.org.in',
+      dob: '1992-03-14',
       status: 'Active',
       role: 'admin',
       password: 'demo',
@@ -43,11 +43,11 @@ test('validateAccountUniqueness detects duplicate username and normalized phone 
     },
     {
       id: 'u2',
-      fullName: 'Ananya Deshmukh',
-      username: 'stu.deshmukh',
+      fullName: 'Shreya Kaulgud',
+      username: 'shreya.kaulgud',
       phone: '+91 98201 11200',
       normalizedPhone: '+919820111200',
-      email: 'ananya@vitpune-demo.edu.in',
+      email: 'shreya.kaulgud23@vitpune-demo.edu.in',
       dob: '2004-08-19',
       status: 'Active',
       role: 'student',
@@ -59,7 +59,7 @@ test('validateAccountUniqueness detects duplicate username and normalized phone 
 
   // Duplicate username (case-insensitive)
   const dupUser = validateAccountUniqueness(
-    { username: 'ADMIN.SHARMA', phone: '9899012345' },
+    { username: 'KARAN.SAINI', phone: '9899012345' },
     existingUsers
   );
   assert.equal(dupUser.valid, false);
@@ -97,20 +97,20 @@ test('calculateExpiryDetails computes Valid, Expiring Soon, and Expired accurate
 });
 
 test('generateInternalDocumentCode produces sequential unique codes for same person/category', () => {
-  const existing = ['FAC-QUA-KAS-01', 'FAC-QUA-KAS-02'];
-  const nextCode = generateInternalDocumentCode('Qualifications', 'Dr. Arvind Kashyap', existing);
-  assert.equal(nextCode, 'FAC-QUA-KAS-03');
+  const existing = ['FAC-QUA-KHA-01', 'FAC-QUA-KHA-02'];
+  const nextCode = generateInternalDocumentCode('Qualifications', 'Dr. Aashay Khadkikar', existing);
+  assert.equal(nextCode, 'FAC-QUA-KHA-03');
 });
 
 test('RBAC data isolation restricts institutional reps and students to authorized records', () => {
   const repPune: UserAccount = {
     id: 'u-rep-pune',
-    fullName: 'Dr. Arvind Kashyap',
-    username: 'rep.kashyap',
+    fullName: 'Dr. Aashay Khadkikar',
+    username: 'aashay.khadkikar',
     phone: '+919822033445',
     normalizedPhone: '+919822033445',
-    email: 'registrar@vitpune-demo.edu.in',
-    dob: '1975-06-10',
+    email: 'aashay.khadkikar@vitpune-demo.edu.in',
+    dob: '1984-06-10',
     status: 'Active',
     role: 'institutional_rep',
     institutionId: 'INST-PUNE-104',
@@ -129,19 +129,19 @@ test('RBAC data isolation restricts institutional reps and students to authorize
     ...repPune,
     id: 'u-stu-1',
     role: 'student',
-    fullName: 'Ananya Deshmukh',
+    fullName: 'Shreya Kaulgud',
   };
   const ownDoc = {
     id: 'DOC-1',
     institutionId: 'INST-PUNE-104',
     personUserId: 'u-stu-1',
-    personName: 'Ananya Deshmukh',
+    personName: 'Shreya Kaulgud',
   } as DocumentRecord;
   const otherDoc = {
     id: 'DOC-2',
     institutionId: 'INST-PUNE-104',
     personUserId: 'u-fac-1',
-    personName: 'Dr. Siddharth Kulkarni',
+    personName: 'Dr. Shravani Salunkhe',
   } as DocumentRecord;
 
   assert.equal(canUserAccessDocument(studentUser, ownDoc), true);

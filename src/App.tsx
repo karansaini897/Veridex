@@ -44,14 +44,14 @@ import { ReportsAndAccountsView } from './components/ReportsAndAccountsView';
 import { ProfileAndSettingsView } from './components/ProfileAndSettingsView';
 
 const STORAGE_KEYS = {
-  theme: 'aicte_portal_theme_v1',
-  currentUserId: 'aicte_portal_current_user_v1',
-  users: 'aicte_portal_users_v1',
-  applications: 'aicte_portal_apps_v1',
-  documents: 'aicte_portal_docs_v1',
-  rules: 'aicte_portal_rules_v1',
-  notifications: 'aicte_portal_notifs_v1',
-  audit: 'aicte_portal_audit_v1',
+  theme: 'veridex_portal_theme_v2',
+  currentUserId: 'veridex_portal_current_user_v2',
+  users: 'veridex_portal_users_v2',
+  applications: 'veridex_portal_apps_v2',
+  documents: 'veridex_portal_docs_v2',
+  rules: 'veridex_portal_rules_v2',
+  notifications: 'veridex_portal_notifs_v2',
+  audit: 'veridex_portal_audit_v2',
 };
 
 function loadFromStorage<T>(key: string, fallback: T): T {
@@ -75,6 +75,7 @@ export default function App() {
   });
 
   useEffect(() => {
+    document.title = 'VERIDEX';
     const root = document.documentElement;
     if (darkMode) {
       root.classList.add('dark');
