@@ -50,6 +50,42 @@ const APPLICATION_CATEGORIES: ApplicationCategory[] = [
   'Post-Graduate Research Center Renewal',
 ];
 
+const DASHBOARD_CONTAINER_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.065,
+      delayChildren: 0.02,
+    },
+  },
+};
+
+const METRICS_GRID_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.045,
+    },
+  },
+};
+
+const DASHBOARD_ITEM_VARIANTS = {
+  hidden: { opacity: 0, y: 12, scale: 0.99 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 300,
+      damping: 28,
+      mass: 0.8,
+    },
+  },
+};
+
 export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProps> = ({
   currentUser,
   institution,
@@ -108,8 +144,16 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
   // Student Role Dedicated View
   if (currentUser.role === 'student') {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+      <motion.div
+        variants={DASHBOARD_CONTAINER_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
+        <motion.div
+          variants={DASHBOARD_ITEM_VARIANTS}
+          className="liquid-glass rounded-2xl p-6"
+        >
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="text-xs font-medium text-blue-700 dark:text-blue-400">
@@ -131,9 +175,12 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
           <div className="mt-5 p-3.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
             <strong>Role-Based Data Isolation Active:</strong> As a student account, you only have access to your own verified academic and scholarship documents and your personal profile. Institutional application workflows and other students' records are restricted.
           </div>
-        </div>
+        </motion.div>
 
-        <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+        <motion.section
+          variants={DASHBOARD_ITEM_VARIANTS}
+          className="liquid-glass rounded-2xl p-6"
+        >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
               My Authorized Academic &amp; Scholarship Records ({myDocs.length})
@@ -177,15 +224,23 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
               </div>
             ))}
           </div>
-        </section>
-      </div>
+        </motion.section>
+      </motion.div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <motion.div
+      variants={DASHBOARD_CONTAINER_VARIANTS}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8"
+    >
       {/* Institution Header */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6">
+      <motion.div
+        variants={DASHBOARD_ITEM_VARIANTS}
+        className="liquid-glass rounded-2xl p-5 sm:p-6"
+      >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400 font-medium">
@@ -232,13 +287,14 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Urgent Action Banner for Correction Requests */}
       {actionRequiredApps.length > 0 && (
-        <section
+        <motion.section
+          variants={DASHBOARD_ITEM_VARIANTS}
           aria-label="Action Required Applications"
-          className="bg-red-50/90 dark:bg-red-950/40 border border-red-200 dark:border-red-900/70 rounded-xl p-5"
+          className="bg-red-50/90 dark:bg-red-950/40 border border-red-200 dark:border-red-900/70 rounded-2xl p-5"
         >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -264,51 +320,49 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
               Respond &amp; Resubmit ({actionRequiredApps[0].id})
             </button>
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* Summary Strip */}
       <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        variants={METRICS_GRID_VARIANTS}
         className="grid grid-cols-2 sm:grid-cols-4 gap-4"
       >
-        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500">Institution Applications</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-slate-900 dark:text-white mt-1">
             {myApps.length}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Scoped to {currentUser.officialInstitutionCode}</div>
-        </div>
+        </motion.div>
 
-        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500">Action / Clarification Needed</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-red-700 dark:text-red-400 mt-1">
             {actionRequiredApps.length}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Awaiting institutional response</div>
-        </div>
+        </motion.div>
 
-        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500">Authorized Repository Docs</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-blue-700 dark:text-blue-400 mt-1">
             {myDocs.length}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Linked to institutional dossiers</div>
-        </div>
+        </motion.div>
 
-        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500">Flagged or Expiring Docs</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-amber-700 dark:text-amber-400 mt-1">
             {flaggedOrExpiringDocs.length}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Requires renewal or check</div>
-        </div>
+        </motion.div>
       </motion.section>
 
       {/* Institution's Applications & Personalized Checklists */}
-      <section className="space-y-4">
+      <motion.section variants={DASHBOARD_ITEM_VARIANTS} className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
@@ -448,10 +502,13 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             );
           })}
         </div>
-      </section>
+      </motion.section>
 
       {/* Flagged / Expiring Documents for this Institution */}
-      <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+      <motion.section
+        variants={DASHBOARD_ITEM_VARIANTS}
+        className="liquid-glass rounded-2xl p-5"
+      >
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white">
@@ -503,7 +560,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             );
           })}
         </div>
-      </section>
+      </motion.section>
 
       {/* Start New Application Modal */}
       <AnimatePresence>
@@ -679,6 +736,6 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
         </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 };

@@ -34,6 +34,7 @@ import {
   REFERENCE_DATE,
 } from './lib/domain';
 import { LoginView } from './components/LoginView';
+import { LandingPageView } from './components/LandingPageView';
 import { AppShell } from './components/AppShell';
 import { AdminDashboardView } from './components/AdminDashboardView';
 import { InstitutionalDashboardView } from './components/InstitutionalDashboardView';
@@ -122,6 +123,7 @@ export default function App() {
     }
   });
 
+  const [showLogin, setShowLogin] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<MainView>('dashboard');
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
@@ -170,6 +172,7 @@ export default function App() {
 
   const handleLoginSuccess = (user: UserAccount) => {
     setCurrentUserId(user.id);
+    setShowLogin(false);
     setActiveView('dashboard');
     setSelectedApplicationId(null);
     setSelectedDocumentId(null);
@@ -829,14 +832,18 @@ export default function App() {
     appendAudit(currentUser, `Document Marked ${status}`, 'Document', docId, note);
   };
 
-  // If not authenticated, render LoginView
+  // If not authenticated, render LandingPageView by default or LoginView when Sign In is requested
   if (!currentUser) {
+    if (!showLogin) {
+      return <LandingPageView onOpenLogin={() => setShowLogin(true)} />;
+    }
     return (
       <LoginView
         users={users}
         onLoginSuccess={handleLoginSuccess}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode((prev) => !prev)}
+        onBackToLanding={() => setShowLogin(false)}
       />
     );
   }

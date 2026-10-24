@@ -47,6 +47,42 @@ const STATUS_FILTER_OPTIONS: Array<'All' | ApplicationStatus> = [
   'Draft',
 ];
 
+const DASHBOARD_CONTAINER_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.065,
+      delayChildren: 0.02,
+    },
+  },
+};
+
+const METRICS_GRID_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.045,
+    },
+  },
+};
+
+const DASHBOARD_ITEM_VARIANTS = {
+  hidden: { opacity: 0, y: 12, scale: 0.99 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 300,
+      damping: 28,
+      mass: 0.8,
+    },
+  },
+};
+
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   currentUser,
   applications,
@@ -210,9 +246,17 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   };
 
   return (
-    <div className="space-y-8">
+    <motion.div
+      variants={DASHBOARD_CONTAINER_VARIANTS}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8"
+    >
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+      <motion.div
+        variants={DASHBOARD_ITEM_VARIANTS}
+        className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5"
+      >
         <div>
           <p className="text-xs font-medium text-blue-700 dark:text-blue-400">
             {currentUser.designation || 'VERIDEX Regional Compliance Workspace'}
@@ -243,17 +287,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             Expiry Alerts ({metrics.expiringDocuments})
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* 5 Summary Metrics */}
       <motion.section
         aria-label="Summary Metrics"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        variants={METRICS_GRID_VARIANTS}
         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
       >
-        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500 dark:text-slate-400">Total Applications</div>
           <div className="text-2xl font-display font-bold text-slate-900 dark:text-white font-mono-tabular mt-1">
             {metrics.totalApplications}
@@ -261,9 +303,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             Across 5 registered institutions
           </div>
-        </div>
+        </motion.div>
 
-        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500 dark:text-slate-400">Pending Review</div>
           <div className="text-2xl font-display font-bold text-blue-700 dark:text-blue-400 font-mono-tabular mt-1">
             {metrics.pendingReview}
@@ -271,9 +313,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             Active review queue dossiers
           </div>
-        </div>
+        </motion.div>
 
-        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500 dark:text-slate-400">Documents Verified</div>
           <div className="text-2xl font-display font-bold text-emerald-700 dark:text-emerald-400 font-mono-tabular mt-1">
             {metrics.documentsVerified}
@@ -281,9 +323,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             Issuer verified &amp; officer reviewed
           </div>
-        </div>
+        </motion.div>
 
-        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500 dark:text-slate-400">Expiring / Expired Docs</div>
           <div className="text-2xl font-display font-bold text-amber-700 dark:text-amber-400 font-mono-tabular mt-1">
             {metrics.expiringDocuments}
@@ -291,9 +333,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             Within 45d window or lapsed
           </div>
-        </div>
+        </motion.div>
 
-        <div className="liquid-glass liquid-glass-interactive rounded-2xl p-4 col-span-2 sm:col-span-1">
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4 col-span-2 sm:col-span-1">
           <div className="text-xs text-slate-500 dark:text-slate-400">Requiring Additional Info</div>
           <div className="text-2xl font-display font-bold text-red-700 dark:text-red-400 font-mono-tabular mt-1">
             {metrics.requiringAdditionalInfo}
@@ -301,14 +343,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             Awaiting institution resubmission
           </div>
-        </div>
+        </motion.div>
       </motion.section>
 
       {/* Main Applications Table */}
       <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.32, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}
+        variants={DASHBOARD_ITEM_VARIANTS}
         className="liquid-glass rounded-2xl overflow-hidden"
       >
         <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 space-y-4">
@@ -523,7 +563,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
       {/* Secondary Panels: Pending-Review Queue + Expiry Alerts + Verification Overview + Activity */}
       {!showFullTableOnly && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <motion.div
+          variants={DASHBOARD_ITEM_VARIANTS}
+          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+        >
           {/* Left 7 Cols: Pending Review Queue & Verification Overview */}
           <div className="lg:col-span-7 space-y-6">
             {/* Pending Review Queue */}
@@ -710,8 +753,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </div>
             </section>
           </div>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };

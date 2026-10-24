@@ -1,16 +1,10 @@
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Search,
   Upload,
-  FileText,
-  ArrowUpDown,
   X,
-  CheckCircle2,
-  AlertTriangle,
   History,
-  FolderOpen,
-  Sparkles,
-  RefreshCw,
   ArrowUpRight,
 } from 'lucide-react';
 import {
@@ -29,6 +23,14 @@ import {
   REFERENCE_DATE,
   suggestDocumentCategory,
 } from '../lib/domain';
+import {
+  cardEntranceVariants,
+  inlinePanelVariants,
+  modalBackdropVariants,
+  modalWindowVariants,
+  sectionEntranceVariants,
+  slideOverDrawerVariants,
+} from '../lib/motion';
 
 interface DocumentRepositoryViewProps {
   currentUser: UserAccount;
@@ -337,7 +339,12 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
       </div>
 
       {/* Search & Multi-Filter Toolbar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <motion.div
+        variants={cardEntranceVariants}
+        initial="hidden"
+        animate="visible"
+        className="liquid-glass rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3"
+      >
         <div className="sm:col-span-2 relative">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -346,7 +353,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search FAC-QUA-KAS-02, certificate #, person, title..."
-            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+            className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-300/80 dark:border-slate-700 bg-white/80 dark:bg-slate-950/70 text-slate-900 dark:text-white"
           />
         </div>
 
@@ -355,7 +362,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
             aria-label="Filter by validity or expiry status"
             value={validityFilter}
             onChange={(e) => setValidityFilter(e.target.value as 'All' | ExpiryStatus)}
-            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300/80 dark:border-slate-700 bg-white/80 dark:bg-slate-950/70 text-slate-900 dark:text-white"
           >
             <option value="All">All Validity States</option>
             <option value="Valid">Valid</option>
@@ -374,7 +381,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                 e.target.value as 'All' | DocumentRecord['issuerVerificationStatus']
               )
             }
-            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300/80 dark:border-slate-700 bg-white/80 dark:bg-slate-950/70 text-slate-900 dark:text-white"
           >
             <option value="All">All Issuer Statuses</option>
             <option value="Verified">Verified</option>
@@ -389,7 +396,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
             aria-label="Sort documents by field"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300/80 dark:border-slate-700 bg-white/80 dark:bg-slate-950/70 text-slate-900 dark:text-white"
           >
             <option value="uploadDate">Sort: Latest Upload</option>
             <option value="internalCode">Sort: Internal Code</option>
@@ -397,10 +404,15 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
             <option value="name">Sort: Document Name</option>
           </select>
         </div>
-      </div>
+      </motion.div>
 
       {/* Documents Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <motion.div
+        variants={sectionEntranceVariants}
+        initial="hidden"
+        animate="visible"
+        className="liquid-glass rounded-2xl overflow-hidden"
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -503,18 +515,30 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
 
       {/* Document Detail Drawer / Modal */}
-      {selectedDocument && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="doc-detail-title"
-          className="fixed inset-0 z-50 flex justify-end bg-slate-950/60 backdrop-blur-xs"
-        >
-          <div className="bg-white dark:bg-slate-900 w-full max-w-3xl h-full flex flex-col border-l border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4 bg-slate-50/70 dark:bg-slate-950/50">
+      <AnimatePresence>
+        {selectedDocument && (
+          <motion.div
+            key={selectedDocument.id}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="doc-detail-title"
+            variants={modalBackdropVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="fixed inset-0 z-50 flex justify-end glass-modal-backdrop"
+          >
+            <motion.div
+              variants={slideOverDrawerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="liquid-glass-elevated w-full max-w-3xl h-full flex flex-col border-y-0 border-r-0 overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-slate-200/70 dark:border-slate-800 flex items-start justify-between gap-4 liquid-glass-subtle">
               <div>
                 <div className="flex items-center gap-2 text-xs font-mono-tabular text-blue-700 dark:text-blue-400 font-semibold">
                   <span>Internal Code: {selectedDocument.internalCode}</span>
@@ -841,19 +865,31 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                 </div>
               </section>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Upload & AI-Classify Modal */}
-      {uploadModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="upload-doc-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4"
-        >
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-5">
+      <AnimatePresence>
+        {uploadModalOpen && (
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="upload-doc-modal-title"
+            variants={modalBackdropVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="fixed inset-0 z-50 flex items-center justify-center glass-modal-backdrop p-4"
+          >
+            <motion.div
+              variants={modalWindowVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="liquid-glass-elevated rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto space-y-5"
+            >
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h2
@@ -1058,15 +1094,16 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium cursor-pointer"
                 >
                   Confirm Classification &amp; Upload
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

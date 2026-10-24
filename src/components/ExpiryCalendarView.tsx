@@ -1,20 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Calendar,
-  ListFilter,
-  AlertTriangle,
-  Clock,
-  CheckCircle2,
-  ArrowUpRight,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { DocumentRecord, ExpiryStatus, UserAccount } from '../types/portal';
 import {
   calculateExpiryDetails,
   canUserAccessDocument,
   REFERENCE_DATE,
 } from '../lib/domain';
+import {
+  cardEntranceVariants,
+  sectionEntranceVariants,
+  staggerContainerVariants,
+} from '../lib/motion';
 
 interface ExpiryCalendarViewProps {
   currentUser: UserAccount;
@@ -117,8 +113,13 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+      <motion.div
+        variants={staggerContainerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+      >
+        <motion.div variants={cardEntranceVariants} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500">Expired Certificates</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-red-700 dark:text-red-400 mt-1">
             {counts.expired}
@@ -126,9 +127,9 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
           <div className="text-[11px] text-slate-500 mt-1">
             Immediate renewal upload required
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+        <motion.div variants={cardEntranceVariants} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500">Expiring Within 45 Days</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-amber-700 dark:text-amber-400 mt-1">
             {counts.soon}
@@ -136,9 +137,9 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
           <div className="text-[11px] text-slate-500 mt-1">
             Approaching statutory renewal window
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+        <motion.div variants={cardEntranceVariants} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
           <div className="text-xs text-slate-500">Valid (&gt;45 Days Remaining)</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-emerald-700 dark:text-emerald-400 mt-1">
             {counts.valid}
@@ -146,11 +147,19 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
           <div className="text-[11px] text-slate-500 mt-1">
             Active statutory validity
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
+      <AnimatePresence mode="wait">
       {viewMode === 'list' ? (
-        <div className="space-y-4">
+        <motion.div
+          key="expiry-list"
+          variants={sectionEntranceVariants}
+          initial="hidden"
+          animate="visible"
+          exit={{ opacity: 0, y: -6, transition: { duration: 0.16 } }}
+          className="space-y-4"
+        >
           {/* Filter Bar */}
           <div className="flex items-center gap-1.5 overflow-x-auto">
             {(['All', 'Expired', 'Expiring Soon', 'Valid'] as const).map((st) => (
@@ -244,10 +253,17 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
               </table>
             </div>
           </div>
-        </div>
+        </motion.div>
       ) : (
         /* Monthly Calendar View */
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4">
+        <motion.div
+          key="expiry-calendar"
+          variants={sectionEntranceVariants}
+          initial="hidden"
+          animate="visible"
+          exit={{ opacity: 0, y: -6, transition: { duration: 0.16 } }}
+          className="liquid-glass rounded-2xl p-5 space-y-4"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
@@ -338,8 +354,9 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 };

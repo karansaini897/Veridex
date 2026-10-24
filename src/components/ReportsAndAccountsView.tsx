@@ -1,12 +1,10 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'motion/react';
 import {
   Download,
-  History,
   UserPlus,
-  ShieldCheck,
   AlertCircle,
   CheckCircle2,
-  FileBarChart,
 } from 'lucide-react';
 import {
   AccountStatus,
@@ -26,6 +24,11 @@ import {
   REFERENCE_DATE,
   validateAccountUniqueness,
 } from '../lib/domain';
+import {
+  cardEntranceVariants,
+  sectionEntranceVariants,
+  staggerContainerVariants,
+} from '../lib/motion';
 
 interface ReportsAndAccountsViewProps {
   mode: 'reports' | 'accounts';
@@ -228,9 +231,17 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <motion.div
+          variants={staggerContainerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
+        >
           {/* Left 6 Cols: Create New Account Form */}
-          <section className="lg:col-span-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+          <motion.section
+            variants={cardEntranceVariants}
+            className="lg:col-span-6 liquid-glass rounded-2xl p-6 space-y-4"
+          >
             <h2 className="text-base font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <UserPlus className="w-4 h-4 text-blue-600" />
               <span>Provision New VERIDEX Account</span>
@@ -498,15 +509,18 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold cursor-pointer"
               >
                 Validate Uniqueness &amp; Provision Account
               </button>
             </form>
-          </section>
+          </motion.section>
 
           {/* Right 6 Cols: Registered Accounts Directory */}
-          <section className="lg:col-span-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+          <motion.section
+            variants={cardEntranceVariants}
+            className="lg:col-span-6 liquid-glass rounded-2xl p-6 space-y-4"
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
                 Registered Accounts Registry ({users.length})
@@ -556,8 +570,8 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
                 );
               })}
             </div>
-          </section>
-        </div>
+          </motion.section>
+        </motion.div>
       </div>
     );
   }
@@ -589,13 +603,21 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
       </div>
 
       {/* Summary Breakdown Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <motion.div
+        variants={staggerContainerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+      >
         {/* Application Status Distribution */}
-        <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-3">
+        <motion.section
+          variants={cardEntranceVariants}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-5 space-y-3"
+        >
           <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white">
             Applications by Status ({authorizedApps.length})
           </h2>
-          <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+          <div className="divide-y divide-slate-200/60 dark:divide-slate-800 text-xs">
             {(
               [
                 'Decision Recorded',
@@ -618,14 +640,17 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
               );
             })}
           </div>
-        </section>
+        </motion.section>
 
         {/* Document Verification Distribution */}
-        <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-3">
+        <motion.section
+          variants={cardEntranceVariants}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-5 space-y-3"
+        >
           <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white">
             Document Verification Status ({authorizedDocs.length})
           </h2>
-          <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+          <div className="divide-y divide-slate-200/60 dark:divide-slate-800 text-xs">
             {(
               [
                 'Verified',
@@ -645,14 +670,17 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
               );
             })}
           </div>
-        </section>
+        </motion.section>
 
         {/* Expiry Risk Summary */}
-        <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-3">
+        <motion.section
+          variants={cardEntranceVariants}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-5 space-y-3"
+        >
           <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white">
             Certificate Expiry Risk Breakdown
           </h2>
-          <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+          <div className="divide-y divide-slate-200/60 dark:divide-slate-800 text-xs">
             {(['Expired', 'Expiring Soon', 'Valid', 'No Expiry'] as const).map((st) => {
               const count = authorizedDocs.filter(
                 (d) => calculateExpiryDetails(d.expiryDate, REFERENCE_DATE).status === st
@@ -667,11 +695,16 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
               );
             })}
           </div>
-        </section>
-      </div>
+        </motion.section>
+      </motion.div>
 
       {/* Official Audit History Table */}
-      <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <motion.section
+        variants={sectionEntranceVariants}
+        initial="hidden"
+        animate="visible"
+        className="liquid-glass rounded-2xl overflow-hidden"
+      >
         <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
@@ -757,7 +790,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
             </tbody>
           </table>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 };

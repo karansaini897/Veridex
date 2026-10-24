@@ -13,6 +13,7 @@ import {
   FileCheck2,
   Building2,
   Scale,
+  ArrowLeft,
 } from 'lucide-react';
 import { UserAccount } from '../types/portal';
 import { normalizePhoneNumber } from '../lib/domain';
@@ -22,6 +23,7 @@ interface LoginViewProps {
   onLoginSuccess: (user: UserAccount) => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
+  onBackToLanding?: () => void;
 }
 
 const SMOOTH_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -31,6 +33,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   onLoginSuccess,
   darkMode,
   onToggleDarkMode,
+  onBackToLanding,
 }) => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -114,6 +117,16 @@ export const LoginView: React.FC<LoginViewProps> = ({
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          {onBackToLanding && (
+            <button
+              type="button"
+              onClick={onBackToLanding}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl liquid-glass liquid-glass-interactive text-xs font-medium text-slate-700 dark:text-slate-200 whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Product Overview</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={onToggleDarkMode}

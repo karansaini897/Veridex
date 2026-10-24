@@ -47,6 +47,7 @@ interface AppShellProps {
   onResetDemoData: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
+  onOpenPublicLanding?: () => void;
   children: React.ReactNode;
 }
 
@@ -67,6 +68,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   onLogout,
   darkMode,
   onToggleDarkMode,
+  onOpenPublicLanding,
   children,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -415,8 +417,18 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
           </div>
 
-          {/* Center/Right: Global Search, Notifications, Theme, Profile */}
+          {/* Center/Right: Public Overview, Global Search, Notifications, Theme, Profile */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {onOpenPublicLanding && (
+              <button
+                type="button"
+                onClick={onOpenPublicLanding}
+                data-testid="open-public-overview"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl liquid-glass-subtle hover:border-blue-400/40 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+              >
+                <span>Public Overview</span>
+              </button>
+            )}
             {/* Global Search Trigger */}
             <button
               type="button"

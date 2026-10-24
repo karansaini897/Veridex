@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'motion/react';
 import {
   Camera,
   Trash2,
@@ -16,6 +17,10 @@ import {
   REFERENCE_DATE,
   validateAccountUniqueness,
 } from '../lib/domain';
+import {
+  cardEntranceVariants,
+  staggerContainerVariants,
+} from '../lib/motion';
 
 interface ProfileAndSettingsViewProps {
   mode: 'profile' | 'settings';
@@ -184,12 +189,20 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <motion.div
+          variants={staggerContainerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+        >
           {/* Theme & Workspace Synchronization */}
           <div className="lg:col-span-5 space-y-6">
-            <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+            <motion.section
+              variants={cardEntranceVariants}
+              className="liquid-glass rounded-2xl p-6 space-y-4"
+            >
               <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
-                Visual Theme Preference
+                Visual Theme &amp; Glassmorphism Palette
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-400">
                 Light theme is the standard administrative default. Your selection is persisted across navigation and browser sessions.
@@ -225,9 +238,12 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
                   <span>Dark Theme</span>
                 </button>
               </div>
-            </section>
+            </motion.section>
 
-            <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+            <motion.section
+              variants={cardEntranceVariants}
+              className="liquid-glass rounded-2xl p-6 space-y-4"
+            >
               <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
                 Workspace Data Synchronization
               </h2>
@@ -237,16 +253,19 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
               <button
                 type="button"
                 onClick={onResetDemoData}
-                className="px-4 py-2.5 rounded-lg bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 text-white text-xs font-medium flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 text-white text-xs font-medium flex items-center gap-2 cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>Restore Baseline Registry Records</span>
               </button>
-            </section>
+            </motion.section>
           </div>
 
           {/* Architecture & Security Specifications */}
-          <section className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+          <motion.section
+            variants={cardEntranceVariants}
+            className="lg:col-span-7 liquid-glass rounded-2xl p-6 space-y-4"
+          >
             <div className="flex items-center gap-2">
               <Server className="w-4 h-4 text-blue-600" />
               <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
@@ -292,8 +311,8 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
                 </ul>
               </div>
             </div>
-          </section>
-        </div>
+          </motion.section>
+        </motion.div>
       </div>
     );
   }
@@ -313,9 +332,17 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <motion.div
+        variants={staggerContainerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
+      >
         {/* Left 4 Cols: Avatar & Role Summary Card */}
-        <section className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-5">
+        <motion.section
+          variants={cardEntranceVariants}
+          className="lg:col-span-4 liquid-glass rounded-2xl p-6 space-y-5"
+        >
           <div className="flex items-center gap-4">
             {currentUser.avatarUrl ? (
               <img
@@ -429,11 +456,14 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
               </div>
             )}
           </div>
-        </section>
+        </motion.section>
 
         {/* Right 8 Cols: Edit Personal Information & Password */}
         <div className="lg:col-span-8 space-y-6">
-          <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+          <motion.section
+            variants={cardEntranceVariants}
+            className="liquid-glass rounded-2xl p-6 space-y-4"
+          >
             <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
               Edit Permitted Personal Details
             </h2>
@@ -558,10 +588,13 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
                 </button>
               </div>
             </form>
-          </section>
+          </motion.section>
 
           {/* Password Update */}
-          <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+          <motion.section
+            variants={cardEntranceVariants}
+            className="liquid-glass rounded-2xl p-6 space-y-4"
+          >
             <h2 className="text-base font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Lock className="w-4 h-4 text-blue-600" />
               <span>Change Account Password</span>
@@ -622,15 +655,15 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
               <div className="sm:col-span-3 flex justify-end">
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-slate-900 dark:bg-blue-600 text-white text-xs font-medium cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-blue-600 text-white text-xs font-medium cursor-pointer"
                 >
                   Update Password
                 </button>
               </div>
             </form>
-          </section>
+          </motion.section>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

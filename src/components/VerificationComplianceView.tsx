@@ -1,13 +1,7 @@
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
-  ShieldCheck,
-  AlertTriangle,
-  CheckCircle2,
-  Sliders,
-  Camera,
   Plus,
-  ArrowUpRight,
-  FileSearch,
 } from 'lucide-react';
 import {
   ApplicationCategory,
@@ -22,6 +16,12 @@ import {
   canUserPerformAdminAction,
   REFERENCE_DATE,
 } from '../lib/domain';
+import {
+  cardEntranceVariants,
+  inlinePanelVariants,
+  sectionEntranceVariants,
+  staggerContainerVariants,
+} from '../lib/motion';
 
 interface VerificationComplianceViewProps {
   currentUser: UserAccount;
@@ -154,8 +154,16 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
       </div>
 
       {/* SUB-TAB 1: 6-PILLAR DOCUMENT VERIFICATION MATRIX */}
+      <AnimatePresence mode="wait">
       {activeSubTab === 'pillars' && (
-        <div className="space-y-4">
+        <motion.div
+          key="pillars-tab"
+          variants={sectionEntranceVariants}
+          initial="hidden"
+          animate="visible"
+          exit={{ opacity: 0, y: -6, transition: { duration: 0.16 } }}
+          className="space-y-4"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-1.5">
               {(
@@ -172,7 +180,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                     pillarFilter === t.id
                       ? 'bg-slate-900 text-white dark:bg-blue-600'
-                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                      : 'liquid-glass-subtle text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   {t.label}
@@ -184,7 +192,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
             </span>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+          <div className="liquid-glass rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -305,13 +313,20 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
               </table>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* SUB-TAB 2: CONFIGURABLE COMPLIANCE RULES ENGINE */}
       {activeSubTab === 'rules' && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+        <motion.div
+          key="rules-tab"
+          variants={sectionEntranceVariants}
+          initial="hidden"
+          animate="visible"
+          exit={{ opacity: 0, y: -6, transition: { duration: 0.16 } }}
+          className="space-y-4"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 liquid-glass rounded-2xl p-4">
             <div>
               <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white">
                 AICTE Approval Process Handbook (APH) Compliance Rules Registry
@@ -324,7 +339,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
               <button
                 type="button"
                 onClick={() => setNewRuleOpen((prev) => !prev)}
-                className="px-3.5 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Compliance Rule</span>
@@ -332,27 +347,32 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
             )}
           </div>
 
-          {newRuleOpen && isAdmin && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!ruleName.trim() || !ruleCode.trim()) return;
-                onAddComplianceRule({
-                  code: ruleCode.trim(),
-                  name: ruleName.trim(),
-                  version: ruleVersion.trim(),
-                  effectiveDate: ruleEffectiveDate,
-                  applicableCategory: ruleCategory,
-                  requiredDocumentCategory: ruleDocCategory,
-                  minValidityDays: Number(ruleMinValidity) || 0,
-                  mandatory: true,
-                  active: true,
-                  description: ruleDesc.trim(),
-                });
-                setNewRuleOpen(false);
-              }}
-              className="bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-800 rounded-xl p-5 space-y-4"
-            >
+          <AnimatePresence>
+            {newRuleOpen && isAdmin && (
+              <motion.form
+                variants={inlinePanelVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!ruleName.trim() || !ruleCode.trim()) return;
+                  onAddComplianceRule({
+                    code: ruleCode.trim(),
+                    name: ruleName.trim(),
+                    version: ruleVersion.trim(),
+                    effectiveDate: ruleEffectiveDate,
+                    applicableCategory: ruleCategory,
+                    requiredDocumentCategory: ruleDocCategory,
+                    minValidityDays: Number(ruleMinValidity) || 0,
+                    mandatory: true,
+                    active: true,
+                    description: ruleDesc.trim(),
+                  });
+                  setNewRuleOpen(false);
+                }}
+                className="liquid-glass-elevated border border-blue-400/40 rounded-2xl p-5 space-y-4"
+              >
               <div className="text-sm font-display font-bold text-slate-900 dark:text-white">
                 Configure New Statutory Compliance Rule
               </div>
@@ -435,14 +455,21 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                   Save Rule to Registry
                 </button>
               </div>
-            </form>
-          )}
+              </motion.form>
+            )}
+          </AnimatePresence>
 
-          <div className="space-y-3">
+          <motion.div
+            variants={staggerContainerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-3"
+          >
             {complianceRules.map((rule) => (
-              <div
+              <motion.div
                 key={rule.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                variants={cardEntranceVariants}
+                className="liquid-glass rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-xs flex-wrap">
@@ -484,16 +511,23 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                     </button>
                   )}
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* SUB-TAB 3: INFRASTRUCTURE EVIDENCE & ADVISORY INSPECTION */}
       {activeSubTab === 'infrastructure' && (
-        <div className="space-y-5">
-          <div className="p-4 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <motion.div
+          key="infra-tab"
+          variants={sectionEntranceVariants}
+          initial="hidden"
+          animate="visible"
+          exit={{ opacity: 0, y: -6, transition: { duration: 0.16 } }}
+          className="space-y-5"
+        >
+          <div className="p-4 rounded-2xl glass-tint-amber flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="text-xs text-amber-900 dark:text-amber-200 space-y-1">
               <div className="font-semibold">
                 Mandatory Regulatory Notice: Advisory Infrastructure Image Analysis
@@ -506,27 +540,32 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
               <button
                 type="button"
                 onClick={() => setInfraModalOpen((prev) => !prev)}
-                className="px-3.5 py-2 rounded-lg bg-slate-900 dark:bg-blue-600 text-white text-xs font-medium whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-blue-600 text-white text-xs font-medium whitespace-nowrap shrink-0 cursor-pointer"
               >
                 Attach Infrastructure Evidence
               </button>
             )}
           </div>
 
-          {infraModalOpen && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!facilityTitle.trim()) return;
-                onAddInfrastructureEvidence({
-                  facilityTitle: facilityTitle.trim(),
-                  carpetAreaSqm: Number(carpetAreaSqm) || 120,
-                  certNumber: infraCertNo.trim() || 'INFRA/2026/01',
-                });
-                setInfraModalOpen(false);
-              }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4"
-            >
+          <AnimatePresence>
+            {infraModalOpen && (
+              <motion.form
+                variants={inlinePanelVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!facilityTitle.trim()) return;
+                  onAddInfrastructureEvidence({
+                    facilityTitle: facilityTitle.trim(),
+                    carpetAreaSqm: Number(carpetAreaSqm) || 120,
+                    certNumber: infraCertNo.trim() || 'INFRA/2026/01',
+                  });
+                  setInfraModalOpen(false);
+                }}
+                className="liquid-glass-elevated rounded-2xl p-5 space-y-4"
+              >
               <div className="text-sm font-display font-bold text-slate-900 dark:text-white">
                 Attach Facility Photograph &amp; Carpet Area Record
               </div>
@@ -583,14 +622,21 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                   Upload &amp; Generate Advisory Findings
                 </button>
               </div>
-            </form>
-          )}
+              </motion.form>
+            )}
+          </AnimatePresence>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <motion.div
+            variants={staggerContainerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 gap-5"
+          >
             {infraDocs.map((doc) => (
-              <div
+              <motion.div
                 key={doc.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between"
+                variants={cardEntranceVariants}
+                className="liquid-glass liquid-glass-interactive rounded-2xl overflow-hidden flex flex-col justify-between"
               >
                 {/* Clean Architectural Facility Blueprint SVG Preview */}
                 <div className="h-40 bg-slate-900 text-slate-200 p-4 flex flex-col justify-between relative overflow-hidden">
@@ -631,7 +677,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                  <div className="pt-3 border-t border-slate-200/70 dark:border-slate-800 flex items-center justify-between text-xs">
                     <span className="font-mono-tabular text-slate-500">
                       Cert #{doc.certificateNumber}
                     </span>
@@ -644,11 +690,12 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                     </button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 };
