@@ -76,10 +76,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             className="flex items-center gap-3 whitespace-nowrap shrink-0 group"
           >
             <img
-              src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
+              src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_16.59.09_2f2ed194.jpeg"
               alt="VERIDEX Logo"
               referrerPolicy="no-referrer"
-              className="h-10 w-auto rounded-lg object-contain bg-white px-1.5 py-0.5 border-2 border-[#C2410C]/45 shadow-xs shrink-0"
+              className="h-10 w-auto rounded-lg object-contain bg-[#E7D8C0] border-2 border-[#C2410C]/45 shadow-xs shrink-0"
             />
             <div className="flex flex-col">
               <span className="font-display font-bold text-lg tracking-tight text-stone-900 leading-tight">
@@ -869,10 +869,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div className="space-y-2 max-w-md">
             <div className="flex items-center gap-3">
               <img
-                src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
+                src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_16.59.09_2f2ed194.jpeg"
                 alt="VERIDEX Logo"
                 referrerPolicy="no-referrer"
-                className="h-9 w-auto rounded-lg object-contain bg-white px-1.5 py-0.5 border-2 border-[#C2410C]/45 shrink-0"
+                className="h-9 w-auto rounded-lg object-contain bg-[#E7D8C0] border-2 border-[#C2410C]/45 shrink-0"
               />
               <div className="flex flex-col">
                 <span className="font-display font-bold text-base text-stone-900 leading-tight">

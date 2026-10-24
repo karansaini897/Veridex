@@ -97,9 +97,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
       <header className="flex items-center justify-between gap-8 px-6 py-3.5 liquid-glass-elevated sticky top-1.5 z-30 border-b-2 border-[#C2410C]/40">
         <div className="flex items-center gap-3">
           <img
-            src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
+            src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_16.59.09_2f2ed194.jpeg"
             alt="VERIDEX Logo"
-            className="h-10 w-auto rounded-lg object-contain bg-white px-1.5 py-0.5 border-2 border-[#C2410C]/45 shadow-xs shrink-0"
+            className="h-10 w-auto rounded-lg object-contain bg-[#E7D8C0] border-2 border-[#C2410C]/45 shadow-xs shrink-0"
           />
           <div>
             <span className="font-display font-bold text-base tracking-tight text-stone-900 dark:text-white whitespace-nowrap shrink-0 block leading-tight">

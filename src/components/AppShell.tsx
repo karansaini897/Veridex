@@ -246,9 +246,9 @@ export const AppShell: React.FC<AppShellProps> = ({
       <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 liquid-glass-elevated border-y-0 border-l-0 sticky top-0 h-screen z-20">
         <div className="h-16 px-4 flex items-center gap-2.5 border-b border-[#C2410C]/35">
           <img
-            src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
+            src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_16.59.09_2f2ed194.jpeg"
             alt="VERIDEX Logo"
-            className="h-9 w-auto rounded-lg object-contain bg-white px-1 py-0.5 border-2 border-[#C2410C]/45 shrink-0"
+            className="h-9 w-auto rounded-lg object-contain bg-[#E7D8C0] border-2 border-[#C2410C]/45 shrink-0"
           />
           <div className="min-w-0">
             <div className="font-display font-bold text-sm text-stone-900 dark:text-white truncate leading-tight">
@@ -339,9 +339,9 @@ export const AppShell: React.FC<AppShellProps> = ({
               <div className="h-16 px-4 flex items-center justify-between border-b border-[#C2410C]/35">
                 <div className="flex items-center gap-2">
                   <img
-                    src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
+                    src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_16.59.09_2f2ed194.jpeg"
                     alt="VERIDEX Logo"
-                    className="h-8 w-auto rounded-md object-contain bg-white px-1 py-0.5 border border-[#C2410C]/45 shrink-0"
+                    className="h-8 w-auto rounded-md object-contain bg-[#E7D8C0] border border-[#C2410C]/45 shrink-0"
                   />
                   <div>
                     <span className="font-display font-bold text-sm text-stone-900 dark:text-white block leading-tight">
@@ -403,9 +403,9 @@ export const AppShell: React.FC<AppShellProps> = ({
             </button>
             <div className="flex items-center gap-2.5 shrink-0">
               <img
-                src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
+                src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_16.59.09_2f2ed194.jpeg"
                 alt="VERIDEX Logo"
-                className="h-8 w-auto rounded-md object-contain bg-white px-1 py-0.5 border border-[#C2410C]/45 shrink-0"
+                className="h-8 w-auto rounded-md object-contain bg-[#E7D8C0] border border-[#C2410C]/45 shrink-0"
               />
               <div className="flex flex-col">
                 <span className="font-display font-bold text-xs sm:text-sm text-stone-900 dark:text-white tracking-tight leading-tight">
