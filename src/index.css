@@ -4,59 +4,59 @@
 
 @layer base {
   :root {
-    --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-sans: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-display: 'Plus Jakarta Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-sans: 'Public Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
-    /* Light Theme: Frosted Ice-Alabaster & Sapphire Glassmorphism Palette */
-    --bg-canvas: #f4f7fb;
-    --glass-surface: rgba(255, 255, 255, 0.74);
-    --glass-surface-elevated: rgba(255, 255, 255, 0.88);
-    --glass-surface-subtle: rgba(241, 245, 249, 0.68);
-    --glass-tint-blue: rgba(37, 99, 235, 0.08);
-    --glass-tint-emerald: rgba(5, 150, 105, 0.08);
-    --glass-tint-amber: rgba(217, 119, 6, 0.08);
-    --glass-tint-crimson: rgba(225, 29, 72, 0.08);
-    --glass-border: rgba(203, 213, 225, 0.72);
-    --glass-border-strong: rgba(37, 99, 235, 0.42);
+    /* Sovereign Tricolour & Warm Beige Civic Palette */
+    --bg-canvas: #f4ede1;
+    --glass-surface: rgba(252, 249, 242, 0.92);
+    --glass-surface-elevated: rgba(254, 252, 247, 0.97);
+    --glass-surface-subtle: rgba(238, 229, 212, 0.85);
+    --glass-tint-blue: rgba(194, 65, 12, 0.08);
+    --glass-tint-emerald: rgba(4, 106, 56, 0.09);
+    --glass-tint-amber: rgba(180, 83, 9, 0.1);
+    --glass-tint-crimson: rgba(185, 28, 28, 0.09);
+    --glass-border: rgba(194, 65, 12, 0.36);
+    --glass-border-strong: rgba(154, 52, 18, 0.68);
     --glass-specular:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.96),
-      inset 0 -1px 0 0 rgba(148, 163, 184, 0.12);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 0 0 rgba(194, 65, 12, 0.12);
     --glass-shadow:
-      0 4px 20px -4px rgba(15, 23, 42, 0.05),
-      0 2px 6px -1px rgba(15, 23, 42, 0.03);
+      0 4px 18px -4px rgba(124, 45, 18, 0.08),
+      0 2px 6px -1px rgba(28, 25, 23, 0.05);
     --glass-shadow-hover:
-      0 14px 32px -8px rgba(37, 99, 235, 0.11),
-      0 4px 12px -2px rgba(15, 23, 42, 0.05);
+      0 12px 28px -8px rgba(194, 65, 12, 0.16),
+      0 4px 12px -2px rgba(4, 106, 56, 0.08);
     --glass-modal-shadow:
-      0 24px 56px -12px rgba(15, 23, 42, 0.18),
-      0 8px 20px -6px rgba(15, 23, 42, 0.08);
+      0 24px 56px -12px rgba(28, 25, 23, 0.22),
+      0 8px 20px -6px rgba(154, 52, 18, 0.12);
   }
 
   .dark {
-    /* Dark Theme: Deep Bluish-Black Obsidian Liquid Glass Palette */
-    --bg-canvas: #040914;
-    --glass-surface: rgba(11, 20, 39, 0.72);
-    --glass-surface-elevated: rgba(14, 25, 48, 0.86);
-    --glass-surface-subtle: rgba(8, 15, 30, 0.66);
-    --glass-tint-blue: rgba(59, 130, 246, 0.14);
-    --glass-tint-emerald: rgba(16, 185, 129, 0.13);
-    --glass-tint-amber: rgba(245, 158, 11, 0.13);
-    --glass-tint-crimson: rgba(244, 63, 94, 0.14);
-    --glass-border: rgba(148, 163, 184, 0.16);
-    --glass-border-strong: rgba(96, 165, 250, 0.44);
+    /* Dark Mode: Warm Deep Bronze-Charcoal with Dark Orange Borders & Green Icons */
+    --bg-canvas: #181411;
+    --glass-surface: rgba(34, 28, 23, 0.9);
+    --glass-surface-elevated: rgba(41, 34, 28, 0.95);
+    --glass-surface-subtle: rgba(26, 21, 17, 0.85);
+    --glass-tint-blue: rgba(234, 88, 12, 0.14);
+    --glass-tint-emerald: rgba(22, 163, 74, 0.14);
+    --glass-tint-amber: rgba(217, 119, 6, 0.14);
+    --glass-tint-crimson: rgba(220, 38, 38, 0.15);
+    --glass-border: rgba(217, 95, 24, 0.42);
+    --glass-border-strong: rgba(249, 115, 22, 0.72);
     --glass-specular:
-      inset 0 1px 0 0 rgba(191, 219, 254, 0.14),
-      inset 0 -1px 0 0 rgba(30, 58, 138, 0.2);
+      inset 0 1px 0 0 rgba(253, 186, 116, 0.14),
+      inset 0 -1px 0 0 rgba(154, 52, 18, 0.24);
     --glass-shadow:
-      0 8px 28px -6px rgba(1, 4, 12, 0.62),
-      0 2px 6px 0 rgba(2, 6, 23, 0.48);
+      0 8px 28px -6px rgba(0, 0, 0, 0.65),
+      0 2px 6px 0 rgba(0, 0, 0, 0.48);
     --glass-shadow-hover:
-      0 16px 36px -8px rgba(29, 78, 216, 0.28),
-      0 6px 16px -3px rgba(1, 4, 12, 0.7);
+      0 16px 36px -8px rgba(194, 65, 12, 0.28),
+      0 6px 16px -3px rgba(0, 0, 0, 0.7);
     --glass-modal-shadow:
-      0 28px 64px -12px rgba(0, 2, 8, 0.82),
-      0 8px 24px -4px rgba(29, 78, 216, 0.22);
+      0 28px 64px -12px rgba(0, 0, 0, 0.82),
+      0 8px 24px -4px rgba(194, 65, 12, 0.22);
   }
 
   html {
@@ -66,6 +66,7 @@
   body {
     font-family: var(--font-sans);
     background-color: var(--bg-canvas);
+    color: #1c1917;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 220ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -94,34 +95,45 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Multi-Layered Optical Refraction Canvas for Glassmorphism */
+/* Tricolour Top Ribbon Utility */
+.tricolour-bar {
+  background: linear-gradient(
+    90deg,
+    #c2410c 0%,
+    #ea580c 33%,
+    #fffdf9 33%,
+    #fffdf9 66%,
+    #046a38 66%,
+    #15803d 100%
+  );
+}
+
+/* Warm Beige & Subtle Tricolour Canvas */
 .liquid-canvas {
   position: relative;
   background-color: var(--bg-canvas);
   background-image:
-    radial-gradient(ellipse 68% 42% at 18% 0%, rgba(37, 99, 235, 0.09), transparent 65%),
-    radial-gradient(ellipse 60% 40% at 84% 12%, rgba(14, 165, 233, 0.07), transparent 62%),
-    radial-gradient(ellipse 55% 45% at 50% 95%, rgba(59, 130, 246, 0.05), transparent 68%),
-    linear-gradient(180deg, #f8fafc 0%, #eef4fb 52%, #f1f5f9 100%);
+    radial-gradient(ellipse 65% 40% at 12% 0%, rgba(234, 88, 12, 0.07), transparent 65%),
+    radial-gradient(ellipse 60% 40% at 88% 100%, rgba(4, 106, 56, 0.07), transparent 65%),
+    linear-gradient(180deg, #f7f1e6 0%, #f3ebdc 52%, #efe5d4 100%);
   background-attachment: fixed;
 }
 
 .dark .liquid-canvas {
   background-color: var(--bg-canvas);
   background-image:
-    radial-gradient(ellipse 70% 45% at 20% -5%, rgba(29, 78, 216, 0.22), transparent 65%),
-    radial-gradient(ellipse 58% 38% at 82% 14%, rgba(14, 116, 144, 0.14), transparent 62%),
-    radial-gradient(ellipse 62% 45% at 50% 100%, rgba(30, 58, 138, 0.16), transparent 68%),
-    linear-gradient(180deg, #040914 0%, #071022 55%, #040812 100%);
+    radial-gradient(ellipse 70% 45% at 15% -5%, rgba(194, 65, 12, 0.16), transparent 65%),
+    radial-gradient(ellipse 62% 45% at 85% 100%, rgba(4, 106, 56, 0.14), transparent 68%),
+    linear-gradient(180deg, #181411 0%, #1f1915 55%, #15110e 100%);
   background-attachment: fixed;
 }
 
-/* Primary Glassmorphic Surface Utilities */
+/* Primary Surface Utilities with Dark Orange Borders */
 .liquid-glass {
   background: var(--glass-surface);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1.5px solid var(--glass-border);
   box-shadow: var(--glass-specular), var(--glass-shadow);
   transition:
     background-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -138,68 +150,53 @@
 
 .liquid-glass-elevated {
   background: var(--glass-surface-elevated);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1.5px solid var(--glass-border);
   box-shadow: var(--glass-specular), var(--glass-modal-shadow);
 }
 
 .liquid-glass-subtle {
   background: var(--glass-surface-subtle);
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(10px) saturate(130%);
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
   border: 1px solid var(--glass-border);
 }
 
-/* Semantic Tinted Glassmorphism Accents */
+/* Semantic Tinted Accents */
 .glass-tint-blue {
   background: var(--glass-tint-blue);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(59, 130, 246, 0.26);
+  border: 1px solid rgba(194, 65, 12, 0.35);
 }
 
 .glass-tint-emerald {
   background: var(--glass-tint-emerald);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(16, 185, 129, 0.26);
+  border: 1px solid rgba(4, 106, 56, 0.35);
 }
 
 .glass-tint-amber {
   background: var(--glass-tint-amber);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(245, 158, 11, 0.28);
+  border: 1px solid rgba(180, 83, 9, 0.35);
 }
 
 .glass-tint-crimson {
   background: var(--glass-tint-crimson);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(244, 63, 94, 0.28);
+  border: 1px solid rgba(185, 28, 28, 0.35);
 }
 
-/* Modal & Slide-Over Backdrop Glass */
+/* Modal & Slide-Over Backdrop */
 .glass-modal-backdrop {
-  background-color: rgba(4, 9, 20, 0.58);
-  backdrop-filter: blur(10px) saturate(150%);
-  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  background-color: rgba(28, 25, 23, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-/* Harmonize structural cards & panels across all dashboard views */
+/* Harmonize structural cards, borders & icons across all portal views */
 .liquid-canvas section.bg-white,
 .liquid-canvas div.bg-white {
   background: var(--glass-surface);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-color: var(--glass-border);
   box-shadow: var(--glass-specular), var(--glass-shadow);
-  transition:
-    background-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .liquid-canvas .bg-slate-50,
@@ -211,16 +208,44 @@
   border-color: var(--glass-border);
 }
 
+/* Map legacy blue icons and accents inside portal views to India Green & Dark Orange */
+.liquid-canvas svg.text-blue-600,
+.liquid-canvas svg.text-blue-700,
+.liquid-canvas svg.text-blue-500,
+.liquid-canvas svg.text-blue-400,
+.liquid-canvas svg.text-indigo-400,
+.liquid-canvas svg.text-slate-400 {
+  color: #046a38 !important;
+}
+
+.liquid-canvas .text-blue-700,
+.liquid-canvas .text-blue-600 {
+  color: #c2410c !important;
+}
+
+.liquid-canvas .bg-blue-600 {
+  background-color: #c2410c !important;
+}
+
+.dark .liquid-canvas svg.text-blue-600,
+.dark .liquid-canvas svg.text-blue-700,
+.dark .liquid-canvas svg.text-blue-500,
+.dark .liquid-canvas svg.text-blue-400,
+.dark .liquid-canvas svg.text-indigo-400 {
+  color: #22c55e !important;
+}
+
 .dark .liquid-canvas input:not([type="checkbox"]):not([type="radio"]),
 .dark .liquid-canvas select,
 .dark .liquid-canvas textarea {
-  background-color: rgba(6, 12, 26, 0.78);
-  border-color: rgba(148, 163, 184, 0.22);
+  background-color: rgba(24, 20, 17, 0.85);
+  border-color: rgba(217, 95, 24, 0.38);
 }
 
 .liquid-canvas input:not([type="checkbox"]):not([type="radio"]),
 .liquid-canvas select,
 .liquid-canvas textarea {
+  border-color: rgba(194, 65, 12, 0.35);
   transition:
     border-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 160ms cubic-bezier(0.22, 1, 0.36, 1),

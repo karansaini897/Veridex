@@ -46,14 +46,14 @@ import { ReportsAndAccountsView } from './components/ReportsAndAccountsView';
 import { ProfileAndSettingsView } from './components/ProfileAndSettingsView';
 
 const STORAGE_KEYS = {
-  theme: 'veridex_portal_theme_v3',
-  currentUserId: 'veridex_portal_current_user_v3',
-  users: 'veridex_portal_users_v3',
-  applications: 'veridex_portal_apps_v3',
-  documents: 'veridex_portal_docs_v3',
-  rules: 'veridex_portal_rules_v3',
-  notifications: 'veridex_portal_notifs_v3',
-  audit: 'veridex_portal_audit_v3',
+  theme: 'veridex_portal_theme_v4',
+  currentUserId: 'veridex_portal_current_user_v4',
+  users: 'veridex_portal_users_v4',
+  applications: 'veridex_portal_apps_v4',
+  documents: 'veridex_portal_docs_v4',
+  rules: 'veridex_portal_rules_v4',
+  notifications: 'veridex_portal_notifs_v4',
+  audit: 'veridex_portal_audit_v4',
 };
 
 function loadFromStorage<T>(key: string, fallback: T): T {

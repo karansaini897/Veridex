@@ -241,34 +241,34 @@ export const AppShell: React.FC<AppShellProps> = ({
   }, [searchQuery, searchFilter, applications, documents, institutions, currentUser]);
 
   return (
-    <div className="min-h-screen flex liquid-canvas text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen flex liquid-canvas text-stone-900 dark:text-stone-100">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 liquid-glass-elevated border-y-0 border-l-0 sticky top-0 h-screen z-20">
-        <div className="h-14 px-4 flex items-center gap-2.5 border-b border-slate-200/70 dark:border-blue-400/15">
+        <div className="h-16 px-4 flex items-center gap-2.5 border-b border-[#C2410C]/35">
           <img
             src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
             alt="VERIDEX Logo"
-            className="h-8 w-auto rounded-lg object-contain bg-white px-1 py-0.5 border border-slate-200/80 dark:border-blue-400/20 shrink-0"
+            className="h-9 w-auto rounded-lg object-contain bg-white px-1 py-0.5 border-2 border-[#C2410C]/45 shrink-0"
           />
           <div className="min-w-0">
-            <div className="font-display font-bold text-sm text-slate-900 dark:text-white truncate leading-tight">
+            <div className="font-display font-bold text-sm text-stone-900 dark:text-white truncate leading-tight">
               VERIDEX
             </div>
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate leading-tight">
-              Validation &amp; Compliance
+            <div className="text-[10px] font-semibold text-[#046A38] dark:text-emerald-400 truncate leading-tight mt-0.5">
+              हर दावे की जाँच, हर सच की पहचान
             </div>
           </div>
         </div>
 
         {/* Role & Institution Identity Block */}
-        <div className="px-4 py-3.5 border-b border-slate-200/70 dark:border-blue-400/15 liquid-glass-subtle">
-          <div className="text-xs font-medium text-blue-700 dark:text-blue-400">
+        <div className="px-4 py-3.5 border-b border-[#C2410C]/30 liquid-glass-subtle">
+          <div className="text-xs font-bold text-[#C2410C]">
             {roleLabel}
           </div>
-          <div className="text-xs font-semibold text-slate-900 dark:text-white mt-0.5 truncate">
+          <div className="text-xs font-semibold text-stone-900 dark:text-white mt-0.5 truncate">
             {currentUser.institutionName || 'VERIDEX Compliance Bureau'}
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono-tabular mt-0.5">
+          <div className="text-[11px] text-stone-600 dark:text-stone-400 font-mono-tabular mt-0.5">
             {currentUser.officialInstitutionCode || currentUser.permissionLevel || currentUser.rollNumber}
           </div>
         </div>
@@ -284,18 +284,18 @@ export const AppShell: React.FC<AppShellProps> = ({
                 onClick={() => onNavigate(item.id)}
                 className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium cursor-pointer whitespace-nowrap ${
                   isActive
-                    ? 'text-blue-700 dark:text-blue-300 font-semibold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/40 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-blue-950/30'
+                    ? 'text-[#046A38] dark:text-emerald-300 font-bold'
+                    : 'text-stone-700 hover:text-stone-900 hover:bg-[#EFE6D5]/70 dark:text-stone-400 dark:hover:text-stone-100'
                 }`}
               >
                 {isActive && (
                   <motion.div
                     layoutId="veridex-active-nav"
                     transition={{ type: 'spring', stiffness: 360, damping: 34, mass: 0.7 }}
-                    className="absolute inset-0 rounded-xl bg-blue-500/12 dark:bg-blue-500/18 border border-blue-500/25 dark:border-blue-400/30 shadow-xs"
+                    className="absolute inset-0 rounded-xl bg-[#046A38]/10 border border-[#C2410C]/50 shadow-xs"
                   />
                 )}
-                <span className="relative z-10">{item.icon}</span>
+                <span className="relative z-10 text-[#046A38] dark:text-emerald-400">{item.icon}</span>
                 <span className="relative z-10">{item.label}</span>
               </button>
             );
@@ -303,9 +303,9 @@ export const AppShell: React.FC<AppShellProps> = ({
         </nav>
 
         {/* Official Compliance Footer */}
-        <div className="p-3 border-t border-slate-200/70 dark:border-blue-400/15">
-          <div className="px-3 py-2.5 rounded-xl liquid-glass-subtle text-[11px] text-slate-600 dark:text-slate-300/80">
-            <div className="font-semibold text-slate-800 dark:text-slate-100">
+        <div className="p-3 border-t border-[#C2410C]/30">
+          <div className="px-3 py-2.5 rounded-xl liquid-glass-subtle text-[11px] text-stone-700 dark:text-stone-300">
+            <div className="font-bold text-stone-900 dark:text-stone-100">
               VERIDEX Statutory Compliance
             </div>
             <p className="mt-0.5 leading-snug">
@@ -326,7 +326,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             className="fixed inset-0 z-50 lg:hidden flex"
           >
             <div
-              className="fixed inset-0 bg-slate-950/65 backdrop-blur-sm"
+              className="fixed inset-0 bg-stone-950/65 backdrop-blur-sm"
               onClick={() => setMobileMenuOpen(false)}
             />
             <motion.aside
@@ -336,22 +336,27 @@ export const AppShell: React.FC<AppShellProps> = ({
               transition={{ duration: 0.26, ease: SMOOTH_EASE }}
               className="relative w-64 max-w-xs liquid-glass-elevated h-full flex flex-col z-10"
             >
-              <div className="h-14 px-4 flex items-center justify-between border-b border-slate-200/70 dark:border-blue-400/15">
+              <div className="h-16 px-4 flex items-center justify-between border-b border-[#C2410C]/35">
                 <div className="flex items-center gap-2">
                   <img
                     src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
                     alt="VERIDEX Logo"
-                    className="h-7 w-auto rounded-md object-contain bg-white px-1 py-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+                    className="h-8 w-auto rounded-md object-contain bg-white px-1 py-0.5 border border-[#C2410C]/45 shrink-0"
                   />
-                  <span className="font-display font-bold text-sm text-slate-900 dark:text-white">
-                    VERIDEX
-                  </span>
+                  <div>
+                    <span className="font-display font-bold text-sm text-stone-900 dark:text-white block leading-tight">
+                      VERIDEX
+                    </span>
+                    <span className="text-[10px] font-semibold text-[#046A38] dark:text-emerald-400 block leading-tight">
+                      हर दावे की जाँच, हर सच की पहचान
+                    </span>
+                  </div>
                 </div>
                 <button
                   type="button"
                   aria-label="Close navigation menu"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                  className="p-1.5 text-stone-600 hover:text-stone-900 dark:text-stone-400"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -367,11 +372,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium ${
                       activeView === item.id
-                        ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 font-semibold border border-blue-500/25'
-                        : 'text-slate-600 dark:text-slate-400'
+                        ? 'bg-[#046A38]/12 text-[#046A38] dark:text-emerald-300 font-bold border border-[#C2410C]/45'
+                        : 'text-stone-700 dark:text-stone-400'
                     }`}
                   >
-                    {item.icon}
+                    <span className="text-[#046A38] dark:text-emerald-400">{item.icon}</span>
                     <span>{item.label}</span>
                   </button>
                 ))}
@@ -383,35 +388,41 @@ export const AppShell: React.FC<AppShellProps> = ({
 
       {/* Right Main Column */}
       <div className="flex-1 flex flex-col min-w-0">
+        <div className="h-1 w-full tricolour-bar sticky top-0 z-40" />
         {/* Compact Top Bar */}
-        <header className="h-14 px-3 sm:px-6 liquid-glass-elevated border-x-0 border-t-0 flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-30">
-          {/* Left: Mobile Trigger + VERIDEX Brand + Breadcrumb */}
+        <header className="h-16 px-3 sm:px-6 liquid-glass-elevated border-x-0 border-t-0 flex items-center justify-between gap-2 sm:gap-4 sticky top-1 z-30">
+          {/* Left: Mobile Trigger + VERIDEX Brand + Tagline + Breadcrumb */}
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
               aria-label="Open navigation menu"
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-1.5 rounded-xl liquid-glass-subtle text-slate-600 dark:text-slate-300 shrink-0 cursor-pointer"
+              className="lg:hidden p-1.5 rounded-xl liquid-glass-subtle text-stone-700 dark:text-stone-300 shrink-0 cursor-pointer"
             >
-              <Menu className="w-4 h-4" />
+              <Menu className="w-4 h-4 text-[#046A38]" />
             </button>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2.5 shrink-0">
               <img
                 src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_02.43.46_5a1b79e2.jpeg"
                 alt="VERIDEX Logo"
-                className="h-7 w-auto rounded-md object-contain bg-white px-1 py-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+                className="h-8 w-auto rounded-md object-contain bg-white px-1 py-0.5 border border-[#C2410C]/45 shrink-0"
               />
-              <span className="font-display font-bold text-xs sm:text-sm text-slate-900 dark:text-white tracking-tight">
-                VERIDEX
-              </span>
+              <div className="flex flex-col">
+                <span className="font-display font-bold text-xs sm:text-sm text-stone-900 dark:text-white tracking-tight leading-tight">
+                  VERIDEX
+                </span>
+                <span className="text-[10px] font-semibold text-[#046A38] dark:text-emerald-400 leading-tight">
+                  हर दावे की जाँच, हर सच की पहचान
+                </span>
+              </div>
             </div>
-            <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">|</span>
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 truncate">
-              <span className="hidden md:inline font-medium text-slate-700 dark:text-slate-300">
+            <span className="text-[#C2410C]/40" aria-hidden="true">|</span>
+            <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400 truncate">
+              <span className="hidden md:inline font-semibold text-[#C2410C]">
                 {roleLabel}
               </span>
               <span className="hidden md:inline" aria-hidden="true">/</span>
-              <span className="font-semibold text-slate-900 dark:text-white capitalize truncate">
+              <span className="font-bold text-stone-900 dark:text-white capitalize truncate">
                 {navItems.find((n) => n.id === activeView)?.label || activeView}
               </span>
             </div>
