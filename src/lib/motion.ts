@@ -28,6 +28,25 @@ export const SPRING_DRAWER: Transition = {
 };
 
 /**
+ * Linux desktop window-inspired horizontal fold/expand spring for the dashboard sidebar.
+ * Quick, crisp, and slightly springy without heavy bounce or layout jitter.
+ */
+export const SPRING_LINUX_SIDEBAR: Transition = {
+  type: 'spring',
+  stiffness: 680,
+  damping: 48,
+  mass: 0.42,
+  restDelta: 1,
+  restSpeed: 2,
+};
+
+export const REDUCED_MOTION_TRANSITION: Transition = {
+  type: 'tween',
+  duration: 0.001,
+};
+
+
+/**
  * Staggered container for KPI strips, Bento grids, and dashboard card lists.
  */
 export const staggerContainerVariants: Variants = {

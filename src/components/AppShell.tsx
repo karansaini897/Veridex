@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion, MotionConfig } from 'motion/react';
 import {
   LayoutDashboard,
   FileSpreadsheet,
@@ -28,6 +28,7 @@ import {
   UserAccount,
 } from '../types/portal';
 import { canUserAccessApplication, canUserAccessDocument } from '../lib/domain';
+import { SPRING_LINUX_SIDEBAR, REDUCED_MOTION_TRANSITION } from '../lib/motion';
 import { EmptyStateCard, FileTypeMarker, StatusBadge } from './StatusPrimitives';
 
 interface AppShellProps {
@@ -74,12 +75,55 @@ export const AppShell: React.FC<AppShellProps> = ({
   onOpenPublicLanding,
   children,
 }) => {
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : true
+  );
+  const motionReducedHook = useReducedMotion();
+  const [mediaReducedMotion, setMediaReducedMotion] = useState<boolean>(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  );
+  const prefersReducedMotion = Boolean(motionReducedHook || mediaReducedMotion);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const desktopMq = window.matchMedia('(min-width: 1024px)');
+    const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const handleDesktopChange = (e: MediaQueryListEvent) => {
+      setIsDesktopViewport(e.matches);
+      if (e.matches) {
+        setMobileMenuOpen(false);
+      }
+    };
+    const handleMotionChange = (e: MediaQueryListEvent) => {
+      setMediaReducedMotion(e.matches);
+    };
+
+    setIsDesktopViewport(desktopMq.matches);
+    setMediaReducedMotion(motionMq.matches);
+
+    desktopMq.addEventListener('change', handleDesktopChange);
+    motionMq.addEventListener('change', handleMotionChange);
+    return () => {
+      desktopMq.removeEventListener('change', handleDesktopChange);
+      motionMq.removeEventListener('change', handleMotionChange);
+    };
+  }, []);
+
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilter, setSearchFilter] = useState<'all' | 'applications' | 'documents' | 'institutions'>('all');
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  const isNavExpanded = isDesktopViewport ? desktopSidebarOpen : mobileMenuOpen;
+  const sidebarTransition = prefersReducedMotion
+    ? REDUCED_MOTION_TRANSITION
+    : SPRING_LINUX_SIDEBAR;
 
   const initials = useMemo(() => {
     const parts = currentUser.fullName
@@ -245,87 +289,156 @@ export const AppShell: React.FC<AppShellProps> = ({
   }, [searchQuery, searchFilter, applications, documents, institutions, currentUser]);
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="min-h-screen flex liquid-canvas text-stone-900 dark:text-stone-100">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 liquid-glass-elevated border-y-0 border-l-0 sticky top-0 h-screen z-20">
-        <div className="h-16 px-4 flex items-center gap-2.5 border-b border-[#C2410C]/35">
-          <img
-            src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_16.59.09_2f2ed194.jpeg"
-            alt="VERIDEX Logo"
-            className="h-9 w-auto rounded-lg object-contain bg-[#E7D8C0] border-2 border-[#C2410C]/45 shrink-0"
-          />
-          <div className="min-w-0">
-            <div className="font-display font-bold text-sm text-stone-900 dark:text-white truncate leading-tight">
-              VERIDEX
+      {/* Desktop Sidebar — Linux-window-inspired horizontal fold/expand from left */}
+      <motion.aside
+        id="veridex-desktop-sidebar"
+        data-testid="desktop-sidebar"
+        aria-label="Workspace Sidebar"
+        aria-hidden={!desktopSidebarOpen}
+        inert={!desktopSidebarOpen ? true : undefined}
+        initial={false}
+        animate={{
+          width: desktopSidebarOpen ? 256 : 0,
+          opacity: desktopSidebarOpen ? 1 : 0,
+        }}
+        transition={
+          prefersReducedMotion ||
+          (typeof window !== 'undefined' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+            ? REDUCED_MOTION_TRANSITION
+            : SPRING_LINUX_SIDEBAR
+        }
+        style={{
+          pointerEvents: desktopSidebarOpen ? 'auto' : 'none',
+          borderWidth: desktopSidebarOpen ? undefined : '0px',
+          ...(prefersReducedMotion ||
+          (typeof window !== 'undefined' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+            ? {
+                width: desktopSidebarOpen ? 256 : 0,
+                opacity: desktopSidebarOpen ? 1 : 0,
+              }
+            : {}),
+        }}
+        className={`hidden lg:flex lg:flex-col shrink-0 min-w-0 liquid-glass-elevated border-y-0 border-l-0 sticky top-0 h-screen z-20 overflow-hidden origin-left ${
+          desktopSidebarOpen ? '' : 'shadow-none'
+        }`}
+      >
+        <motion.div
+          initial={false}
+          animate={{
+            x: desktopSidebarOpen ? 0 : -18,
+            scaleX: desktopSidebarOpen ? 1 : 0.94,
+            opacity: desktopSidebarOpen ? 1 : 0,
+          }}
+          transition={
+            prefersReducedMotion ||
+            (typeof window !== 'undefined' &&
+              window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+              ? REDUCED_MOTION_TRANSITION
+              : SPRING_LINUX_SIDEBAR
+          }
+          style={
+            prefersReducedMotion ||
+            (typeof window !== 'undefined' &&
+              window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+              ? {
+                  transform: 'none',
+                  opacity: desktopSidebarOpen ? 1 : 0,
+                }
+              : undefined
+          }
+          className="w-64 min-w-[16rem] h-full flex flex-col origin-left"
+        >
+          <div className="h-16 px-4 flex items-center gap-2.5 border-b border-[#C2410C]/35">
+            <img
+              src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_16.59.09_2f2ed194.jpeg"
+              alt="VERIDEX Logo"
+              className="h-9 w-auto rounded-lg object-contain bg-[#E7D8C0] border-2 border-[#C2410C]/45 shrink-0"
+            />
+            <div className="min-w-0">
+              <div className="font-display font-bold text-sm text-stone-900 dark:text-white truncate leading-tight">
+                VERIDEX
+              </div>
+              <div className="text-[10px] font-semibold text-[#046A38] dark:text-emerald-400 truncate leading-tight mt-0.5">
+                हर दावे की जाँच, हर सच की पहचान
+              </div>
             </div>
-            <div className="text-[10px] font-semibold text-[#046A38] dark:text-emerald-400 truncate leading-tight mt-0.5">
-              हर दावे की जाँच, हर सच की पहचान
+          </div>
+
+          {/* Role & Institution Identity Block */}
+          <div className="px-4 py-3.5 border-b border-[#C2410C]/30 liquid-glass-subtle">
+            <div className="text-xs font-bold text-[#C2410C]">
+              {roleLabel}
+            </div>
+            <div className="text-xs font-semibold text-stone-900 dark:text-white mt-0.5 truncate">
+              {currentUser.institutionName || 'VERIDEX Compliance Bureau'}
+            </div>
+            <div className="text-[11px] text-stone-600 dark:text-stone-400 font-mono-tabular mt-0.5">
+              {currentUser.officialInstitutionCode || currentUser.permissionLevel || currentUser.rollNumber}
             </div>
           </div>
-        </div>
 
-        {/* Role & Institution Identity Block */}
-        <div className="px-4 py-3.5 border-b border-[#C2410C]/30 liquid-glass-subtle">
-          <div className="text-xs font-bold text-[#C2410C]">
-            {roleLabel}
-          </div>
-          <div className="text-xs font-semibold text-stone-900 dark:text-white mt-0.5 truncate">
-            {currentUser.institutionName || 'VERIDEX Compliance Bureau'}
-          </div>
-          <div className="text-[11px] text-stone-600 dark:text-stone-400 font-mono-tabular mt-0.5">
-            {currentUser.officialInstitutionCode || currentUser.permissionLevel || currentUser.rollNumber}
-          </div>
-        </div>
-
-        {/* Primary Navigation */}
-        <nav aria-label="Main Navigation" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = activeView === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                data-testid={`nav-${item.id}`}
-                onClick={() => onNavigate(item.id)}
-                className={`relative w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs font-medium cursor-pointer whitespace-nowrap ${
-                  isActive
-                    ? 'text-[#046A38] dark:text-emerald-300 font-bold'
-                    : 'text-stone-700 hover:text-stone-900 hover:bg-[#EFE6D5]/70 dark:text-stone-400 dark:hover:text-stone-100'
-                }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="veridex-active-nav"
-                    transition={{ type: 'spring', stiffness: 430, damping: 30, mass: 0.6 }}
-                    className="absolute inset-0 rounded-xl bg-[#046A38]/10 border border-[#C2410C]/50 shadow-xs"
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-3 min-w-0">
-                  <span className="text-[#046A38] dark:text-emerald-400 shrink-0">{item.icon}</span>
-                  <span className="truncate">{item.label}</span>
-                </span>
-                {item.badge !== undefined && (
-                  <span className="relative z-10 px-1.5 py-0.5 rounded-full bg-[#C2410C] text-white text-[10px] font-mono-tabular font-bold">
-                    {item.badge}
+          {/* Primary Navigation */}
+          <nav aria-label="Main Navigation" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            {navItems.map((item) => {
+              const isActive = activeView === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  tabIndex={desktopSidebarOpen ? 0 : -1}
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
+                  title={item.label}
+                  data-testid={`nav-${item.id}`}
+                  onClick={() => onNavigate(item.id)}
+                  className={`relative w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs font-medium cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? 'text-[#046A38] dark:text-emerald-300 font-bold'
+                      : 'text-stone-700 hover:text-stone-900 hover:bg-[#EFE6D5]/70 dark:text-stone-400 dark:hover:text-stone-100'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="veridex-active-nav"
+                      transition={
+                        prefersReducedMotion
+                          ? REDUCED_MOTION_TRANSITION
+                          : { type: 'spring', stiffness: 430, damping: 30, mass: 0.6 }
+                      }
+                      className="absolute inset-0 rounded-xl bg-[#046A38]/10 border border-[#C2410C]/50 shadow-xs"
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-3 min-w-0">
+                    <span className="text-[#046A38] dark:text-emerald-400 shrink-0">{item.icon}</span>
+                    <span className="truncate">{item.label}</span>
                   </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
+                  {item.badge !== undefined && (
+                    <span className="relative z-10 px-1.5 py-0.5 rounded-full bg-[#C2410C] text-white text-[10px] font-mono-tabular font-bold">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
 
-        {/* Official Compliance Footer */}
-        <div className="p-3 border-t border-[#C2410C]/30">
-          <div className="px-3 py-2.5 rounded-xl liquid-glass-subtle text-[11px] text-stone-700 dark:text-stone-300">
-            <div className="font-bold text-stone-900 dark:text-stone-100">
-              VERIDEX Statutory Compliance
+          {/* Official Compliance Footer */}
+          <div className="p-3 border-t border-[#C2410C]/30">
+            <div className="px-3 py-2.5 rounded-xl liquid-glass-subtle text-[11px] text-stone-700 dark:text-stone-300">
+              <div className="font-bold text-stone-900 dark:text-stone-100">
+                VERIDEX Statutory Compliance
+              </div>
+              <p className="mt-0.5 leading-snug">
+                Role-enforced access control &amp; audit logging active.
+              </p>
             </div>
-            <p className="mt-0.5 leading-snug">
-              Role-enforced access control &amp; audit logging active.
-            </p>
           </div>
-        </div>
-      </aside>
+        </motion.div>
+      </motion.aside>
 
       {/* Mobile Sidebar Drawer */}
       <AnimatePresence>
@@ -334,7 +447,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15, ease: SMOOTH_EASE }}
+            transition={prefersReducedMotion ? REDUCED_MOTION_TRANSITION : { duration: 0.15, ease: SMOOTH_EASE }}
             className="fixed inset-0 z-50 lg:hidden flex"
           >
             <div
@@ -342,10 +455,12 @@ export const AppShell: React.FC<AppShellProps> = ({
               onClick={() => setMobileMenuOpen(false)}
             />
             <motion.aside
+              id="veridex-mobile-sidebar"
+              data-testid="mobile-sidebar-drawer"
               initial={{ x: -260 }}
               animate={{ x: 0 }}
               exit={{ x: -260 }}
-              transition={{ duration: 0.19, ease: SMOOTH_EASE }}
+              transition={prefersReducedMotion ? REDUCED_MOTION_TRANSITION : { duration: 0.19, ease: SMOOTH_EASE }}
               className="relative w-64 max-w-xs liquid-glass-elevated h-full flex flex-col z-10"
             >
               <div className="h-16 px-4 flex items-center justify-between border-b border-[#C2410C]/35">
@@ -368,21 +483,22 @@ export const AppShell: React.FC<AppShellProps> = ({
                   type="button"
                   aria-label="Close navigation menu"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 text-stone-600 hover:text-stone-900 dark:text-stone-400"
+                  className="p-1.5 text-stone-600 hover:text-stone-900 dark:text-stone-400 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+              <nav aria-label="Mobile Navigation" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
                 {navItems.map((item) => (
                   <button
                     key={item.id}
                     type="button"
+                    aria-current={activeView === item.id ? 'page' : undefined}
                     onClick={() => {
                       onNavigate(item.id);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs font-medium ${
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs font-medium cursor-pointer ${
                       activeView === item.id
                         ? 'bg-[#046A38]/12 text-[#046A38] dark:text-emerald-300 font-bold border border-[#C2410C]/45'
                         : 'text-stone-700 dark:text-stone-400'
@@ -410,15 +526,29 @@ export const AppShell: React.FC<AppShellProps> = ({
         <div className="h-1 w-full tricolour-bar sticky top-0 z-40" />
         {/* Compact Top Bar */}
         <header className="h-16 px-3 sm:px-6 liquid-glass-elevated border-x-0 border-t-0 flex items-center justify-between gap-2 sm:gap-4 sticky top-1 z-30">
-          {/* Left: Mobile Trigger + VERIDEX Brand + Tagline + Breadcrumb */}
+          {/* Left: Dynamic Sidebar Hamburger Control + VERIDEX Brand + Tagline + Breadcrumb */}
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
-              aria-label="Open navigation menu"
-              onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-1.5 rounded-xl liquid-glass-subtle text-stone-700 dark:text-stone-300 shrink-0 cursor-pointer"
+              data-testid="sidebar-hamburger-btn"
+              aria-label={isNavExpanded ? 'Collapse navigation' : 'Expand navigation'}
+              aria-expanded={isNavExpanded}
+              aria-controls={isDesktopViewport ? 'veridex-desktop-sidebar' : 'veridex-mobile-sidebar'}
+              title={isNavExpanded ? 'Collapse navigation' : 'Expand navigation'}
+              onClick={() => {
+                if (window.matchMedia('(min-width: 1024px)').matches) {
+                  setDesktopSidebarOpen((prev) => !prev);
+                } else {
+                  setMobileMenuOpen((prev) => !prev);
+                }
+              }}
+              className="p-2 rounded-xl liquid-glass-subtle hover:border-[#C2410C] text-stone-700 dark:text-stone-300 shrink-0 cursor-pointer flex items-center justify-center transition-colors"
             >
-              <Menu className="w-4 h-4 text-[#046A38]" />
+              {!isDesktopViewport && mobileMenuOpen ? (
+                <X className="w-4 h-4 text-[#C2410C]" />
+              ) : (
+                <Menu className="w-4 h-4 text-[#046A38] dark:text-emerald-400" />
+              )}
             </button>
             <div className="flex items-center gap-2.5 shrink-0">
               <img
@@ -889,6 +1019,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         )}
       </AnimatePresence>
     </div>
+    </MotionConfig>
   );
 };
 

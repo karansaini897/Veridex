@@ -219,17 +219,21 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
             : 'Visitors';
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
+    <div
+      data-testid="chatbot-floating-container"
+      className="fixed bottom-[4.5rem] right-4 sm:bottom-20 sm:right-5 z-50 flex flex-col items-end"
+    >
       <AnimatePresence>
         {isOpen && (
           <motion.section
             role="dialog"
+            data-testid="chatbot-dialog-panel"
             aria-label="VERIDEX Gemini Compliance Chatbot"
             initial={{ opacity: 0, y: 16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="mb-3 w-[calc(100vw-2.5rem)] sm:w-[420px] max-h-[82vh] flex flex-col rounded-2xl bg-[#FCF9F2] dark:bg-stone-900 border-2 border-[#C2410C] shadow-2xl overflow-hidden text-stone-900 dark:text-stone-100"
+            className="mb-3 w-[calc(100vw-2rem)] sm:w-[420px] max-h-[calc(100dvh-10.5rem)] sm:max-h-[min(640px,calc(100dvh-11rem))] flex flex-col rounded-2xl bg-[#FCF9F2] dark:bg-stone-900 border-2 border-[#C2410C] shadow-2xl overflow-hidden text-stone-900 dark:text-stone-100"
           >
             {/* Tricolour Top Accent */}
             <div className="h-1.5 w-full tricolour-bar shrink-0" />
@@ -280,7 +284,7 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
             </div>
 
             {/* Messages Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 max-h-[420px]">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3.5 max-h-[min(380px,calc(100dvh-19rem))]">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -432,6 +436,7 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
       {/* Floating Bottom-Right Circular Button with Logo & Gemini Badge */}
       <button
         type="button"
+        data-testid="chatbot-launcher-btn"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label={
           isOpen
