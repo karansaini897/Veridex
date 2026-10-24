@@ -299,126 +299,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </div>
           </motion.div>
 
-          {/* Compact 4-Step Visual Compliance Journey Focal Point */}
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.06, ease: SMOOTH_EASE }}
-            className="mt-10 max-w-6xl mx-auto rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/60 shadow-[0_18px_45px_rgba(124,45,18,0.12)] overflow-hidden"
-            aria-label="Interactive Dossier-to-Decision Compliance Journey"
-          >
-            <div className="px-4 sm:px-6 py-3 bg-[#F3E9D7] border-b border-[#C2410C]/35 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <ClipboardList className="w-4 h-4 text-[#046A38]" aria-hidden="true" />
-                <span className="text-xs font-display font-bold text-stone-900">
-                  End-to-End Institutional Compliance Journey
-                </span>
-              </div>
-              <span className="text-[11px] font-mono-tabular text-stone-600">
-                Select any stage to inspect workflow details
-              </span>
-            </div>
-
-            {/* 4-Step Stepper Selector */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#C2410C]/25 border-b border-[#C2410C]/30 bg-[#FAF5EB]">
-              {HERO_JOURNEY_STAGES.map((stage, idx) => {
-                const isActive = activeJourneyStep === idx;
-                return (
-                  <button
-                    key={stage.stepNumber}
-                    type="button"
-                    onClick={() => {
-                      setActiveJourneyStep(idx);
-                      setJourneyPausedByUser(true);
-                    }}
-                    aria-pressed={isActive}
-                    className={`p-3.5 sm:p-4 text-left transition-colors cursor-pointer relative ${
-                      isActive
-                        ? 'bg-[#FCF9F2] text-stone-900'
-                        : 'hover:bg-[#F3E9D7]/60 text-stone-600'
-                    }`}
-                  >
-                    {isActive && (
-                      <div
-                        className="h-1 w-full bg-gradient-to-r from-[#C2410C] to-[#046A38] absolute top-0 left-0 right-0"
-                        aria-hidden="true"
-                      />
-                    )}
-                    <div className="flex items-center justify-between gap-2 text-[11px] font-mono-tabular">
-                      <span
-                        className={`font-bold ${
-                          isActive ? 'text-[#C2410C]' : 'text-stone-500'
-                        }`}
-                      >
-                        STEP {stage.stepNumber}
-                      </span>
-                      {idx < activeJourneyStep ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#046A38]" aria-hidden="true" />
-                      ) : isActive ? (
-                        <span className="w-2 h-2 rounded-full bg-[#C2410C]" aria-hidden="true" />
-                      ) : null}
-                    </div>
-                    <div className="text-xs sm:text-sm font-display font-bold text-stone-900 mt-1">
-                      {stage.shortTitle}
-                    </div>
-                    <div className="text-[11px] text-stone-600 truncate mt-0.5">
-                      {stage.actor}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Active Journey Stage Detail Panel */}
-            <div className="p-4 sm:p-6 bg-[#FCF9F2] grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
-              <div className="lg:col-span-7 space-y-2.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-mono-tabular font-bold text-[#C2410C]">
-                    Stage {currentStage.stepNumber} of 04
-                  </span>
-                  <span aria-hidden="true" className="text-stone-400">·</span>
-                  <span className="text-xs font-semibold text-stone-700">
-                    {currentStage.actor}
-                  </span>
-                  <StatusBadge status={currentStage.statusBadge} />
-                </div>
-                <h2 className="text-base sm:text-lg font-display font-bold text-stone-900">
-                  {currentStage.title}
-                </h2>
-                <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
-                  {currentStage.summary}
-                </p>
-              </div>
-
-              <div className="lg:col-span-5 rounded-xl bg-[#F4EDE1] border border-[#C2410C]/40 p-4 space-y-2.5">
-                <div className="flex items-center justify-between gap-2 border-b border-[#C2410C]/20 pb-2">
-                  <span className="text-[11px] font-mono-tabular font-bold text-[#046A38] flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                    <span>{currentStage.recordCode}</span>
-                  </span>
-                  <span className="text-[10px] font-mono-tabular px-2 py-0.5 rounded bg-[#FCF9F2] border border-[#C2410C]/30 text-stone-700">
-                    Structured Record
-                  </span>
-                </div>
-                <p className="text-xs text-stone-800 leading-relaxed font-medium">
-                  {currentStage.evidenceDetail}
-                </p>
-                <div className="pt-1.5 border-t border-[#C2410C]/20 flex items-center justify-between gap-2 text-[11px] text-[#C2410C] font-semibold">
-                  <span>Next: {currentStage.nextActionLabel}</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
           {/* 3-Card Layered Floating Software Showcase (Beige Surface, Dark Orange Borders, Green Icons) */}
-          <div className="relative mt-10 sm:mt-12 max-w-6xl mx-auto pt-2 pb-6">
+          <div className="relative mt-10 sm:mt-12 max-w-6xl 2xl:max-w-7xl mx-auto pt-2 pb-4">
             <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-5 items-end">
               {/* LEFT FLOATING WING CARD: Validation Architecture Coverage */}
               <motion.div
                 initial={prefersReducedMotion ? false : { opacity: 0, x: -24, rotate: -2 }}
                 animate={{ opacity: 1, x: 0, rotate: -2 }}
-                transition={{ duration: 0.55, delay: 0.1, ease: SMOOTH_EASE }}
-                className="hidden lg:block lg:col-span-3 -mr-6 mb-6 z-10 rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/55 p-5 shadow-[0_18px_45px_rgba(124,45,18,0.14)]"
+                transition={{ duration: 0.55, delay: 0.08, ease: SMOOTH_EASE }}
+                className="hidden lg:block lg:col-span-3 -mr-6 mb-6 z-10 rounded-2xl bg-[#FCF9F2]/95 backdrop-blur-md border-2 border-[#C2410C]/55 p-5 shadow-[0_18px_45px_rgba(124,45,18,0.14)]"
               >
                 <div className="flex items-center justify-between text-xs font-medium text-stone-700 mb-4">
                   <span className="flex items-center gap-1.5 font-display font-bold text-stone-900">
@@ -486,7 +375,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <motion.div
                 initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.05, ease: SMOOTH_EASE }}
+                transition={{ duration: 0.5, delay: 0.04, ease: SMOOTH_EASE }}
                 className="lg:col-span-6 z-20 rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/65 shadow-[0_24px_60px_rgba(124,45,18,0.18)] overflow-hidden"
               >
                 {/* Board Window Top Toolbar */}
@@ -639,8 +528,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <motion.div
                 initial={prefersReducedMotion ? false : { opacity: 0, x: 24, rotate: 2 }}
                 animate={{ opacity: 1, x: 0, rotate: 2 }}
-                transition={{ duration: 0.55, delay: 0.14, ease: SMOOTH_EASE }}
-                className="hidden lg:block lg:col-span-3 -ml-6 mb-6 z-10 rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/55 p-5 shadow-[0_18px_45px_rgba(124,45,18,0.14)] space-y-3.5"
+                transition={{ duration: 0.55, delay: 0.12, ease: SMOOTH_EASE }}
+                className="hidden lg:block lg:col-span-3 -ml-6 mb-6 z-10 rounded-2xl bg-[#FCF9F2]/95 backdrop-blur-md border-2 border-[#C2410C]/55 p-5 shadow-[0_18px_45px_rgba(124,45,18,0.14)] space-y-3.5"
               >
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-xs font-display font-bold text-stone-900">
@@ -661,10 +550,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   </p>
                   <button
                     type="button"
-                    onClick={onOpenLogin}
+                    onClick={isAuthenticated && onReturnToWorkspace ? onReturnToWorkspace : onOpenLogin}
                     className="w-full py-1.5 px-3 rounded-lg bg-[#C2410C] hover:bg-[#9A3412] text-[11px] font-semibold text-white transition-colors cursor-pointer"
                   >
-                    Sign In to Access Portal
+                    {isAuthenticated ? 'Return to Workspace' : 'Sign In to Access Portal'}
                   </button>
                 </div>
 
@@ -685,6 +574,117 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               </motion.div>
             </div>
           </div>
+
+          {/* Compact 4-Step Visual Compliance Journey Focal Point (Positioned Below the Validation Trio) */}
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.14, ease: SMOOTH_EASE }}
+            className="mt-8 sm:mt-10 max-w-6xl 2xl:max-w-7xl mx-auto rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/60 shadow-[0_18px_45px_rgba(124,45,18,0.12)] overflow-hidden"
+            aria-label="Interactive Dossier-to-Decision Compliance Journey"
+          >
+            <div className="px-4 sm:px-6 py-3 bg-[#F3E9D7] border-b border-[#C2410C]/35 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-[#046A38]" aria-hidden="true" />
+                <span className="text-xs font-display font-bold text-stone-900">
+                  End-to-End Institutional Compliance Journey
+                </span>
+              </div>
+              <span className="text-[11px] font-mono-tabular text-stone-600">
+                Select any stage to inspect workflow details
+              </span>
+            </div>
+
+            {/* 4-Step Stepper Selector */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#C2410C]/25 border-b border-[#C2410C]/30 bg-[#FAF5EB]">
+              {HERO_JOURNEY_STAGES.map((stage, idx) => {
+                const isActive = activeJourneyStep === idx;
+                return (
+                  <button
+                    key={stage.stepNumber}
+                    type="button"
+                    onClick={() => {
+                      setActiveJourneyStep(idx);
+                      setJourneyPausedByUser(true);
+                    }}
+                    aria-pressed={isActive}
+                    className={`p-3.5 sm:p-4 text-left transition-colors cursor-pointer relative ${
+                      isActive
+                        ? 'bg-[#FCF9F2] text-stone-900'
+                        : 'hover:bg-[#F3E9D7]/60 text-stone-600'
+                    }`}
+                  >
+                    {isActive && (
+                      <div
+                        className="h-1 w-full bg-gradient-to-r from-[#C2410C] to-[#046A38] absolute top-0 left-0 right-0"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <div className="flex items-center justify-between gap-2 text-[11px] font-mono-tabular">
+                      <span
+                        className={`font-bold ${
+                          isActive ? 'text-[#C2410C]' : 'text-stone-500'
+                        }`}
+                      >
+                        STEP {stage.stepNumber}
+                      </span>
+                      {idx < activeJourneyStep ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#046A38]" aria-hidden="true" />
+                      ) : isActive ? (
+                        <span className="w-2 h-2 rounded-full bg-[#C2410C]" aria-hidden="true" />
+                      ) : null}
+                    </div>
+                    <div className="text-xs sm:text-sm font-display font-bold text-stone-900 mt-1">
+                      {stage.shortTitle}
+                    </div>
+                    <div className="text-[11px] text-stone-600 truncate mt-0.5">
+                      {stage.actor}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active Journey Stage Detail Panel */}
+            <div className="p-4 sm:p-6 bg-[#FCF9F2] grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+              <div className="lg:col-span-7 space-y-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-mono-tabular font-bold text-[#C2410C]">
+                    Stage {currentStage.stepNumber} of 04
+                  </span>
+                  <span aria-hidden="true" className="text-stone-400">·</span>
+                  <span className="text-xs font-semibold text-stone-700">
+                    {currentStage.actor}
+                  </span>
+                  <StatusBadge status={currentStage.statusBadge} />
+                </div>
+                <h2 className="text-base sm:text-lg font-display font-bold text-stone-900">
+                  {currentStage.title}
+                </h2>
+                <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
+                  {currentStage.summary}
+                </p>
+              </div>
+
+              <div className="lg:col-span-5 rounded-xl bg-[#F4EDE1] border border-[#C2410C]/40 p-4 space-y-2.5">
+                <div className="flex items-center justify-between gap-2 border-b border-[#C2410C]/20 pb-2">
+                  <span className="text-[11px] font-mono-tabular font-bold text-[#046A38] flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    <span>{currentStage.recordCode}</span>
+                  </span>
+                  <span className="text-[10px] font-mono-tabular px-2 py-0.5 rounded bg-[#FCF9F2] border border-[#C2410C]/30 text-stone-700">
+                    Structured Record
+                  </span>
+                </div>
+                <p className="text-xs text-stone-800 leading-relaxed font-medium">
+                  {currentStage.evidenceDetail}
+                </p>
+                <div className="pt-1.5 border-t border-[#C2410C]/20 flex items-center justify-between gap-2 text-[11px] text-[#C2410C] font-semibold">
+                  <span>Next: {currentStage.nextActionLabel}</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </section>
 
         {/* =========================================================

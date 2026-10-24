@@ -233,10 +233,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       animate="visible"
       className="space-y-8"
     >
-      {/* Header */}
+      {/* Greeting & Operational Header Panel */}
       <motion.div
         variants={DASHBOARD_ITEM_VARIANTS}
-        className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-stone-200/80 dark:border-stone-800 pb-5"
+        className="liquid-glass rounded-2xl p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-[#C2410C] dark:text-amber-400">
@@ -247,12 +247,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               ? 'Institutional Applications Directory'
               : `Welcome back, ${currentUser.fullName}`}
           </h1>
-          <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">
+          <p className="text-xs text-stone-600 dark:text-stone-400 mt-1 max-w-3xl">
             Review institutional dossiers, inspect verification findings, issue deficiency notices, and record authorized compliance decisions.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => onNavigate('verification')}
@@ -270,61 +270,86 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         </div>
       </motion.div>
 
-      {/* 5 Summary Metrics */}
+      {/* 5 Interactive Summary Metrics */}
       <motion.section
         aria-label="Summary Metrics"
         variants={METRICS_GRID_VARIANTS}
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
       >
-        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs font-medium text-stone-500 dark:text-stone-400">Total Applications</div>
+        <motion.button
+          type="button"
+          variants={DASHBOARD_ITEM_VARIANTS}
+          onClick={() => setStatusFilter('All')}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-4 text-left cursor-pointer"
+        >
+          <div className="text-xs font-medium text-stone-600 dark:text-stone-400">Total Applications</div>
           <div className="text-2xl font-display font-bold text-stone-900 dark:text-white font-mono-tabular mt-1">
             <AnimatedMetricValue value={metrics.totalApplications} />
           </div>
           <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">
             Across 5 registered institutions
           </div>
-        </motion.div>
+        </motion.button>
 
-        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs font-medium text-stone-500 dark:text-stone-400">Pending Review</div>
-          <div className="text-2xl font-display font-bold text-[#1D4ED8] dark:text-blue-400 font-mono-tabular mt-1">
+        <motion.button
+          type="button"
+          variants={DASHBOARD_ITEM_VARIANTS}
+          onClick={() => setStatusFilter('Pending Verification')}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-4 text-left cursor-pointer"
+        >
+          <div className="text-xs font-medium text-stone-600 dark:text-stone-400">Pending Review</div>
+          <div className="text-2xl font-display font-bold text-[#1D4ED8] dark:text-sky-400 font-mono-tabular mt-1">
             <AnimatedMetricValue value={metrics.pendingReview} />
           </div>
           <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">
             Active review queue dossiers
           </div>
-        </motion.div>
+        </motion.button>
 
-        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs font-medium text-stone-500 dark:text-stone-400">Documents Verified</div>
+        <motion.button
+          type="button"
+          variants={DASHBOARD_ITEM_VARIANTS}
+          onClick={() => onNavigate('verification')}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-4 text-left cursor-pointer"
+        >
+          <div className="text-xs font-medium text-stone-600 dark:text-stone-400">Documents Verified</div>
           <div className="text-2xl font-display font-bold text-[#046A38] dark:text-emerald-400 font-mono-tabular mt-1">
             <AnimatedMetricValue value={metrics.documentsVerified} />
           </div>
           <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">
             Issuer verified &amp; officer reviewed
           </div>
-        </motion.div>
+        </motion.button>
 
-        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs font-medium text-stone-500 dark:text-stone-400">Expiring / Expired Docs</div>
+        <motion.button
+          type="button"
+          variants={DASHBOARD_ITEM_VARIANTS}
+          onClick={() => onNavigate('expiry')}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-4 text-left cursor-pointer"
+        >
+          <div className="text-xs font-medium text-stone-600 dark:text-stone-400">Expiring / Expired Docs</div>
           <div className="text-2xl font-display font-bold text-[#C2410C] dark:text-amber-400 font-mono-tabular mt-1">
             <AnimatedMetricValue value={metrics.expiringDocuments} />
           </div>
           <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">
             Within 45d window or lapsed
           </div>
-        </motion.div>
+        </motion.button>
 
-        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4 col-span-2 sm:col-span-1">
-          <div className="text-xs font-medium text-stone-500 dark:text-stone-400">Requiring Additional Info</div>
+        <motion.button
+          type="button"
+          variants={DASHBOARD_ITEM_VARIANTS}
+          onClick={() => setStatusFilter('Additional Information Required')}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-4 text-left sm:col-span-2 md:col-span-1 cursor-pointer"
+        >
+          <div className="text-xs font-medium text-stone-600 dark:text-stone-400">Requiring Additional Info</div>
           <div className="text-2xl font-display font-bold text-red-700 dark:text-red-400 font-mono-tabular mt-1">
             <AnimatedMetricValue value={metrics.requiringAdditionalInfo} />
           </div>
           <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">
             Awaiting institution resubmission
           </div>
-        </motion.div>
+        </motion.button>
       </motion.section>
 
       {/* Recharts Data Visualization Section: Application Statuses & Document Processing Trends */}
@@ -335,17 +360,17 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           className="grid grid-cols-1 lg:grid-cols-12 gap-6"
         >
           {/* Left 5 Cols: Application Status Distribution Chart */}
-          <div className="lg:col-span-5 liquid-glass rounded-2xl p-5 flex flex-col justify-between">
+          <div className="lg:col-span-5 liquid-glass rounded-2xl p-5 flex flex-col justify-between overflow-visible">
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[#046A38] dark:text-emerald-400">
                   <BarChart3 className="w-4 h-4 shrink-0" />
                   <span>Application Status Distribution</span>
                 </div>
-                <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white mt-0.5">
+                <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white mt-0.5">
                   Dossiers by Current Workflow Stage
                 </h2>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-stone-600 dark:text-stone-400">
                   Live breakdown of all {applications.length} institutional applications across statutory review states.
                 </p>
               </div>
@@ -358,25 +383,27 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   layout="vertical"
                   margin={{ top: 4, right: 20, left: 8, bottom: 4 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" horizontal={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid-stroke)" horizontal={false} />
                   <XAxis
                     type="number"
                     allowDecimals={false}
-                    tick={{ fontSize: 11, fill: '#57534E' }}
+                    tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)' }}
                   />
                   <YAxis
                     type="category"
                     dataKey="shortLabel"
                     width={96}
-                    tick={{ fontSize: 11, fill: '#292524', fontWeight: 600 }}
+                    tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)', fontWeight: 600 }}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#FCF9F2',
-                      borderColor: '#C2410C',
-                      borderRadius: '12px',
+                      backgroundColor: 'var(--chart-tooltip-bg)',
+                      borderColor: 'var(--glass-border-strong)',
+                      borderRadius: '14px',
                       fontSize: '12px',
-                      color: '#1C1917',
+                      color: 'var(--chart-tooltip-text)',
+                      boxShadow: 'var(--glass-modal-shadow)',
+                      backdropFilter: 'blur(16px)',
                     }}
                     formatter={(value) => [`${value ?? 0} Dossier(s)`, 'Count']}
                   />
@@ -399,7 +426,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           </div>
 
           {/* Right 7 Cols: Document Processing & Verification Trends Chart */}
-          <div className="lg:col-span-7 liquid-glass rounded-2xl p-5 flex flex-col justify-between">
+          <div className="lg:col-span-7 liquid-glass rounded-2xl p-5 flex flex-col justify-between overflow-visible">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[#046A38] dark:text-emerald-400">
@@ -411,19 +438,19 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     ? 'Cumulative Repository Intake, Metadata Indexing & Officer Sign-Off'
                     : 'Verification Status Breakdown by Document Category'}
                 </h2>
-                <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                <p className="text-[11px] text-stone-600 dark:text-stone-400">
                   Tracks {documents.length} repository certificates across metadata indexing, issuer verification, and consistency checks.
                 </p>
               </div>
 
-              <div className="flex items-center gap-1 p-1 rounded-xl bg-[#EFE6D5] dark:bg-stone-900 border border-[#C2410C]/35 shrink-0 self-start">
+              <div className="flex items-center gap-1 p-1 rounded-xl liquid-glass-subtle shrink-0 self-start">
                 <button
                   type="button"
                   onClick={() => setTrendMode('timeline')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
                     trendMode === 'timeline'
                       ? 'bg-[#C2410C] text-white'
-                      : 'text-stone-700 dark:text-stone-300 hover:text-stone-900'
+                      : 'text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
                   }`}
                 >
                   Monthly Trend
@@ -434,7 +461,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
                     trendMode === 'categories'
                       ? 'bg-[#046A38] text-white'
-                      : 'text-stone-700 dark:text-stone-300 hover:text-stone-900'
+                      : 'text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
                   }`}
                 >
                   By Category
@@ -463,16 +490,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         <stop offset="95%" stopColor="#C2410C" stopOpacity={0.03} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" />
-                    <XAxis dataKey="period" tick={{ fontSize: 11, fill: '#44403C' }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#44403C' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid-stroke)" />
+                    <XAxis dataKey="period" tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)' }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)' }} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#FCF9F2',
-                        borderColor: '#C2410C',
-                        borderRadius: '12px',
+                        backgroundColor: 'var(--chart-tooltip-bg)',
+                        borderColor: 'var(--glass-border-strong)',
+                        borderRadius: '14px',
                         fontSize: '12px',
-                        color: '#1C1917',
+                        color: 'var(--chart-tooltip-text)',
+                        boxShadow: 'var(--glass-modal-shadow)',
+                        backdropFilter: 'blur(16px)',
                       }}
                     />
                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
@@ -514,16 +543,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     barGap={4}
                     barCategoryGap="20%"
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" />
-                    <XAxis dataKey="category" tick={{ fontSize: 11, fill: '#44403C' }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#44403C' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid-stroke)" />
+                    <XAxis dataKey="category" tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)' }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)' }} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#FCF9F2',
-                        borderColor: '#C2410C',
-                        borderRadius: '12px',
+                        backgroundColor: 'var(--chart-tooltip-bg)',
+                        borderColor: 'var(--glass-border-strong)',
+                        borderRadius: '14px',
                         fontSize: '12px',
-                        color: '#1C1917',
+                        color: 'var(--chart-tooltip-text)',
+                        boxShadow: 'var(--glass-modal-shadow)',
+                        backdropFilter: 'blur(16px)',
                       }}
                     />
                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
@@ -535,7 +566,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </ResponsiveContainer>
             </div>
 
-            <div className="pt-3 mt-2 border-t border-[#C2410C]/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-400 font-mono-tabular">
+            <div className="pt-3 mt-2 border-t border-[#C2410C]/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-600 dark:text-stone-400 font-mono-tabular">
               <span>Total Repository Docs: {documents.length}</span>
               <span>·</span>
               <span>Verified &amp; Reviewed: {metrics.documentsVerified}</span>
@@ -551,26 +582,26 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         variants={DASHBOARD_ITEM_VARIANTS}
         className="liquid-glass rounded-2xl overflow-hidden"
       >
-        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="p-4 sm:p-5 border-b border-[#C2410C]/25 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
+              <h2 className="text-base font-display font-bold text-stone-900 dark:text-white">
                 Institutional Applications Registry
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-stone-600 dark:text-stone-400">
                 Click any application row or "Review Dossier" to inspect documents, findings, and record review actions.
               </p>
             </div>
 
             <div className="relative w-full sm:w-72">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-[#046A38] dark:text-emerald-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 aria-label="Filter applications by ID, institution, or category"
                 value={tableSearch}
                 onChange={(e) => setTableSearch(e.target.value)}
                 placeholder="Search ID, institution, category..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl liquid-glass-subtle text-stone-900 dark:text-white placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-[#C2410C]"
               />
             </div>
           </div>
@@ -588,10 +619,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   key={st}
                   type="button"
                   onClick={() => setStatusFilter(st)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                     active
-                      ? 'bg-slate-900 text-white dark:bg-blue-600'
-                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                      ? 'bg-[#C2410C] text-white shadow-xs'
+                      : 'liquid-glass-subtle text-stone-700 hover:text-stone-900 dark:text-stone-300 dark:hover:text-white'
                   }`}
                 >
                   {st} ({count})
@@ -605,7 +636,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              <tr className="border-b border-[#C2410C]/25 liquid-glass-subtle text-[11px] font-semibold text-stone-600 dark:text-stone-300">
                 <th
                   className="py-3 px-4"
                   aria-sort={sortField === 'id' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -613,8 +644,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSort('id')}
-                    className={`group inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white cursor-pointer ${
-                      sortField === 'id' ? 'text-blue-700 dark:text-blue-400 font-bold' : ''
+                    className={`group inline-flex items-center gap-1.5 hover:text-stone-900 dark:hover:text-white cursor-pointer ${
+                      sortField === 'id' ? 'text-[#C2410C] dark:text-amber-400 font-bold' : ''
                     }`}
                   >
                     <span>Ref ID</span>
@@ -628,8 +659,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSort('institutionName')}
-                    className={`group inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white cursor-pointer ${
-                      sortField === 'institutionName' ? 'text-blue-700 dark:text-blue-400 font-bold' : ''
+                    className={`group inline-flex items-center gap-1.5 hover:text-stone-900 dark:hover:text-white cursor-pointer ${
+                      sortField === 'institutionName' ? 'text-[#C2410C] dark:text-amber-400 font-bold' : ''
                     }`}
                   >
                     <span>Institution</span>
@@ -644,8 +675,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSort('submittedDate')}
-                    className={`group inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white cursor-pointer ${
-                      sortField === 'submittedDate' ? 'text-blue-700 dark:text-blue-400 font-bold' : ''
+                    className={`group inline-flex items-center gap-1.5 hover:text-stone-900 dark:hover:text-white cursor-pointer ${
+                      sortField === 'submittedDate' ? 'text-[#C2410C] dark:text-amber-400 font-bold' : ''
                     }`}
                   >
                     <span>Submitted</span>
@@ -659,8 +690,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSort('status')}
-                    className={`group inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white cursor-pointer ${
-                      sortField === 'status' ? 'text-blue-700 dark:text-blue-400 font-bold' : ''
+                    className={`group inline-flex items-center gap-1.5 hover:text-stone-900 dark:hover:text-white cursor-pointer ${
+                      sortField === 'status' ? 'text-[#C2410C] dark:text-amber-400 font-bold' : ''
                     }`}
                   >
                     <span>Current Status</span>
@@ -674,8 +705,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSort('lastUpdated')}
-                    className={`group inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white cursor-pointer ${
-                      sortField === 'lastUpdated' ? 'text-blue-700 dark:text-blue-400 font-bold' : ''
+                    className={`group inline-flex items-center gap-1.5 hover:text-stone-900 dark:hover:text-white cursor-pointer ${
+                      sortField === 'lastUpdated' ? 'text-[#C2410C] dark:text-amber-400 font-bold' : ''
                     }`}
                   >
                     <span>Last Updated</span>
@@ -685,7 +716,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+            <tbody className="divide-y divide-stone-200/80 dark:divide-stone-800/80 text-xs">
               {filteredApplications.slice(0, visibleLimit).map((app) => {
                 const flaggedCount = app.checklist.filter(
                   (c) => c.status === 'Flagged for Review'
@@ -693,24 +724,24 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 return (
                   <tr
                     key={app.id}
-                    className="hover:bg-slate-50/90 dark:hover:bg-slate-800/40 transition-colors"
+                    className="hover:bg-[#EFE6D5]/55 dark:hover:bg-stone-800/45 transition-colors"
                   >
-                    <td className="py-3 px-4 font-mono-tabular font-semibold text-blue-700 dark:text-blue-400 whitespace-nowrap">
+                    <td className="py-3 px-4 font-mono-tabular font-semibold text-[#C2410C] dark:text-amber-400 whitespace-nowrap">
                       {app.id}
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-medium text-slate-900 dark:text-white">
+                      <div className="font-semibold text-stone-900 dark:text-white">
                         {app.institutionName}
                       </div>
-                      <div className="text-[11px] text-slate-500 font-mono-tabular">
+                      <div className="text-[11px] text-stone-500 dark:text-stone-400 font-mono-tabular">
                         {app.officialInstitutionCode} · {app.documentIds.length} docs
                         {flaggedCount > 0 ? ` · ${flaggedCount} flagged` : ''}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
+                    <td className="py-3 px-4 text-stone-700 dark:text-stone-300">
                       {app.category}
                     </td>
-                    <td className="py-3 px-4 font-mono-tabular text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                    <td className="py-3 px-4 font-mono-tabular text-stone-600 dark:text-stone-400 whitespace-nowrap">
                       {app.submittedDate}
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
@@ -724,7 +755,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         type="button"
                         onClick={() => onOpenApplication(app.id)}
                         aria-label={`Open application ${app.id} for ${app.institutionName}`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#EFE6D5] dark:bg-stone-800 hover:bg-[#C2410C] hover:text-white dark:hover:bg-[#C2410C] text-stone-900 dark:text-stone-200 font-semibold text-xs transition-colors cursor-pointer"
+                        className="btn-secondary !py-1.5 !px-3"
                       >
                         <span>Review Dossier</span>
                         <ArrowRight className="w-3 h-3" />
@@ -758,7 +789,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         </div>
 
         {filteredApplications.length > visibleLimit && (
-          <div className="p-3 bg-[#EFE6D5]/60 dark:bg-stone-950/50 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between text-xs text-stone-500">
+          <div className="p-3 liquid-glass-subtle border-x-0 border-b-0 flex items-center justify-between text-xs text-stone-600 dark:text-stone-400">
             <span>
               Showing {visibleLimit} of {filteredApplications.length} matching applications
             </span>
@@ -788,7 +819,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white">
                     Priority Pending-Review Queue ({pendingQueue.length})
                   </h2>
-                  <p className="text-xs text-stone-500 dark:text-stone-400">
+                  <p className="text-xs text-stone-600 dark:text-stone-400">
                     Dossiers awaiting regional officer verification or final compliance decision.
                   </p>
                 </div>
@@ -838,7 +869,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white">
                     Document Verification &amp; Integrity Overview
                   </h2>
-                  <p className="text-xs text-stone-500 dark:text-stone-400">
+                  <p className="text-xs text-stone-600 dark:text-stone-400">
                     Automated verification flags serve as prompts for officer review prior to final compliance sign-off.
                   </p>
                 </div>
@@ -852,27 +883,27 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                <div className="p-3 rounded-xl bg-[#EFE6D5]/60 dark:bg-stone-950 border border-stone-300/80 dark:border-stone-800">
-                  <div className="text-[11px] font-medium text-stone-500">Issuer Check Passed</div>
+                <div className="p-3 rounded-xl liquid-glass-subtle">
+                  <div className="text-[11px] font-medium text-stone-600 dark:text-stone-400">Issuer Check Passed</div>
                   <div className="text-lg font-display font-bold font-mono-tabular text-[#046A38] dark:text-emerald-400 mt-0.5">
                     <AnimatedMetricValue value={verificationBreakdown.verified} /> / {verificationBreakdown.total}
                   </div>
                 </div>
-                <div className="p-3 rounded-xl bg-[#EFE6D5]/60 dark:bg-stone-950 border border-stone-300/80 dark:border-stone-800">
-                  <div className="text-[11px] font-medium text-stone-500">Consistency Flags</div>
+                <div className="p-3 rounded-xl liquid-glass-subtle">
+                  <div className="text-[11px] font-medium text-stone-600 dark:text-stone-400">Consistency Flags</div>
                   <div className="text-lg font-display font-bold font-mono-tabular text-amber-700 dark:text-amber-400 mt-0.5">
                     <AnimatedMetricValue value={verificationBreakdown.consistencyFlagged} />
                   </div>
                 </div>
-                <div className="p-3 rounded-xl bg-[#EFE6D5]/60 dark:bg-stone-950 border border-stone-300/80 dark:border-stone-800">
-                  <div className="text-[11px] font-medium text-stone-500">Anomaly Indicators</div>
+                <div className="p-3 rounded-xl liquid-glass-subtle">
+                  <div className="text-[11px] font-medium text-stone-600 dark:text-stone-400">Anomaly Indicators</div>
                   <div className="text-lg font-display font-bold font-mono-tabular text-red-700 dark:text-red-400 mt-0.5">
                     <AnimatedMetricValue value={verificationBreakdown.anomalyFlagged} />
                   </div>
                 </div>
-                <div className="p-3 rounded-xl bg-[#EFE6D5]/60 dark:bg-stone-950 border border-stone-300/80 dark:border-stone-800">
-                  <div className="text-[11px] font-medium text-stone-500">Awaiting Human Sign-Off</div>
-                  <div className="text-lg font-display font-bold font-mono-tabular text-[#1D4ED8] dark:text-blue-400 mt-0.5">
+                <div className="p-3 rounded-xl liquid-glass-subtle">
+                  <div className="text-[11px] font-medium text-stone-600 dark:text-stone-400">Awaiting Human Sign-Off</div>
+                  <div className="text-lg font-display font-bold font-mono-tabular text-[#1D4ED8] dark:text-sky-400 mt-0.5">
                     <AnimatedMetricValue value={verificationBreakdown.pendingHuman} />
                   </div>
                 </div>
@@ -922,15 +953,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             </section>
 
             {/* Recent System Activity */}
-            <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+            <section className="liquid-glass rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white">
+                <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white">
                   Recent Portal Activity
                 </h2>
                 <button
                   type="button"
                   onClick={() => onNavigate('reports')}
-                  className="text-xs font-medium text-blue-700 dark:text-blue-400 hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-[#C2410C] dark:text-amber-400 hover:underline cursor-pointer"
                 >
                   Audit History
                 </button>
@@ -938,19 +969,19 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
               <div className="space-y-3">
                 {auditEvents.slice(0, 5).map((ev) => (
-                  <div key={ev.id} className="text-xs border-b border-slate-100 dark:border-slate-800/70 pb-2.5 last:border-b-0 last:pb-0">
+                  <div key={ev.id} className="text-xs border-b border-stone-200/70 dark:border-stone-800/70 pb-2.5 last:border-b-0 last:pb-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-slate-900 dark:text-white">
+                      <span className="font-semibold text-stone-900 dark:text-white">
                         {ev.action}
                       </span>
-                      <span className="text-[11px] font-mono-tabular text-slate-400 shrink-0">
+                      <span className="text-[11px] font-mono-tabular text-stone-500 dark:text-stone-400 shrink-0">
                         {ev.timestamp}
                       </span>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-400 text-[11px] mt-0.5 leading-relaxed">
+                    <p className="text-stone-600 dark:text-stone-300 text-[11px] mt-0.5 leading-relaxed">
                       {ev.details}
                     </p>
-                    <div className="text-[11px] text-slate-400 mt-0.5 font-mono-tabular">
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 font-mono-tabular">
                       Actor: {ev.actorName} ({ev.actorRole}) · Target: {ev.targetId}
                     </div>
                   </div>

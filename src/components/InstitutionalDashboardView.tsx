@@ -248,15 +248,18 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                   layout="vertical"
                   margin={{ top: 4, right: 24, left: 12, bottom: 4 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" horizontal={false} />
-                  <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: '#44403C' }} />
-                  <YAxis type="category" dataKey="code" width={110} tick={{ fontSize: 11, fill: '#1C1917', fontWeight: 600 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid-stroke)" horizontal={false} />
+                  <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)' }} />
+                  <YAxis type="category" dataKey="code" width={110} tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)', fontWeight: 600 }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#FCF9F2',
-                      borderColor: '#C2410C',
-                      borderRadius: '12px',
+                      backgroundColor: 'var(--chart-tooltip-bg)',
+                      borderColor: 'var(--glass-border-strong)',
+                      borderRadius: '14px',
                       fontSize: '12px',
+                      color: 'var(--chart-tooltip-text)',
+                      boxShadow: 'var(--glass-modal-shadow)',
+                      backdropFilter: 'blur(16px)',
                     }}
                     formatter={(val) => [`${val ?? 0}% Verified`, 'Readiness']}
                   />
@@ -342,18 +345,18 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
       >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400 font-medium">
-              <Building2 className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-xs text-[#C2410C] dark:text-amber-400 font-bold">
+              <Building2 className="w-4 h-4 text-[#046A38] dark:text-emerald-400" />
               <span>
                 {currentUser.role === 'faculty'
                   ? 'Faculty Compliance & Dossier Workspace'
                   : 'Authorized Institutional Compliance Portal'}
               </span>
             </div>
-            <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl font-display font-bold text-stone-900 dark:text-white tracking-tight">
               {currentUser.institutionName}
             </h1>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-400 font-mono-tabular">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-600 dark:text-stone-400 font-mono-tabular">
               <span>Code: {currentUser.officialInstitutionCode}</span>
               {institution && (
                 <>
@@ -367,7 +370,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
           </div>
 
           {currentUser.role === 'institutional_rep' && (
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={() => onNavigate('documents')}
@@ -393,19 +396,19 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
         <motion.section
           variants={DASHBOARD_ITEM_VARIANTS}
           aria-label="Action Required Applications"
-          className="bg-red-50/90 dark:bg-red-950/40 border border-red-200 dark:border-red-900/70 rounded-2xl p-5"
+          className="liquid-glass glass-tint-crimson rounded-2xl p-5"
         >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-semibold text-red-800 dark:text-red-300">
+              <div className="flex items-center gap-2 text-xs font-bold text-red-800 dark:text-red-300">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>
                   Action Required: AICTE Reviewer Requested Additional Information ({actionRequiredApps.length})
                 </span>
               </div>
               {actionRequiredApps.map((app) => (
-                <div key={app.id} className="text-xs text-red-900/90 dark:text-red-200/90 mt-1">
-                  <strong className="font-mono-tabular">{app.id}</strong> ({app.category}):{' '}
+                <div key={app.id} className="text-xs text-stone-800 dark:text-stone-200 mt-1">
+                  <strong className="font-mono-tabular text-red-800 dark:text-red-300">{app.id}</strong> ({app.category}):{' '}
                   {app.reviewNotes[app.reviewNotes.length - 1]?.note ||
                     'Please review flagged checklist documents and submit clarification.'}
                 </div>
@@ -414,7 +417,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             <button
               type="button"
               onClick={() => onOpenApplication(actionRequiredApps[0].id)}
-              className="px-4 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-red-700 hover:bg-red-800 text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
             >
               Respond &amp; Resubmit ({actionRequiredApps[0].id})
             </button>
@@ -422,42 +425,69 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
         </motion.section>
       )}
 
-      {/* Summary Strip */}
+      {/* Interactive Summary Strip */}
       <motion.section
+        aria-label="Institutional Summary Metrics"
         variants={METRICS_GRID_VARIANTS}
-        className="grid grid-cols-2 sm:grid-cols-4 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs font-medium text-stone-500">Institution Applications</div>
+        <motion.button
+          type="button"
+          variants={DASHBOARD_ITEM_VARIANTS}
+          onClick={() => onNavigate('applications')}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-4 text-left cursor-pointer"
+        >
+          <div className="text-xs font-medium text-stone-600 dark:text-stone-400">Institution Applications</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-stone-900 dark:text-white mt-1">
             <AnimatedMetricValue value={myApps.length} />
           </div>
-          <div className="text-[11px] text-stone-500 mt-1">Scoped to {currentUser.officialInstitutionCode}</div>
-        </motion.div>
+          <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">Scoped to {currentUser.officialInstitutionCode}</div>
+        </motion.button>
 
-        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs font-medium text-stone-500">Action / Clarification Needed</div>
+        <motion.button
+          type="button"
+          variants={DASHBOARD_ITEM_VARIANTS}
+          onClick={() => {
+            if (actionRequiredApps[0]) {
+              onOpenApplication(actionRequiredApps[0].id);
+            } else {
+              onNavigate('applications');
+            }
+          }}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-4 text-left cursor-pointer"
+        >
+          <div className="text-xs font-medium text-stone-600 dark:text-stone-400">Action / Clarification Needed</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-red-700 dark:text-red-400 mt-1">
             <AnimatedMetricValue value={actionRequiredApps.length} />
           </div>
-          <div className="text-[11px] text-stone-500 mt-1">Awaiting institutional response</div>
-        </motion.div>
+          <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">Awaiting institutional response</div>
+        </motion.button>
 
-        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs font-medium text-stone-500">Authorized Repository Docs</div>
-          <div className="text-2xl font-display font-bold font-mono-tabular text-[#1D4ED8] dark:text-blue-400 mt-1">
+        <motion.button
+          type="button"
+          variants={DASHBOARD_ITEM_VARIANTS}
+          onClick={() => onNavigate('documents')}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-4 text-left cursor-pointer"
+        >
+          <div className="text-xs font-medium text-stone-600 dark:text-stone-400">Authorized Repository Docs</div>
+          <div className="text-2xl font-display font-bold font-mono-tabular text-[#1D4ED8] dark:text-sky-400 mt-1">
             <AnimatedMetricValue value={myDocs.length} />
           </div>
-          <div className="text-[11px] text-stone-500 mt-1">Linked to institutional dossiers</div>
-        </motion.div>
+          <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">Linked to institutional dossiers</div>
+        </motion.button>
 
-        <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs font-medium text-stone-500">Flagged or Expiring Docs</div>
+        <motion.button
+          type="button"
+          variants={DASHBOARD_ITEM_VARIANTS}
+          onClick={() => onNavigate('expiry')}
+          className="liquid-glass liquid-glass-interactive rounded-2xl p-4 text-left cursor-pointer"
+        >
+          <div className="text-xs font-medium text-stone-600 dark:text-stone-400">Flagged or Expiring Docs</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-[#C2410C] dark:text-amber-400 mt-1">
             <AnimatedMetricValue value={flaggedOrExpiringDocs.length} />
           </div>
-          <div className="text-[11px] text-stone-500 mt-1">Requires renewal or check</div>
-        </motion.div>
+          <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">Requires renewal or check</div>
+        </motion.button>
       </motion.section>
 
       {/* Institutional Recharts Data Visualization Section */}
@@ -467,7 +497,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
         className="grid grid-cols-1 lg:grid-cols-12 gap-6"
       >
         {/* Left 6 Cols: Dossier Checklist Completion & Verification Breakdown */}
-        <div className="lg:col-span-6 liquid-glass rounded-2xl p-5 flex flex-col justify-between">
+        <div className="lg:col-span-6 liquid-glass rounded-2xl p-5 flex flex-col justify-between overflow-visible">
           <div className="mb-4">
             <div className="flex items-center gap-1.5 text-xs font-bold text-[#046A38] dark:text-emerald-400">
               <BarChart3 className="w-4 h-4 shrink-0" />
@@ -476,7 +506,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white mt-0.5">
               Dossier Checklist Readiness ({currentUser.officialInstitutionCode})
             </h2>
-            <p className="text-[11px] text-stone-500 dark:text-stone-400">
+            <p className="text-[11px] text-stone-600 dark:text-stone-400">
               Separate side-by-side comparison of Verified, Uploaded, Flagged for Review, and Pending checklist items.
             </p>
           </div>
@@ -489,16 +519,18 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                 barGap={6}
                 barCategoryGap="24%"
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" />
-                <XAxis dataKey="appId" tick={{ fontSize: 11, fill: '#292524', fontWeight: 600 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#44403C' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid-stroke)" />
+                <XAxis dataKey="appId" tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)', fontWeight: 600 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)' }} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#FCF9F2',
-                    borderColor: '#C2410C',
-                    borderRadius: '12px',
+                    backgroundColor: 'var(--chart-tooltip-bg)',
+                    borderColor: 'var(--glass-border-strong)',
+                    borderRadius: '14px',
                     fontSize: '12px',
-                    color: '#1C1917',
+                    color: 'var(--chart-tooltip-text)',
+                    boxShadow: 'var(--glass-modal-shadow)',
+                    backdropFilter: 'blur(16px)',
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
@@ -518,7 +550,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
         </div>
 
         {/* Right 6 Cols: Repository Document Health by Category */}
-        <div className="lg:col-span-6 liquid-glass rounded-2xl p-5 flex flex-col justify-between">
+        <div className="lg:col-span-6 liquid-glass rounded-2xl p-5 flex flex-col justify-between overflow-visible">
           <div className="mb-4">
             <div className="flex items-center gap-1.5 text-xs font-bold text-[#046A38] dark:text-emerald-400">
               <PieChartIcon className="w-4 h-4 shrink-0" />
@@ -527,7 +559,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white mt-0.5">
               Clean vs Attention-Needed Certificates by Category
             </h2>
-            <p className="text-[11px] text-stone-500 dark:text-stone-400">
+            <p className="text-[11px] text-stone-600 dark:text-stone-400">
               Separate side-by-side comparison of valid certificates and flagged/expiring items per category.
             </p>
           </div>
@@ -541,21 +573,23 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                 barGap={4}
                 barCategoryGap="22%"
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" horizontal={false} />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#44403C' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid-stroke)" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)' }} />
                 <YAxis
                   type="category"
                   dataKey="category"
                   width={98}
-                  tick={{ fontSize: 11, fill: '#292524', fontWeight: 600 }}
+                  tick={{ fontSize: 11, fill: 'var(--chart-axis-fill)', fontWeight: 600 }}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#FCF9F2',
-                    borderColor: '#C2410C',
-                    borderRadius: '12px',
+                    backgroundColor: 'var(--chart-tooltip-bg)',
+                    borderColor: 'var(--glass-border-strong)',
+                    borderRadius: '14px',
                     fontSize: '12px',
-                    color: '#1C1917',
+                    color: 'var(--chart-tooltip-text)',
+                    boxShadow: 'var(--glass-modal-shadow)',
+                    backdropFilter: 'blur(16px)',
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
@@ -572,7 +606,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             </ResponsiveContainer>
           </div>
 
-          <div className="pt-3 mt-2 border-t border-[#C2410C]/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-400 font-mono-tabular">
+          <div className="pt-3 mt-2 border-t border-[#C2410C]/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-600 dark:text-stone-400 font-mono-tabular">
             {instChartData.expirySummary.map((item) => (
               <span key={item.name}>
                 {item.name}: <strong>{item.count}</strong>
@@ -586,10 +620,10 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
       <motion.section variants={DASHBOARD_ITEM_VARIANTS} className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
+            <h2 className="text-base font-display font-bold text-stone-900 dark:text-white">
               Institution Applications &amp; Category Checklists
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-stone-600 dark:text-stone-400">
               Each application includes a category-specific statutory checklist, status timeline, and verification findings.
             </p>
           </div>
@@ -657,7 +691,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                         </span>
                       )}
                     </div>
-                    <div className="divide-y divide-stone-200/70 dark:divide-stone-800/70 border border-stone-200/80 dark:border-stone-800 rounded-xl px-3 py-1 bg-[#FCF9F2]/60 dark:bg-stone-950/40">
+                    <div className="divide-y divide-stone-200/70 dark:divide-stone-800/70 rounded-xl px-3.5 py-1.5 liquid-glass-subtle">
                       {app.checklist.map((item) => (
                         <div
                           key={item.id}
@@ -680,7 +714,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                   </div>
 
                   {/* Latest Status Change & Next Action */}
-                  <div className="lg:col-span-4 bg-[#EFE6D5]/60 dark:bg-stone-950 border border-stone-200/80 dark:border-stone-800 rounded-xl p-3.5 text-xs space-y-2.5">
+                  <div className="lg:col-span-4 liquid-glass-subtle rounded-xl p-3.5 text-xs space-y-2.5">
                     <div>
                       <div className="text-[11px] font-semibold text-stone-500 dark:text-stone-400">
                         Latest Timeline Event
@@ -692,7 +726,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                         {latestHistory?.note}
                       </p>
                     </div>
-                    <div className="pt-2 border-t border-stone-200 dark:border-stone-800">
+                    <div className="pt-2 border-t border-stone-200/80 dark:border-stone-800">
                       <div className="text-[11px] font-semibold text-stone-500 dark:text-stone-400">
                         Next Action Required
                       </div>
@@ -724,7 +758,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white">
               Missing, Incomplete, Expired, or Flagged Documents ({flaggedOrExpiringDocs.length})
             </h2>
-            <p className="text-xs text-stone-500 dark:text-stone-400">
+            <p className="text-xs text-stone-600 dark:text-stone-400">
               Document verification checks requiring institutional attention or statutory certificate renewal.
             </p>
           </div>
@@ -791,14 +825,14 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 backdrop-blur-md p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center glass-modal-backdrop p-4"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.98, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: 6 }}
               transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              className="liquid-glass-elevated rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto space-y-5"
+              className="liquid-glass-floating rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto space-y-5"
             >
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>

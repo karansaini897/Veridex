@@ -408,17 +408,17 @@ export const AppShell: React.FC<AppShellProps> = ({
                 alt="VERIDEX Logo"
                 className="h-8 w-auto rounded-md object-contain bg-[#E7D8C0] border border-[#C2410C]/45 shrink-0"
               />
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0">
                 <span className="font-display font-bold text-xs sm:text-sm text-stone-900 dark:text-white tracking-tight leading-tight">
                   VERIDEX
                 </span>
-                <span className="text-[10px] font-semibold text-[#046A38] dark:text-emerald-400 leading-tight">
+                <span className="hidden sm:block text-[10px] font-semibold text-[#046A38] dark:text-emerald-400 leading-tight truncate">
                   हर दावे की जाँच, हर सच की पहचान
                 </span>
               </div>
             </div>
-            <span className="text-[#C2410C]/40" aria-hidden="true">|</span>
-            <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400 truncate">
+            <span className="hidden sm:inline text-[#C2410C]/40" aria-hidden="true">|</span>
+            <div className="hidden sm:flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400 truncate">
               <span className="hidden md:inline font-semibold text-[#C2410C]">
                 {roleLabel}
               </span>
@@ -479,7 +479,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.98 }}
                     transition={{ duration: 0.18, ease: SMOOTH_EASE }}
-                    className="absolute right-0 mt-2 w-80 sm:w-96 liquid-glass-elevated rounded-2xl p-3 z-50"
+                    className="absolute right-0 mt-2 w-[min(22rem,calc(100vw-1.5rem))] sm:w-96 liquid-glass-floating rounded-2xl p-3 z-50"
                   >
                     <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-[#C2410C]/30">
                       <div>
@@ -593,7 +593,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.98 }}
                     transition={{ duration: 0.18, ease: SMOOTH_EASE }}
-                    className="absolute right-0 mt-2 w-60 liquid-glass-elevated rounded-2xl p-2 z-50"
+                    className="absolute right-0 mt-2 w-60 liquid-glass-floating rounded-2xl p-2 z-50"
                   >
                     <div className="px-3 py-2 border-b border-[#C2410C]/30">
                       <div className="text-xs font-bold text-stone-900 dark:text-white truncate">
@@ -647,8 +647,8 @@ export const AppShell: React.FC<AppShellProps> = ({
           </div>
         </header>
 
-        {/* Page Viewport with Smooth Unforced Motion Transition */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1440px] w-full mx-auto">
+        {/* Page Viewport with Fluid Responsive Container (375px Mobile through 8K) */}
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 veridex-workspace-container">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeView}
@@ -674,14 +674,14 @@ export const AppShell: React.FC<AppShellProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: SMOOTH_EASE }}
-            className="fixed inset-0 z-50 flex items-start justify-center bg-stone-950/65 backdrop-blur-md pt-16 p-4"
+            className="fixed inset-0 z-50 flex items-start justify-center glass-modal-backdrop pt-12 sm:pt-16 p-3 sm:p-4"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.98, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: 6 }}
               transition={{ duration: 0.22, ease: SMOOTH_EASE }}
-              className="liquid-glass-elevated rounded-2xl max-w-2xl w-full overflow-hidden"
+              className="liquid-glass-floating rounded-2xl max-w-2xl w-full overflow-hidden"
             >
               <div className="p-4 border-b border-[#C2410C]/30 flex items-center gap-3">
                 <Search className="w-4 h-4 text-[#046A38] shrink-0" />

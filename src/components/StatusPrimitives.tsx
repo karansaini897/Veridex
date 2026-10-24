@@ -294,15 +294,17 @@ export const AnimatedMetricValue: React.FC<AnimatedMetricValueProps> = ({
 }) => {
   const prefersReducedMotion = useReducedMotion();
   const [displayValue, setDisplayValue] = useState<number>(value);
+  const hasAnimatedRef = React.useRef<boolean>(false);
 
   useEffect(() => {
-    if (prefersReducedMotion) {
+    if (prefersReducedMotion || hasAnimatedRef.current) {
       setDisplayValue(value);
       return;
     }
 
+    hasAnimatedRef.current = true;
     let animationFrameId: number;
-    const durationMs = 420;
+    const durationMs = 380;
     const startTime = performance.now();
     const startVal = 0;
 
@@ -321,10 +323,17 @@ export const AnimatedMetricValue: React.FC<AnimatedMetricValueProps> = ({
     return () => window.cancelAnimationFrame(animationFrameId);
   }, [value, prefersReducedMotion]);
 
+  const finalFormatted = `${value}${suffix}`;
+
   return (
-    <span className={`font-mono-tabular tabular-nums ${className}`}>
-      {prefersReducedMotion ? value : displayValue}
-      {suffix}
+    <span
+      className={`font-mono-tabular tabular-nums ${className}`}
+      aria-label={finalFormatted}
+    >
+      <span aria-hidden="true">
+        {prefersReducedMotion ? value : displayValue}
+        {suffix}
+      </span>
     </span>
   );
 };
