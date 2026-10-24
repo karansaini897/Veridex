@@ -582,8 +582,10 @@ export default function App() {
         institutionId: currentUser.institutionId,
         institutionName: currentUser.institutionName || 'VESIT',
         relatedApplicationId: newAppId,
+        uploadedFromSection: `Application: ${newAppId}`,
         personName: currentUser.fullName,
         personUserId: currentUser.id,
+        uploadedByUserId: currentUser.id,
         certificateNumber: params.initialCertNumber,
         issuingAuthority: 'University of Mumbai & Statutory Board',
         issueDate: addDaysToLocalDate(todayStr, -30),
@@ -592,6 +594,9 @@ export default function App() {
         fileName: `${internalCode}_Dossier.pdf`,
         fileSize: '1.68 MB',
         mimeType: 'application/pdf',
+        verificationStatusLabel: 'Pending Verification',
+        approvalStatusLabel: 'Under Review',
+        statusUpdatedAt: nowDisplay,
         completenessStatus: 'Pending Review',
         consistencyStatus: 'Pending Check',
         anomalyStatus: 'Not Screened',
@@ -730,8 +735,10 @@ export default function App() {
       institutionId: targetApp.institutionId,
       institutionName: targetApp.institutionName,
       relatedApplicationId: targetApp.id,
+      uploadedFromSection: `Application: ${targetApp.id}`,
       personName: currentUser.fullName,
       personUserId: currentUser.id,
+      uploadedByUserId: currentUser.id,
       certificateNumber: params.certNumber,
       issuingAuthority: 'Competent Statutory Authority',
       issueDate: todayStr,
@@ -740,6 +747,9 @@ export default function App() {
       fileName: `${internalCode}_Record.pdf`,
       fileSize: '1.54 MB',
       mimeType: 'application/pdf',
+      verificationStatusLabel: 'Pending Verification',
+      approvalStatusLabel: 'Under Review',
+      statusUpdatedAt: nowDisplay,
       completenessStatus: 'Pending Review',
       consistencyStatus: 'Pending Check',
       anomalyStatus: 'Not Screened',
@@ -1081,9 +1091,15 @@ export default function App() {
     if (!currentUser) return;
     const todayStr = getLocalTodayDate();
     const newDocId = createRecordId('DOC');
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
     const fullDoc: DocumentRecord = {
       ...newDocData,
       id: newDocId,
+      uploadedFromSection: newDocData.uploadedFromSection || (newDocData.relatedApplicationId ? `Application: ${newDocData.relatedApplicationId}` : 'Document Repository'),
+      uploadedByUserId: currentUser.id,
+      verificationStatusLabel: newDocData.verificationStatusLabel || 'Pending Verification',
+      approvalStatusLabel: newDocData.approvalStatusLabel || 'Under Review',
+      statusUpdatedAt: newDocData.statusUpdatedAt || nowDisplay,
     };
     setDocuments((prev) => [fullDoc, ...prev]);
 
@@ -1222,8 +1238,151 @@ export default function App() {
     });
 
     const request = documentRequests.find((r) => r.id === updatedSub.requestId);
+    const todayStr = getLocalTodayDate();
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+
+    // Synchronize submitted files directly into the documents repository so the student can view all their uploaded documents
+    if (updatedSub.documents && updatedSub.documents.length > 0) {
+      setDocuments((prevDocs) => {
+        let updatedDocs = [...prevDocs];
+
+        updatedSub.documents.forEach((docFile, idx) => {
+          const stableDocId = `DOC-SUB-${updatedSub.id}-${docFile.requirementId || idx}`;
+
+          let verifLabel: 'Pending Verification' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review' = 'Pending Verification';
+          let apprvLabel: 'Pending Verification' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review' = 'Under Review';
+          let issuerStatus: DocumentRecord['issuerVerificationStatus'] = 'Pending';
+          let humanStatus: DocumentRecord['humanReviewStatus'] = 'Pending';
+
+          if (docFile.verificationOutcome === 'Verified in demo') {
+            verifLabel = 'Approved';
+            apprvLabel = 'Approved';
+            issuerStatus = 'Verified';
+            humanStatus = 'Reviewed';
+          } else if (docFile.verificationOutcome === 'Needs review in demo') {
+            verifLabel = 'Needs Review';
+            apprvLabel = 'Needs Review';
+            issuerStatus = 'Pending';
+            humanStatus = 'Action Required';
+          }
+
+          const existingIndex = updatedDocs.findIndex((d) => d.id === stableDocId);
+          if (existingIndex >= 0) {
+            const existingDoc = updatedDocs[existingIndex];
+            const nextVersionNum = existingDoc.versions.length + 1;
+            updatedDocs[existingIndex] = {
+              ...existingDoc,
+              name: docFile.requirementName || existingDoc.name,
+              fileName: docFile.fileName,
+              fileSize: docFile.fileSize,
+              mimeType: (['application/pdf', 'image/jpeg', 'image/png'].includes(docFile.mimeType)
+                ? docFile.mimeType
+                : 'application/pdf') as any,
+              previewUrl: docFile.previewUrl || existingDoc.previewUrl,
+              verificationStatusLabel: verifLabel,
+              approvalStatusLabel: apprvLabel,
+              issuerVerificationStatus: issuerStatus,
+              humanReviewStatus: humanStatus,
+              statusUpdatedAt: nowDisplay,
+              versions: [
+                ...existingDoc.versions,
+                {
+                  versionNumber: nextVersionNum,
+                  fileName: docFile.fileName,
+                  fileSize: docFile.fileSize,
+                  mimeType: (['application/pdf', 'image/jpeg', 'image/png'].includes(docFile.mimeType)
+                    ? docFile.mimeType
+                    : 'application/pdf') as any,
+                  uploadedAt: nowDisplay,
+                  uploadedBy: updatedSub.studentName,
+                  changeNote: `Submitted amendment for ${request?.title || 'Document Request'}`,
+                },
+              ],
+            };
+          } else {
+            const cleanRoll = (updatedSub.studentRollNumber || 'DOC').replace(/[^a-zA-Z0-9]/g, '').slice(-3).toUpperCase();
+            const internalCode = `STU-REC-${cleanRoll}-${String(idx + 1).padStart(2, '0')}`;
+            const newDoc: DocumentRecord = {
+              id: stableDocId,
+              internalCode,
+              name: docFile.requirementName || 'Submitted Document',
+              category: 'Student Records',
+              suggestedAiCategory: 'Student Records',
+              suggestedFolder: '/Repository/Students/Submission-Records',
+              categoryConfirmed: true,
+              institutionId: currentUser?.institutionId || 'INST-VESIT-104',
+              institutionName:
+                currentUser?.institutionName ||
+                "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai",
+              relatedRequestId: updatedSub.requestId,
+              uploadedFromSection: `Document Request: ${request?.title || 'Required Documents'}`,
+              personName: updatedSub.studentName,
+              personUserId: updatedSub.studentId || updatedSub.studentUserId || currentUser?.id,
+              uploadedByUserId: currentUser?.id,
+              certificateNumber: `SUB-${(updatedSub.studentRollNumber || '2026').replace(/[^a-zA-Z0-9]/g, '')}-${docFile.requirementId.slice(-4).toUpperCase()}`,
+              issuingAuthority: 'Government & Academic Authority',
+              issueDate: todayStr,
+              uploadDate: todayStr,
+              fileName: docFile.fileName,
+              fileSize: docFile.fileSize,
+              mimeType: (['application/pdf', 'image/jpeg', 'image/png'].includes(docFile.mimeType)
+                ? docFile.mimeType
+                : 'application/pdf') as any,
+              previewUrl: docFile.previewUrl,
+              verificationStatusLabel: verifLabel,
+              approvalStatusLabel: apprvLabel,
+              statusUpdatedAt: nowDisplay,
+              completenessStatus: docFile.verificationOutcome === 'Needs review in demo' ? 'Pending Review' : 'Complete',
+              consistencyStatus: 'Consistent',
+              anomalyStatus: 'No Anomaly Detected',
+              issuerVerificationStatus: issuerStatus,
+              humanReviewStatus: humanStatus,
+              extractedSummary: {
+                'Document Title': docFile.requirementName || 'Submitted Document',
+                'Student Name': updatedSub.studentName,
+                'Roll Number': updatedSub.studentRollNumber,
+                'Document Request': request?.title || updatedSub.requestId,
+                'Submission Date': todayStr,
+              },
+              findings: [
+                {
+                  id: createRecordId('F'),
+                  pillar: 'Completeness',
+                  status: docFile.verificationOutcome === 'Needs review in demo' ? 'Flagged' : 'Passed',
+                  affectedFieldOrPage: 'Submitted Document',
+                  explanation:
+                    docFile.verificationFeedback ||
+                    'Document successfully submitted and registered in repository.',
+                  evidenceComparison: `File: ${docFile.fileName} (${docFile.fileSize})`,
+                  suggestedNextAction:
+                    docFile.verificationOutcome === 'Needs review in demo'
+                      ? 'Review feedback and provide amendment if requested.'
+                      : 'Verified.',
+                },
+              ],
+              versions: [
+                {
+                  versionNumber: 1,
+                  fileName: docFile.fileName,
+                  fileSize: docFile.fileSize,
+                  mimeType: (['application/pdf', 'image/jpeg', 'image/png'].includes(docFile.mimeType)
+                    ? docFile.mimeType
+                    : 'application/pdf') as any,
+                  uploadedAt: nowDisplay,
+                  uploadedBy: updatedSub.studentName,
+                  changeNote: `Submitted for request: ${request?.title || updatedSub.requestId}`,
+                },
+              ],
+            };
+            updatedDocs = [newDoc, ...updatedDocs];
+          }
+        });
+
+        return updatedDocs;
+      });
+    }
+
     if (request) {
-      const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
       const notif: PortalNotification = {
         id: createRecordId('NOTIF'),
         recipientRole: request.creatorRole,
@@ -1369,19 +1528,6 @@ export default function App() {
       onMarkAllNotificationsRead={() =>
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
       }
-      onSwitchActiveAccount={(targetUser) => {
-        setCurrentUserId(targetUser.id);
-        setActiveView('dashboard');
-        setSelectedApplicationId(null);
-        setSelectedDocumentId(null);
-        appendAudit(
-          targetUser,
-          'Switched Active Account Session',
-          'Account',
-          targetUser.id,
-          `Switched active role session to ${targetUser.fullName} (${formatRoleDisplayName(targetUser.role)}).`
-        );
-      }}
       onLogout={handleLogout}
       onResetRegistryData={handleResetRegistryData}
       darkMode={darkMode}

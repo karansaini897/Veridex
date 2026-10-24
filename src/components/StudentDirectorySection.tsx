@@ -144,7 +144,6 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                 <FileCheck2 className="w-3.5 h-3.5" />
                 <span>Document Submissions &amp; Verification</span>
               </span>
-              <span className="text-[10px] text-stone-500 font-normal">Demo Environment</span>
             </div>
 
             {studentSubmissions.length === 0 ? (
@@ -154,9 +153,9 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             ) : (
               <div className="space-y-2 pt-1">
                 {studentSubmissions.map((sub) => {
-                  const isVerified = sub.status === 'Verified in demo';
+                  const isVerified = sub.status === 'Approved' || sub.status === 'Verified in demo';
                   const isPending = sub.status === 'Pending';
-                  const isNeedsReview = sub.status === 'Needs review in demo';
+                  const isNeedsReview = sub.status === 'Needs Review' || sub.status === 'Needs review in demo';
 
                   return (
                     <div
@@ -179,7 +178,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                           {isVerified && <CheckCircle2 className="w-3 h-3" />}
                           {isNeedsReview && <AlertCircle className="w-3 h-3" />}
                           {isPending && <Clock className="w-3 h-3" />}
-                          <span>{sub.status}</span>
+                          <span>{isVerified ? 'Verified' : isNeedsReview ? 'Needs Review' : sub.status}</span>
                         </span>
                       </div>
 
@@ -246,8 +245,9 @@ export const StudentDirectorySection: React.FC<StudentDirectorySectionProps> = (
 }) => {
   const [selectedStudent, setSelectedStudent] = useState<UserAccount | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAll, setShowAll] = useState(false);
 
-  // Scoped to the currently selected demo teacher
+  // Scoped to the currently authenticated teacher
   // Matches assignedTeacherUserId === currentTeacher.id, OR matching department and class if teacher is class teacher
   const assignedStudents = allUsers.filter((u) => {
     if (u.role !== 'student') return false;
@@ -274,25 +274,31 @@ export const StudentDirectorySection: React.FC<StudentDirectorySectionProps> = (
     );
   });
 
+  // Maximum 4 profiles displayed initially; when searching or when showAll is active, show all matching profiles
+  const displayedStudents =
+    !showAll && !searchQuery.trim()
+      ? filteredStudents.slice(0, 4)
+      : filteredStudents;
+
   const getStudentStatusBadge = (studentId: string) => {
     const studentSub = submissions.find((s) => s.studentId === studentId);
     if (!studentSub || studentSub.status === 'Pending') {
       return {
-        label: 'Car Racing: Pending',
+        label: 'Documents: Pending',
         bg: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300',
         icon: <Clock className="w-3 h-3 text-stone-500" />,
       };
     }
-    if (studentSub.status === 'Verified in demo') {
+    if (studentSub.status === 'Approved' || studentSub.status === 'Verified in demo') {
       return {
-        label: 'Car Racing: Verified',
+        label: 'Documents: Verified',
         bg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
         icon: <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />,
       };
     }
-    if (studentSub.status === 'Needs review in demo') {
+    if (studentSub.status === 'Needs Review' || studentSub.status === 'Needs review in demo') {
       return {
-        label: 'Car Racing: Needs Review',
+        label: 'Documents: Needs Review',
         bg: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
         icon: <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" />,
       };
@@ -317,26 +323,36 @@ export const StudentDirectorySection: React.FC<StudentDirectorySectionProps> = (
           </p>
         </div>
 
-        {/* Quick Search */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search student name or roll..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-[#046A38]/35 bg-white/70 dark:bg-stone-900/70 text-stone-900 dark:text-white placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-[#046A38]"
-          />
+        {/* Quick Search & See All Control aligned on same row */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search student name or roll..."
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-[#046A38]/35 bg-white/70 dark:bg-stone-900/70 text-stone-900 dark:text-white placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-[#046A38]"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAll((prev) => !prev)}
+            aria-label={showAll ? 'Show less profiles' : 'See all profiles'}
+            className="px-3.5 py-1.5 rounded-xl border border-[#046A38]/45 bg-[#FCF9F2] dark:bg-stone-900 text-xs font-semibold text-stone-900 dark:text-white hover:bg-[#046A38] hover:text-white transition-colors cursor-pointer shrink-0 whitespace-nowrap shadow-xs"
+          >
+            {showAll ? 'Show Less' : 'See All'}
+          </button>
         </div>
       </div>
 
-      {filteredStudents.length === 0 ? (
+      {displayedStudents.length === 0 ? (
         <div className="p-8 text-center rounded-2xl liquid-glass border border-dashed border-[#046A38]/40 text-stone-600 dark:text-stone-400 text-xs">
           No students currently assigned to this teacher or matching your search.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {filteredStudents.map((student) => {
+          {displayedStudents.map((student) => {
             const initials = student.fullName
               .split(/\s+/)
               .slice(0, 2)

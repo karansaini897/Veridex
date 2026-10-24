@@ -212,6 +212,7 @@ export const FacultyDirectorySection: React.FC<FacultyDirectorySectionProps> = (
 }) => {
   const [selectedFaculty, setSelectedFaculty] = useState<UserAccount | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAll, setShowAll] = useState(false);
 
   // Scoped to the institution of the manager
   const institutionFaculty = allUsers.filter(
@@ -231,6 +232,12 @@ export const FacultyDirectorySection: React.FC<FacultyDirectorySectionProps> = (
     );
   });
 
+  // Maximum 4 profiles displayed initially; when searching or when showAll is active, show all matching profiles
+  const displayedFaculty =
+    !showAll && !searchQuery.trim()
+      ? filteredFaculty.slice(0, 4)
+      : filteredFaculty;
+
   return (
     <section aria-label="Institution Faculty Directory" className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -244,26 +251,36 @@ export const FacultyDirectorySection: React.FC<FacultyDirectorySectionProps> = (
           </p>
         </div>
 
-        {/* Quick Search */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search faculty or dept..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-[#C2410C]/35 bg-white/70 dark:bg-stone-900/70 text-stone-900 dark:text-white placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-[#046A38]"
-          />
+        {/* Quick Search & See All Control aligned on same row */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search faculty or dept..."
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-[#C2410C]/35 bg-white/70 dark:bg-stone-900/70 text-stone-900 dark:text-white placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-[#046A38]"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAll((prev) => !prev)}
+            aria-label={showAll ? 'Show less profiles' : 'See all profiles'}
+            className="px-3.5 py-1.5 rounded-xl border border-[#C2410C]/45 bg-[#FCF9F2] dark:bg-stone-900 text-xs font-semibold text-stone-900 dark:text-white hover:bg-[#C2410C] hover:text-white transition-colors cursor-pointer shrink-0 whitespace-nowrap shadow-xs"
+          >
+            {showAll ? 'Show Less' : 'See All'}
+          </button>
         </div>
       </div>
 
-      {filteredFaculty.length === 0 ? (
+      {displayedFaculty.length === 0 ? (
         <div className="p-8 text-center rounded-2xl liquid-glass border border-dashed border-[#C2410C]/40 text-stone-600 dark:text-stone-400 text-xs">
           No faculty members found matching your search.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {filteredFaculty.map((faculty) => {
+          {displayedFaculty.map((faculty) => {
             const initials = faculty.fullName
               .replace(/\b(Dr|Prof|Mr|Ms|Mrs)\b\.?/gi, '')
               .trim()

@@ -30,7 +30,6 @@ import {
 import { canUserAccessApplication, canUserAccessDocument } from '../lib/domain';
 import { SPRING_LINUX_SIDEBAR, REDUCED_MOTION_TRANSITION } from '../lib/motion';
 import { EmptyStateCard, FileTypeMarker, StatusBadge } from './StatusPrimitives';
-import { DemoUserSwitcher } from './DemoUserSwitcher';
 
 interface AppShellProps {
   currentUser: UserAccount;
@@ -46,7 +45,7 @@ interface AppShellProps {
   onOpenDocument: (docId: string) => void;
   onMarkNotificationRead: (notifId: string) => void;
   onMarkAllNotificationsRead: () => void;
-  onSwitchActiveAccount: (user: UserAccount) => void;
+  onSwitchActiveAccount?: (user: UserAccount) => void;
   onLogout: () => void;
   onResetRegistryData: () => void;
   darkMode: boolean;
@@ -581,15 +580,8 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
           </div>
 
-          {/* Center/Right: Demo Persona Switcher, Public Overview, Global Search, Notifications, Theme, Profile */}
+          {/* Center/Right: Public Overview, Global Search, Notifications, Theme, Profile */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {onSwitchActiveAccount && (
-              <DemoUserSwitcher
-                currentUser={currentUser}
-                allUsers={users}
-                onSwitchUser={onSwitchActiveAccount}
-              />
-            )}
 
             {onOpenPublicLanding && (
               <button
@@ -773,18 +765,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                         className="w-full flex items-center gap-2 px-3 py-2 text-xs text-stone-800 dark:text-stone-200 hover:bg-[#EFE6D5]/70 dark:hover:bg-stone-800/70 rounded-xl cursor-pointer"
                       >
                         <UserCircle className="w-4 h-4 text-[#046A38]" />
-                        <span>Profile &amp; Photo</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileMenuOpen(false);
-                          onNavigate('settings');
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-stone-800 dark:text-stone-200 hover:bg-[#EFE6D5]/70 dark:hover:bg-stone-800/70 rounded-xl cursor-pointer"
-                      >
-                        <Settings className="w-4 h-4 text-[#046A38]" />
-                        <span>VERIDEX Settings</span>
+                        <span>Profile and Photo</span>
                       </button>
                     </div>
                     <div className="pt-1 border-t border-[#C2410C]/30">

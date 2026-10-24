@@ -8,7 +8,6 @@ import {
   Calendar,
   Users,
   CheckCircle2,
-  Sparkles,
   AlertCircle,
 } from 'lucide-react';
 import {
@@ -67,39 +66,12 @@ export const DocumentRequestCreationModal: React.FC<DocumentRequestCreationModal
     },
     {
       id: `REQ-DOC-${Date.now()}-2`,
-      name: 'Copy of Driving Licence',
-      description: 'Clear copy of valid RTO Driving Licence or DigiLocker digital copy.',
+      name: 'Government Identity Proof',
+      description: 'Clear copy of valid government-issued photo ID or official institutional identity card.',
       allowedFormats: ['PDF', 'JPEG', 'PNG'],
     },
   ]);
   const [error, setError] = useState<string | null>(null);
-
-  const handleApplyCarRacingTemplate = () => {
-    setTitle('Student Car Racing Event: Document Submission');
-    setDescription(
-      'Mandatory institutional compliance, safety, and liability clearance for students participating in the Annual Inter-Collegiate Formula Student Karting & Car Racing Championship.'
-    );
-    setRecipientGroupLabel('VESIT Formula Racing Contingent (CMPN & Auto Club)');
-    // Select all eligible students
-    setSelectedStudentIds(eligibleStudents.map((s) => s.id));
-    setRequiredDocs([
-      {
-        id: `REQ-DOC-CONSENT-${Date.now()}`,
-        name: 'Signed Parental Consent Letter',
-        description:
-          'Original letter signed by parent or legal guardian authorizing student participation in track practice and competitive racing heats.',
-        allowedFormats: ['PDF', 'JPEG', 'PNG'],
-      },
-      {
-        id: `REQ-DOC-LICENSE-${Date.now()}`,
-        name: 'Copy of Driving Licence',
-        description:
-          'Clear front-and-back scan of valid RTO Driving Licence with category LMTR/MCWG.',
-        allowedFormats: ['PDF', 'JPEG', 'PNG'],
-      },
-    ]);
-    setError(null);
-  };
 
   const handleAddRequirement = () => {
     setRequiredDocs((prev) => [
@@ -235,28 +207,6 @@ export const DocumentRequestCreationModal: React.FC<DocumentRequestCreationModal
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs text-stone-900 dark:text-stone-100">
-          {/* Preset Scenario Quick-Fill */}
-          <div className="p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-stone-900 dark:to-stone-950 border border-amber-300 dark:border-amber-800 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#C2410C] shrink-0" />
-              <div>
-                <span className="font-bold text-stone-900 dark:text-white block">
-                  Demo Scenario: Student Car Racing Event
-                </span>
-                <span className="text-[11px] text-stone-600 dark:text-stone-400">
-                  Pre-fills parental consent letter and driving licence requirements
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleApplyCarRacingTemplate}
-              className="px-3 py-1.5 rounded-lg bg-[#C2410C] text-white font-semibold text-xs hover:bg-[#9A3412] transition-colors cursor-pointer shrink-0 shadow-xs"
-            >
-              Load Car Racing Template
-            </button>
-          </div>
-
           {error && (
             <div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-950/50 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-300 flex items-center gap-2 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -275,7 +225,7 @@ export const DocumentRequestCreationModal: React.FC<DocumentRequestCreationModal
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Student Car Racing Event: Document Submission"
+                placeholder="e.g. Mandatory Student Document Submission"
                 className="w-full px-3 py-2 text-xs rounded-xl border border-[#C2410C]/40 bg-white dark:bg-stone-900 text-stone-900 dark:text-white placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-[#046A38]"
               />
             </div>

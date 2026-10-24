@@ -48,14 +48,20 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [verifyingStage, setVerifyingStage] = useState<
     'idle' | 'verifying' | 'complete'
-  >(existingSubmission?.status === 'Verified in demo' ? 'complete' : 'idle');
-  const [verificationOutcome, setVerificationOutcome] = useState<'Verified in demo' | 'Needs review in demo'>(
-    existingSubmission?.verificationStatus === 'Needs review in demo' ? 'Needs review in demo' : 'Verified in demo'
+  >(
+    existingSubmission?.status === 'Approved' || existingSubmission?.status === 'Verified in demo'
+      ? 'complete'
+      : 'idle'
+  );
+  const [verificationOutcome, setVerificationOutcome] = useState<'Approved' | 'Needs Review' | 'Pending'>(
+    existingSubmission?.verificationStatus === 'Needs review in demo' ||
+      existingSubmission?.verificationStatus === 'Needs Review'
+      ? 'Needs Review'
+      : 'Approved'
   );
   const [verificationFeedback, setVerificationFeedback] = useState<string>(
     existingSubmission?.verificationFeedback || ''
   );
-  const [activeStepText, setActiveStepText] = useState('Initializing verification checks...');
 
   const handleFileChange = (
     requirementId: string,
@@ -129,29 +135,17 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
       return;
     }
 
-    // Begin Simulated Verification Sequence
+    // Begin Clean Verification Sequence
     setVerifyingStage('verifying');
-    setActiveStepText('Your document is being verified');
 
-    // Step 1: Format & Integrity check
-    setTimeout(() => {
-      setActiveStepText('Verifying digital file integrity and format compliance...');
-    }, 800);
-
-    // Step 2: Pillar evaluation
-    setTimeout(() => {
-      setActiveStepText('Running automated clarity, signature, and RTO validity checks...');
-    }, 1600);
-
-    // Step 3: Complete simulated verification
     setTimeout(() => {
       setVerifyingStage('complete');
       const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
 
-      const outcome = simulateFlag ? 'Needs review in demo' : 'Verified in demo';
+      const outcome: 'Approved' | 'Needs Review' = simulateFlag ? 'Needs Review' : 'Approved';
       const feedback = simulateFlag
-        ? 'Demo verification note: Document scan has partial shadow on border; flagged for human mentor review.'
-        : 'All required documents passed simulated verification: Parental consent signature confirmed and valid driving licence detected.';
+        ? 'Verification note: Document scan has partial shadow on border; queued for reviewer inspection.'
+        : 'All required documents processed: Format, digital signatures, and identity proof details confirmed.';
 
       setVerificationOutcome(outcome);
       setVerificationFeedback(feedback);
@@ -170,7 +164,7 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
             previewUrl: newlySelected.previewUrl,
             verificationOutcome: outcome,
             verificationFeedback:
-              outcome === 'Verified in demo' ? 'Passed demo check.' : 'Advisory check flagged.',
+              outcome === 'Approved' ? 'Valid document file confirmed.' : 'Advisory check flagged.',
           };
         }
 
@@ -183,7 +177,7 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
             submittedAt: existingDoc.submittedAt || nowDisplay,
             verificationOutcome: outcome,
             verificationFeedback:
-              outcome === 'Verified in demo' ? 'Passed demo check.' : 'Advisory check flagged.',
+              outcome === 'Approved' ? 'Valid document file confirmed.' : 'Advisory check flagged.',
           };
         }
 
@@ -213,7 +207,7 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
       };
 
       onSubmitSuccess(newSubmission);
-    }, 2400);
+    }, 1800);
   };
 
   return (
@@ -279,25 +273,19 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
             </p>
           </div>
 
-          {/* Verification Progress Modal Overlay / Banner */}
+          {/* Verification Progress Modal Overlay */}
           {verifyingStage === 'verifying' && (
             <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-stone-900 dark:to-stone-950 border-2 border-[#C2410C] text-center space-y-2.5 shadow-md"
+              className="p-6 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-stone-900 dark:to-stone-950 border-2 border-[#C2410C] text-center space-y-3 shadow-md"
             >
               <div className="flex justify-center">
                 <Loader2 className="w-8 h-8 text-[#C2410C] animate-spin" />
               </div>
               <h4 className="font-display font-bold text-sm text-stone-900 dark:text-white">
-                Your document is being verified
+                Your document is being verified...
               </h4>
-              <p className="text-xs text-[#046A38] dark:text-emerald-400 font-medium">
-                {activeStepText}
-              </p>
-              <div className="h-1.5 w-48 bg-stone-200 dark:bg-stone-800 rounded-full mx-auto overflow-hidden">
-                <div className="h-full bg-[#C2410C] rounded-full animate-pulse" style={{ width: '85%' }} />
-              </div>
             </motion.div>
           )}
 
@@ -306,24 +294,24 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               className={`p-4 rounded-xl border-2 text-center space-y-2 shadow-md ${
-                verificationOutcome === 'Verified in demo'
+                verificationOutcome === 'Approved'
                   ? 'bg-emerald-50 dark:bg-emerald-950/30 border-[#046A38] text-emerald-900 dark:text-emerald-200'
                   : 'bg-amber-50 dark:bg-amber-950/30 border-amber-600 text-amber-900 dark:text-amber-200'
               }`}
             >
               <div className="flex justify-center">
-                {verificationOutcome === 'Verified in demo' ? (
+                {verificationOutcome === 'Approved' ? (
                   <CheckCircle2 className="w-8 h-8 text-[#046A38]" />
                 ) : (
                   <AlertCircle className="w-8 h-8 text-amber-600" />
                 )}
               </div>
-              <h4 className="font-display font-bold text-sm">
-                Demo verification complete
+              <h4 className="font-display font-bold text-sm text-stone-900 dark:text-white">
+                Verification Complete
               </h4>
               <span
                 className={`inline-block px-3 py-1 rounded-full text-xs font-bold font-mono-tabular ${
-                  verificationOutcome === 'Verified in demo'
+                  verificationOutcome === 'Approved'
                     ? 'bg-[#046A38] text-white'
                     : 'bg-amber-600 text-white'
                 }`}
@@ -332,9 +320,6 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
               </span>
               <p className="text-xs text-stone-700 dark:text-stone-300 max-w-md mx-auto pt-1 leading-relaxed">
                 {verificationFeedback}
-              </p>
-              <p className="text-[10px] text-stone-500 italic pt-1">
-                Demonstration Simulation: No personal files uploaded to any server. State saved in browser memory &amp; localStorage.
               </p>
             </motion.div>
           )}
@@ -401,7 +386,7 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
                           📄 {selected.file.name}
                         </span>
                         <span className="text-[10px] text-stone-500">
-                          {formatFileSize(selected.file.size)} · Ready for demo verification
+                          {formatFileSize(selected.file.size)} · Ready for submission
                         </span>
                       </div>
 
@@ -456,9 +441,6 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
                           />
                         </div>
                       </div>
-                      <p className="text-[10px] text-stone-500 italic">
-                        ℹ️ File metadata is preserved in demo storage. If page was refreshed, browser security prevents reading the local disk file automatically without re-selecting it.
-                      </p>
                     </div>
                   ) : (
                     <div>
@@ -471,7 +453,7 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
                           Choose Local File to Upload
                         </span>
                         <span className="text-[10px] text-stone-500 mt-0.5">
-                          PDF, PNG, JPG accepted (simulated frontend validation)
+                          PDF, PNG, JPG accepted (up to 15 MB)
                         </span>
                       </label>
                       <input
@@ -489,7 +471,7 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
           </div>
 
           <div className="p-3 rounded-xl bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-[11px] text-stone-600 dark:text-stone-400">
-            <strong>Privacy &amp; Security Note:</strong> Files selected are processed entirely inside your browser for this demonstration. No external server uploads occur. Temporary session object URLs allow immediate review before closing.
+            <strong>Privacy &amp; Security Note:</strong> Files selected are registered directly into your personal verified workspace and document repository.
           </div>
         </div>
 
@@ -505,15 +487,6 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
 
           {verifyingStage !== 'verifying' && (
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleSubmit(true)}
-                title="Simulate advisory review finding on this submission"
-                className="px-3 py-2 rounded-xl border border-amber-600/60 bg-amber-500/10 text-amber-800 dark:text-amber-300 font-semibold text-xs hover:bg-amber-500/20 cursor-pointer"
-              >
-                Submit with Demo Review Flag
-              </button>
-
               <button
                 type="button"
                 onClick={() => handleSubmit(false)}

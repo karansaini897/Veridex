@@ -66,9 +66,10 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
         icon: <AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />,
       };
     case 'Under Manual Review':
+    case 'Under Review':
       return {
         tone: 'review',
-        label: 'Under Manual Review',
+        label: normalized,
         icon: <Eye className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />,
       };
     case 'Pending Verification':
@@ -129,6 +130,7 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
     case 'Expiring Soon':
     case 'Correction Requested':
     case 'No Approver Assigned':
+    case 'Needs Review':
       return {
         tone: 'warning',
         label: normalized,

@@ -1169,6 +1169,26 @@ export function canUserAccessDocument(user: UserAccount, doc: DocumentRecord): b
   return false;
 }
 
+/**
+ * Strict privacy check: Determines whether a document was uploaded by or belongs
+ * to the currently authenticated user. Ensures users cannot browse other people's
+ * private documents in their Document Repository.
+ */
+export function isUserDocumentOwner(user: UserAccount, doc: DocumentRecord): boolean {
+  if (doc.personUserId && doc.personUserId === user.id) return true;
+  if (doc.uploadedByUserId && doc.uploadedByUserId === user.id) return true;
+  if (doc.personName && doc.personName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) return true;
+  if (
+    doc.versions &&
+    doc.versions.some(
+      (v) => v.uploadedBy && v.uploadedBy.trim().toLowerCase() === user.fullName.trim().toLowerCase()
+    )
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function canUserPerformAdminAction(user: UserAccount): boolean {
   return user.role === 'admin' && user.status === 'Active';
 }

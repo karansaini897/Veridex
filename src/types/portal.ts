@@ -202,8 +202,11 @@ export interface DocumentRecord {
   institutionId: string;
   institutionName: string;
   relatedApplicationId?: string;
+  relatedRequestId?: string;
+  uploadedFromSection?: string;
   personName: string;
   personUserId?: string;
+  uploadedByUserId?: string;
   certificateNumber: string;
   issuingAuthority: string;
   issueDate: string; // YYYY-MM-DD
@@ -212,6 +215,11 @@ export interface DocumentRecord {
   fileName: string;
   fileSize: string;
   mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
+  previewUrl?: string;
+  // Unified Status Tracking
+  verificationStatusLabel?: 'Pending Verification' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review';
+  approvalStatusLabel?: 'Pending Verification' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review';
+  statusUpdatedAt?: string;
   // 6-pillar statuses
   completenessStatus: 'Complete' | 'Missing Pages/Fields' | 'Pending Review';
   consistencyStatus: 'Consistent' | 'Mismatch Flagged' | 'Pending Check';
@@ -352,7 +360,9 @@ export type SubmissionStatus =
   | 'Verifying'
   | 'Verified in demo'
   | 'Needs review in demo'
-  | 'Submission incomplete';
+  | 'Submission incomplete'
+  | 'Approved'
+  | 'Needs Review';
 
 export interface SubmittedDocumentFile {
   requirementId: string;
@@ -362,7 +372,7 @@ export interface SubmittedDocumentFile {
   mimeType: string;
   submittedAt: string;
   previewUrl?: string;
-  verificationOutcome?: 'Verified in demo' | 'Needs review in demo' | 'Pending';
+  verificationOutcome?: 'Verified in demo' | 'Needs review in demo' | 'Pending' | 'Approved' | 'Needs Review';
   verificationFeedback?: string;
 }
 
@@ -376,7 +386,7 @@ export interface StudentRequestSubmission {
   studentEmail?: string;
   status: SubmissionStatus;
   submittedAt?: string;
-  verificationStatus?: 'Verified in demo' | 'Needs review in demo' | 'Pending';
+  verificationStatus?: 'Verified in demo' | 'Needs review in demo' | 'Pending' | 'Approved' | 'Needs Review';
   verificationFeedback?: string;
   documents: SubmittedDocumentFile[];
 }
