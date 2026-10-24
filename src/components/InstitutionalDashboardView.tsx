@@ -8,6 +8,12 @@ import {
   Building2,
   BarChart3,
   PieChart as PieChartIcon,
+  FileText,
+  Upload,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -24,8 +30,10 @@ import {
   ApplicationRecord,
   AuditEvent,
   DocumentRecord,
+  DocumentSubmissionRequest,
   Institution,
   MainView,
+  StudentRequestSubmission,
   UserAccount,
 } from '../types/portal';
 import {
@@ -42,6 +50,11 @@ import {
   FileTypeMarker,
   StatusBadge,
 } from './StatusPrimitives';
+import { FacultyDirectorySection } from './FacultyDirectorySection';
+import { StudentDirectorySection } from './StudentDirectorySection';
+import { RequestManagementSection } from './RequestManagementSection';
+import { DocumentRequestCreationModal } from './DocumentRequestCreationModal';
+import { StudentDocumentSubmissionModal } from './StudentDocumentSubmissionModal';
 
 interface InstitutionalDashboardViewProps {
   currentUser: UserAccount;
@@ -50,6 +63,11 @@ interface InstitutionalDashboardViewProps {
   documents: DocumentRecord[];
   auditEvents: AuditEvent[];
   pendingApprovalCount?: number;
+  allUsers?: UserAccount[];
+  documentRequests?: DocumentSubmissionRequest[];
+  studentSubmissions?: StudentRequestSubmission[];
+  onCreateDocumentRequest?: (newReq: DocumentSubmissionRequest) => void;
+  onSubmitStudentDocuments?: (sub: StudentRequestSubmission) => void;
   onOpenApplication: (appId: string) => void;
   onOpenDocument: (docId: string) => void;
   onCreateApplication: (params: {
@@ -113,12 +131,20 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
   documents,
   auditEvents,
   pendingApprovalCount = 0,
+  allUsers = [],
+  documentRequests = [],
+  studentSubmissions = [],
+  onCreateDocumentRequest,
+  onSubmitStudentDocuments,
   onOpenApplication,
   onOpenDocument,
   onCreateApplication,
   onNavigate,
 }) => {
   const [newAppModalOpen, setNewAppModalOpen] = useState(false);
+  const [createRequestModalOpen, setCreateRequestModalOpen] = useState(false);
+  const [selectedRequestForSubmission, setSelectedRequestForSubmission] =
+    useState<DocumentSubmissionRequest | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<ApplicationCategory>(
     'New Course Approval (AI & Data Science)'
   );
@@ -227,6 +253,140 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
           </div>
         </motion.div>
 
+        {/* Active Document & Application Requests Issued to Student */}
+        {(() => {
+          const studentRequests = documentRequests.filter((r) =>
+            r.recipientStudentIds.includes(currentUser.id)
+          );
+
+          if (studentRequests.length === 0) return null;
+
+          return (
+            <motion.section
+              variants={DASHBOARD_ITEM_VARIANTS}
+              aria-label="Active Document Requests"
+              className="liquid-glass glass-tint-amber rounded-2xl p-5 border-2 border-[#C2410C]/45 space-y-4 shadow-sm"
+            >
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#C2410C]" />
+                  <div>
+                    <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white">
+                      Official Document &amp; Application Requests ({studentRequests.length})
+                    </h2>
+                    <p className="text-[11px] text-stone-600 dark:text-stone-400">
+                      Requests issued by your institution manager or class teacher requiring document submission.
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#C2410C] text-white text-[10px] font-mono-tabular font-bold">
+                  Action Required
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {studentRequests.map((req) => {
+                  const sub = studentSubmissions.find(
+                    (s) => s.requestId === req.id && s.studentId === currentUser.id
+                  );
+                  const isVerified = sub?.status === 'Verified in demo';
+                  const isNeedsReview = sub?.status === 'Needs review in demo';
+                  const isPending = !sub || sub.status === 'Pending';
+
+                  return (
+                    <div
+                      key={req.id}
+                      className="p-4 rounded-xl bg-white dark:bg-stone-900 border border-[#C2410C]/35 space-y-3 shadow-xs"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-[11px] font-mono-tabular">
+                            <span className="font-bold text-[#C2410C]">{req.id}</span>
+                            <span>·</span>
+                            <span className="text-stone-500">
+                              Issued by {req.creatorName} ({req.creatorRole === 'institutional_rep' ? 'Institution Manager' : req.creatorRole})
+                            </span>
+                          </div>
+                          <h3 className="font-display font-bold text-base text-stone-900 dark:text-white">
+                            {req.title}
+                          </h3>
+                          <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+                            {req.description}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col sm:items-end gap-1.5 shrink-0">
+                          <span className="text-[11px] font-mono-tabular text-stone-500 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-[#046A38]" />
+                            <span>Deadline: <strong>{req.deadline}</strong></span>
+                          </span>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-mono-tabular inline-flex items-center gap-1 ${
+                              isVerified
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                : isNeedsReview
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                  : 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
+                            }`}
+                          >
+                            {isVerified && <CheckCircle2 className="w-3.5 h-3.5" />}
+                            {isNeedsReview && <AlertCircle className="w-3.5 h-3.5" />}
+                            {isPending && <Clock className="w-3.5 h-3.5" />}
+                            <span>{sub?.status || 'Pending Submission'}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 space-y-1 text-xs">
+                        <span className="font-bold text-stone-800 dark:text-stone-200 block text-[11px]">
+                          Required Documents ({req.requiredDocuments.length}):
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-stone-600 dark:text-stone-400">
+                          {req.requiredDocuments.map((doc, idx) => (
+                            <div key={idx} className="flex items-start gap-1.5">
+                              <span className="text-[#C2410C] font-bold">✓</span>
+                              <div>
+                                <span className="font-semibold text-stone-900 dark:text-white">
+                                  {doc.name}
+                                </span>
+                                <span className="block text-[10px] text-stone-500">
+                                  {doc.description}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {sub?.verificationFeedback && (
+                        <div className="p-2.5 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-[#046A38]/30 text-[11px] text-emerald-900 dark:text-emerald-300">
+                          <strong>Simulated Verification Outcome:</strong> {sub.verificationFeedback}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[11px] text-stone-500 font-mono-tabular">
+                          {sub?.documents?.length
+                            ? `${sub.documents.length} document(s) uploaded in current session`
+                            : 'No files submitted yet'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRequestForSubmission(req)}
+                          className="btn-primary !py-1.5 !px-3.5 text-xs flex items-center gap-1.5 shadow-sm"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>{isPending ? 'Submit Documents' : 'View / Replace Documents'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.section>
+          );
+        })()}
+
         {/* Student Record Verification Analytics Chart */}
         {studentChartData.length > 0 && (
           <motion.section
@@ -331,6 +491,29 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             ))}
           </div>
         </motion.section>
+
+        {/* Student Document Submission Modal */}
+        <AnimatePresence>
+          {selectedRequestForSubmission && (
+            <StudentDocumentSubmissionModal
+              student={currentUser}
+              request={selectedRequestForSubmission}
+              existingSubmission={
+                studentSubmissions.find(
+                  (s) =>
+                    s.requestId === selectedRequestForSubmission.id &&
+                    s.studentId === currentUser.id
+                ) || null
+              }
+              onClose={() => setSelectedRequestForSubmission(null)}
+              onSubmitSuccess={(updatedSub) => {
+                if (onSubmitStudentDocuments) {
+                  onSubmitStudentDocuments(updatedSub);
+                }
+              }}
+            />
+          )}
+        </AnimatePresence>
       </motion.div>
     );
   }
@@ -394,13 +577,21 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                 <button
                   type="button"
                   onClick={() => setNewAppModalOpen(true)}
-                  className="btn-primary flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                  className="btn-secondary flex items-center gap-1.5 whitespace-nowrap shrink-0"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Start New Application</span>
                 </button>
               </>
             )}
+            <button
+              type="button"
+              onClick={() => setCreateRequestModalOpen(true)}
+              className="btn-primary flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-sm"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Create Document Request</span>
+            </button>
           </div>
         </div>
       </motion.div>
@@ -437,6 +628,49 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             </button>
           </div>
         </motion.section>
+      )}
+
+      {/* Institution Manager: Faculty Directory */}
+      {currentUser.role === 'institutional_rep' && allUsers.length > 0 && (
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS}>
+          <FacultyDirectorySection currentUser={currentUser} allUsers={allUsers} />
+        </motion.div>
+      )}
+
+      {/* Faculty: Assigned Students Directory */}
+      {currentUser.role === 'faculty' && allUsers.length > 0 && (
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS}>
+          <StudentDirectorySection
+            currentTeacher={currentUser}
+            allUsers={allUsers}
+            submissions={studentSubmissions}
+          />
+        </motion.div>
+      )}
+
+      {/* Application & Document Requests Management Tracker */}
+      {documentRequests.length > 0 && (
+        <motion.div variants={DASHBOARD_ITEM_VARIANTS}>
+          <RequestManagementSection
+            currentUser={currentUser}
+            allUsers={allUsers}
+            requests={
+              currentUser.role === 'faculty'
+                ? documentRequests.filter(
+                    (r) =>
+                      r.creatorUserId === currentUser.id ||
+                      r.department === currentUser.academicDepartment
+                  )
+                : documentRequests.filter(
+                    (r) =>
+                      r.institutionId === currentUser.institutionId ||
+                      currentUser.role === 'admin'
+                  )
+            }
+            submissions={studentSubmissions}
+            onCreateNewRequest={() => setCreateRequestModalOpen(true)}
+          />
+        </motion.div>
       )}
 
       {/* Interactive Summary Strip */}
@@ -1000,6 +1234,23 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             </div>
           </motion.div>
         </motion.div>
+      )}
+    </AnimatePresence>
+
+      {/* Document Request Creation Modal */}
+      <AnimatePresence>
+        {createRequestModalOpen && (
+          <DocumentRequestCreationModal
+            currentUser={currentUser}
+            allUsers={allUsers}
+            onClose={() => setCreateRequestModalOpen(false)}
+            onCreateRequest={(newReq) => {
+              if (onCreateDocumentRequest) {
+                onCreateDocumentRequest(newReq);
+              }
+              setCreateRequestModalOpen(false);
+            }}
+          />
         )}
       </AnimatePresence>
     </motion.div>

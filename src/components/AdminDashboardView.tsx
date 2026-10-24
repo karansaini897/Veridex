@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   Search,
   ArrowUpDown,
@@ -8,6 +8,7 @@ import {
   ArrowRight,
   BarChart3,
   TrendingUp,
+  FileText,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -27,7 +28,9 @@ import {
   ApplicationStatus,
   AuditEvent,
   DocumentRecord,
+  DocumentSubmissionRequest,
   MainView,
+  StudentRequestSubmission,
   UserAccount,
 } from '../types/portal';
 import {
@@ -37,6 +40,8 @@ import {
   getLocalTodayDate,
 } from '../lib/domain';
 import { AnimatedMetricValue, EmptyStateCard, StatusBadge } from './StatusPrimitives';
+import { RequestManagementSection } from './RequestManagementSection';
+import { DocumentRequestCreationModal } from './DocumentRequestCreationModal';
 
 interface AdminDashboardViewProps {
   currentUser: UserAccount;
@@ -44,6 +49,10 @@ interface AdminDashboardViewProps {
   documents: DocumentRecord[];
   auditEvents: AuditEvent[];
   pendingApprovalCount?: number;
+  allUsers?: UserAccount[];
+  documentRequests?: DocumentSubmissionRequest[];
+  studentSubmissions?: StudentRequestSubmission[];
+  onCreateDocumentRequest?: (newReq: DocumentSubmissionRequest) => void;
   onOpenApplication: (appId: string) => void;
   onOpenDocument: (docId: string) => void;
   onNavigate: (view: MainView) => void;
@@ -103,6 +112,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   documents,
   auditEvents,
   pendingApprovalCount = 0,
+  allUsers = [],
+  documentRequests = [],
+  studentSubmissions = [],
+  onCreateDocumentRequest,
   onOpenApplication,
   onOpenDocument,
   onNavigate,
@@ -114,6 +127,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [visibleLimit, setVisibleLimit] = useState(8);
   const [trendMode, setTrendMode] = useState<'timeline' | 'categories'>('timeline');
+  const [createRequestModalOpen, setCreateRequestModalOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
   const todayStr = getLocalTodayDate();
@@ -255,6 +269,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {onCreateDocumentRequest && (
+            <button
+              type="button"
+              onClick={() => setCreateRequestModalOpen(true)}
+              className="btn-primary whitespace-nowrap shrink-0 flex items-center gap-1.5 shadow-sm"
+            >
+              <span>+ Create Document Request</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onNavigate('accounts')}
@@ -273,7 +296,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('expiry')}
-            className="btn-primary whitespace-nowrap shrink-0"
+            className="btn-secondary whitespace-nowrap shrink-0"
           >
             Expiry Alerts ({metrics.expiringDocuments})
           </button>
@@ -1000,6 +1023,29 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             </section>
           </div>
         </motion.div>
+      )}
+
+      {/* Official Document & Application Requests Management */}
+      {!showFullTableOnly && (
+        <RequestManagementSection
+          requests={documentRequests}
+          submissions={studentSubmissions}
+          allUsers={allUsers}
+          currentUser={currentUser}
+          onCreateNewRequest={onCreateDocumentRequest ? () => setCreateRequestModalOpen(true) : undefined}
+        />
+      )}
+
+      {createRequestModalOpen && onCreateDocumentRequest && (
+        <DocumentRequestCreationModal
+          currentUser={currentUser}
+          allUsers={allUsers}
+          onClose={() => setCreateRequestModalOpen(false)}
+          onCreateRequest={(newReq) => {
+            onCreateDocumentRequest(newReq);
+            setCreateRequestModalOpen(false);
+          }}
+        />
       )}
     </motion.div>
   );

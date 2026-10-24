@@ -13,8 +13,10 @@ import {
   AuditEvent,
   ComplianceRule,
   DocumentRecord,
+  DocumentSubmissionRequest,
   MainView,
   PortalNotification,
+  StudentRequestSubmission,
   UserAccount,
 } from './types/portal';
 import {
@@ -23,8 +25,10 @@ import {
   SEED_AUDIT_EVENTS,
   SEED_COMPLIANCE_RULES,
   SEED_DOCUMENTS,
+  SEED_DOCUMENT_REQUESTS,
   SEED_INSTITUTIONS,
   SEED_NOTIFICATIONS,
+  SEED_STUDENT_SUBMISSIONS,
   SEED_USERS,
 } from './data/seedData';
 import {
@@ -68,6 +72,8 @@ const STORAGE_KEYS = {
   rules: 'veridex_portal_rules_v7',
   notifications: 'veridex_portal_notifs_v7',
   audit: 'veridex_portal_audit_v7',
+  documentRequests: 'veridex_portal_doc_requests_v7',
+  studentSubmissions: 'veridex_portal_student_submissions_v7',
 };
 
 function loadFromStorage<T>(key: string, fallback: T): T {
@@ -107,7 +113,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    document.title = 'VERIDEX';
+    document.title = 'AICTE Application Validation & Document Authentication Portal';
     const root = document.documentElement;
     if (darkMode) {
       root.classList.add('dark');
@@ -140,6 +146,12 @@ export default function App() {
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(() =>
     loadFromStorage(STORAGE_KEYS.audit, SEED_AUDIT_EVENTS)
   );
+  const [documentRequests, setDocumentRequests] = useState<DocumentSubmissionRequest[]>(() =>
+    loadFromStorage(STORAGE_KEYS.documentRequests, SEED_DOCUMENT_REQUESTS)
+  );
+  const [studentSubmissions, setStudentSubmissions] = useState<StudentRequestSubmission[]>(() =>
+    loadFromStorage(STORAGE_KEYS.studentSubmissions, SEED_STUDENT_SUBMISSIONS)
+  );
 
   // Restore saved session if present; never silently auto-login unauthenticated visitors
   const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
@@ -169,6 +181,8 @@ export default function App() {
       window.localStorage.setItem(STORAGE_KEYS.rules, JSON.stringify(complianceRules));
       window.localStorage.setItem(STORAGE_KEYS.notifications, JSON.stringify(notifications));
       window.localStorage.setItem(STORAGE_KEYS.audit, JSON.stringify(auditEvents));
+      window.localStorage.setItem(STORAGE_KEYS.documentRequests, JSON.stringify(documentRequests));
+      window.localStorage.setItem(STORAGE_KEYS.studentSubmissions, JSON.stringify(studentSubmissions));
       if (currentUserId) {
         window.localStorage.setItem(STORAGE_KEYS.currentUserId, currentUserId);
       } else {
@@ -177,7 +191,18 @@ export default function App() {
     } catch {
       // ignore storage errors
     }
-  }, [users, approvalRequests, applications, documents, complianceRules, notifications, auditEvents, currentUserId]);
+  }, [
+    users,
+    approvalRequests,
+    applications,
+    documents,
+    complianceRules,
+    notifications,
+    auditEvents,
+    documentRequests,
+    studentSubmissions,
+    currentUserId,
+  ]);
 
   const currentUser = users.find((u) => u.id === currentUserId) || null;
 
@@ -250,6 +275,8 @@ export default function App() {
     setComplianceRules(SEED_COMPLIANCE_RULES);
     setNotifications(SEED_NOTIFICATIONS);
     setAuditEvents(SEED_AUDIT_EVENTS);
+    setDocumentRequests(SEED_DOCUMENT_REQUESTS);
+    setStudentSubmissions(SEED_STUDENT_SUBMISSIONS);
     setSelectedApplicationId(null);
     setSelectedDocumentId(null);
     setActiveView('dashboard');
@@ -1142,6 +1169,88 @@ export default function App() {
     appendAudit(currentUser, `Document Marked ${status}`, 'Document', docId, note);
   };
 
+  // Create Document Request (Admin, Institution Manager, Faculty)
+  const handleCreateDocumentRequest = (newReq: DocumentSubmissionRequest) => {
+    setDocumentRequests((prev) => [newReq, ...prev]);
+
+    // Send notifications to all recipient students
+    const recipientStudents = users.filter((u) => newReq.recipientStudentIds.includes(u.id));
+    const nowIso = getCurrentIsoTimestamp();
+    const nowDisplay = formatTimestampForDisplay(nowIso);
+    const newNotifications: PortalNotification[] = recipientStudents.map((stu) => ({
+      id: createRecordId('NOTIF'),
+      recipientRole: 'student',
+      recipientUserId: stu.id,
+      userId: stu.id,
+      type: 'review_request',
+      title: `Action Required: ${newReq.title}`,
+      message: `${newReq.creatorName} (${formatRoleDisplayName(newReq.creatorRole)}) requested required documents. Submission deadline: ${newReq.deadline}.`,
+      targetView: 'dashboard',
+      targetRecordId: newReq.id,
+      read: false,
+      createdAt: nowDisplay,
+    }));
+
+    if (newNotifications.length > 0) {
+      setNotifications((prev) => [...newNotifications, ...prev]);
+    }
+
+    if (currentUser) {
+      appendAudit(
+        currentUser,
+        'Created Document Request',
+        'Application',
+        newReq.id,
+        `Created document request "${newReq.title}" for ${newReq.recipientStudentIds.length} students`
+      );
+    }
+  };
+
+  // Submit Student Documents & Simulated Verification
+  const handleSubmitStudentDocuments = (updatedSub: StudentRequestSubmission) => {
+    setStudentSubmissions((prev) => {
+      const targetSubStudentId = updatedSub.studentId || updatedSub.studentUserId;
+      const existingIdx = prev.findIndex(
+        (s) => s.requestId === updatedSub.requestId && (s.studentId === targetSubStudentId || s.studentUserId === targetSubStudentId)
+      );
+      if (existingIdx >= 0) {
+        const copy = [...prev];
+        copy[existingIdx] = updatedSub;
+        return copy;
+      }
+      return [updatedSub, ...prev];
+    });
+
+    const request = documentRequests.find((r) => r.id === updatedSub.requestId);
+    if (request) {
+      const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+      const notif: PortalNotification = {
+        id: createRecordId('NOTIF'),
+        recipientRole: request.creatorRole,
+        recipientUserId: request.creatorUserId,
+        userId: request.creatorUserId,
+        type: 'status_change',
+        title: `Documents Submitted: ${updatedSub.studentName}`,
+        message: `${updatedSub.studentName} has submitted documents for "${request.title}". Current status: ${updatedSub.status}.`,
+        targetView: 'dashboard',
+        targetRecordId: request.id,
+        read: false,
+        createdAt: nowDisplay,
+      };
+      setNotifications((prev) => [notif, ...prev]);
+    }
+
+    if (currentUser) {
+      appendAudit(
+        currentUser,
+        'Submitted Required Documents',
+        'Document',
+        updatedSub.requestId,
+        `${updatedSub.studentName} submitted files for request "${request?.title || updatedSub.requestId}" (${updatedSub.status})`
+      );
+    }
+  };
+
   // If not authenticated, render LandingPageView by default, LoginView, or SignUpView
   if (!currentUser) {
     if (authScreenMode === 'landing') {
@@ -1288,6 +1397,10 @@ export default function App() {
             documents={documents}
             auditEvents={auditEvents}
             pendingApprovalCount={pendingApprovalCount}
+            allUsers={users}
+            documentRequests={documentRequests}
+            studentSubmissions={studentSubmissions}
+            onCreateDocumentRequest={handleCreateDocumentRequest}
             onOpenApplication={(appId) => setSelectedApplicationId(appId)}
             onOpenDocument={(docId) => {
               setActiveView('documents');
@@ -1303,6 +1416,11 @@ export default function App() {
             documents={documents}
             auditEvents={auditEvents}
             pendingApprovalCount={pendingApprovalCount}
+            allUsers={users}
+            documentRequests={documentRequests}
+            studentSubmissions={studentSubmissions}
+            onCreateDocumentRequest={handleCreateDocumentRequest}
+            onSubmitStudentDocuments={handleSubmitStudentDocuments}
             onOpenApplication={(appId) => setSelectedApplicationId(appId)}
             onOpenDocument={(docId) => {
               setActiveView('documents');

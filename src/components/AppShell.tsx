@@ -30,6 +30,7 @@ import {
 import { canUserAccessApplication, canUserAccessDocument } from '../lib/domain';
 import { SPRING_LINUX_SIDEBAR, REDUCED_MOTION_TRANSITION } from '../lib/motion';
 import { EmptyStateCard, FileTypeMarker, StatusBadge } from './StatusPrimitives';
+import { DemoUserSwitcher } from './DemoUserSwitcher';
 
 interface AppShellProps {
   currentUser: UserAccount;
@@ -58,6 +59,7 @@ const SMOOTH_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export const AppShell: React.FC<AppShellProps> = ({
   currentUser,
+  users = [],
   institutions,
   applications,
   documents,
@@ -69,7 +71,9 @@ export const AppShell: React.FC<AppShellProps> = ({
   onOpenDocument,
   onMarkNotificationRead,
   onMarkAllNotificationsRead,
+  onSwitchActiveAccount,
   onLogout,
+  onResetRegistryData,
   darkMode,
   onToggleDarkMode,
   onOpenPublicLanding,
@@ -577,14 +581,22 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
           </div>
 
-          {/* Center/Right: Public Overview, Global Search, Notifications, Theme, Profile */}
+          {/* Center/Right: Demo Persona Switcher, Public Overview, Global Search, Notifications, Theme, Profile */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {onSwitchActiveAccount && (
+              <DemoUserSwitcher
+                currentUser={currentUser}
+                allUsers={users}
+                onSwitchUser={onSwitchActiveAccount}
+              />
+            )}
+
             {onOpenPublicLanding && (
               <button
                 type="button"
                 onClick={onOpenPublicLanding}
                 data-testid="open-public-overview"
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl liquid-glass-subtle hover:border-[#C2410C] text-xs font-semibold text-stone-800 dark:text-stone-200 cursor-pointer"
+                className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl liquid-glass-subtle hover:border-[#C2410C] text-xs font-semibold text-stone-800 dark:text-stone-200 cursor-pointer"
               >
                 <span>Public Overview</span>
               </button>

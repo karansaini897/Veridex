@@ -286,14 +286,34 @@ test('getRoleChatbotConfig provides distinct prompts, questions, and answers for
   assert.equal(facCfg.prompts.length >= 4, true);
   assert.equal(stuCfg.prompts.length >= 4, true);
 
-  // Ensure every role has unique prompt IDs and distinct first questions
-  const firstQuestions = new Set([
-    adminCfg.prompts[0].question,
-    instCfg.prompts[0].question,
-    facCfg.prompts[0].question,
-    stuCfg.prompts[0].question,
+  // Ensure every role has unique prompt IDs
+  const allPromptIds = new Set([
+    ...adminCfg.prompts.map((p) => p.id),
+    ...instCfg.prompts.map((p) => p.id),
+    ...facCfg.prompts.map((p) => p.id),
+    ...stuCfg.prompts.map((p) => p.id),
   ]);
-  assert.equal(firstQuestions.size, 4);
+  const totalPrompts =
+    adminCfg.prompts.length +
+    instCfg.prompts.length +
+    facCfg.prompts.length +
+    stuCfg.prompts.length;
+  assert.equal(allPromptIds.size, totalPrompts);
+
+  // Requirement: "What's my agenda for the day?" visible to Admin, Institutional Manager, Faculty; strictly NOT Student
+  assert.ok(adminCfg.prompts.some((p) => p.question === "What's my agenda for the day?"));
+  assert.ok(instCfg.prompts.some((p) => p.question === "What's my agenda for the day?"));
+  assert.ok(facCfg.prompts.some((p) => p.question === "What's my agenda for the day?"));
+  assert.equal(
+    stuCfg.prompts.some((p) => p.question === "What's my agenda for the day?"),
+    false
+  );
+
+  // Requirement: "Do I have any pending requests?" visible to all 4 roles
+  assert.ok(adminCfg.prompts.some((p) => p.question === 'Do I have any pending requests?'));
+  assert.ok(instCfg.prompts.some((p) => p.question === 'Do I have any pending requests?'));
+  assert.ok(facCfg.prompts.some((p) => p.question === 'Do I have any pending requests?'));
+  assert.ok(stuCfg.prompts.some((p) => p.question === 'Do I have any pending requests?'));
 
   const fallbackReply = generateFallbackRoleResponse('student', 'How do I check my GATE scholarship status?', ctx);
   assert.ok(fallbackReply.length > 30);

@@ -104,6 +104,12 @@ export interface UserAccount {
   approvedByUserId?: string;
   approvedByName?: string;
   approvedAt?: string;
+  assignedTeacherUserId?: string;
+  assignedTeacherName?: string;
+  assignedStudentCount?: number;
+  workloadSummary?: string;
+  officeLocation?: string;
+  specialization?: string;
 }
 
 export interface ApprovalHistoryEntry {
@@ -299,6 +305,7 @@ export interface PortalNotification {
   id: string;
   recipientRole: Role | 'all';
   recipientUserId?: string;
+  userId?: string;
   institutionId?: string;
   title: string;
   message: string;
@@ -331,3 +338,64 @@ export type MainView =
   | 'accounts'
   | 'profile'
   | 'settings';
+
+export interface DocumentRequirement {
+  id: string;
+  name: string;
+  description: string;
+  allowedFormats?: string[];
+}
+
+export type SubmissionStatus =
+  | 'Pending'
+  | 'Submitted'
+  | 'Verifying'
+  | 'Verified in demo'
+  | 'Needs review in demo'
+  | 'Submission incomplete';
+
+export interface SubmittedDocumentFile {
+  requirementId: string;
+  requirementName: string;
+  fileName: string;
+  fileSize: string;
+  mimeType: string;
+  submittedAt: string;
+  previewUrl?: string;
+  verificationOutcome?: 'Verified in demo' | 'Needs review in demo' | 'Pending';
+  verificationFeedback?: string;
+}
+
+export interface StudentRequestSubmission {
+  id: string;
+  requestId: string;
+  studentId: string;
+  studentUserId?: string;
+  studentName: string;
+  studentRollNumber: string;
+  studentEmail?: string;
+  status: SubmissionStatus;
+  submittedAt?: string;
+  verificationStatus?: 'Verified in demo' | 'Needs review in demo' | 'Pending';
+  verificationFeedback?: string;
+  documents: SubmittedDocumentFile[];
+}
+
+export interface DocumentSubmissionRequest {
+  id: string;
+  title: string;
+  description: string;
+  creatorUserId: string;
+  creatorName: string;
+  creatorRole: Role;
+  institutionId?: string;
+  institutionName?: string;
+  department?: string;
+  recipientGroupLabel: string;
+  recipientStudentIds: string[];
+  requiredDocuments: DocumentRequirement[];
+  deadline: string; // YYYY-MM-DD
+  createdAt: string;
+  status: 'Active' | 'Closed';
+}
+
