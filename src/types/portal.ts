@@ -1,61 +1,20 @@
 export type Role = 'admin' | 'institutional_rep' | 'faculty' | 'student';
 
+export type SignupRole = 'student' | 'faculty' | 'institutional_rep';
+
 export type AccountStatus = 'Active' | 'Pending Activation' | 'Suspended';
 
-export interface UserAccount {
-  id: string;
-  fullName: string;
-  username: string;
-  phone: string;
-  normalizedPhone: string;
-  email: string;
-  dob: string; // YYYY-MM-DD
-  gender?: 'Female' | 'Male' | 'Non-binary' | 'Prefer not to say';
-  avatarUrl?: string;
-  status: AccountStatus;
-  role: Role;
-  password?: string;
-  isSystemAccount?: boolean;
-  isDemoAccount?: boolean;
-  createdAt: string;
+export type ApprovalRequestStatus =
+  | 'Pending Approval'
+  | 'Correction Requested'
+  | 'Approved'
+  | 'Rejected';
 
-  // Institutional affiliation (for institutional_rep, faculty, student)
-  institutionId?: string;
-  institutionName?: string;
-  officialInstitutionCode?: string;
+export type AcademicDepartment = 'CMPN' | 'IT' | 'AURO' | 'EXTC' | 'AIDS';
 
-  // Institutional representative fields
-  designation?: string;
-  authorizationStatus?: 'Verified Nodal Officer' | 'Provisional Signatory' | 'Revoked';
+export type AcademicDivision = 'A' | 'B' | 'C';
 
-  // Admin fields
-  permissionLevel?: 'Regional Reviewer (Level 2)' | 'National Compliance Auditor (Level 3)';
-
-  // Faculty/Staff fields
-  employeeId?: string;
-  department?: string;
-  joiningDate?: string;
-  highestQualification?: string;
-
-  // Student fields
-  rollNumber?: string;
-  course?: string;
-  yearSemester?: string;
-}
-
-export interface Institution {
-  id: string;
-  name: string;
-  code: string;
-  aictePermanentId: string;
-  city: string;
-  state: string;
-  establishedYear: number;
-  affiliatedUniversity: string;
-  institutionType: 'Private Unaided' | 'Government Aided' | 'Autonomous Institute';
-  representativeName: string;
-  representativeEmail: string;
-}
+export type AcademicYear = 'First Year' | 'Second Year' | 'Third Year' | 'Fourth Year';
 
 export type ApplicationStatus =
   | 'Draft'
@@ -66,113 +25,169 @@ export type ApplicationStatus =
   | 'Under Manual Review'
   | 'Decision Recorded';
 
-export type ApplicationCategory =
-  | 'Extension of Approval (EoA)'
-  | 'New Course Approval (AI & Data Science)'
-  | 'Increase in Intake (B.Tech CSE)'
-  | 'Infrastructure & Lab Readiness Audit'
-  | 'Faculty Cadre Ratio Compliance'
-  | 'Post-Graduate Research Center Renewal';
+export type ChecklistItemStatus =
+  | 'Pending Upload'
+  | 'Uploaded'
+  | 'Verified'
+  | 'Flagged for Review';
 
-export interface ChecklistItem {
+export type DocumentCategory =
+  | 'Approvals'
+  | 'Infrastructure'
+  | 'Qualifications'
+  | 'Experience Certificates'
+  | 'Faculty Records'
+  | 'Student Records'
+  | 'Financial & Trust Deeds';
+
+export type ExpiryStatus = 'Valid' | 'Expiring Soon' | 'Expired' | 'No Expiry';
+
+export type VerificationPillarStatus =
+  | 'Passed'
+  | 'Flagged'
+  | 'Pending'
+  | 'Action Required'
+  | 'Unavailable'
+  | 'Advisory';
+
+export interface Institution {
   id: string;
-  title: string;
-  required: boolean;
-  documentCategory: DocumentCategory;
-  linkedDocumentId?: string;
-  status: 'Pending Upload' | 'Uploaded' | 'Verified' | 'Flagged for Review';
-  notes?: string;
+  name: string;
+  code: string;
+  aictePermanentId: string;
+  city: string;
+  state: string;
+  establishedYear: number;
+  affiliatedUniversity: string;
+  institutionType: 'Autonomous Institute' | 'Affiliated Technical Campus' | 'Government Aided' | 'Private Unaided';
+  representativeName: string;
+  representativeEmail: string;
 }
 
-export interface ReviewNote {
+export type Gender = 'Female' | 'Male' | 'Non-binary' | 'Prefer not to say';
+
+export interface UserAccount {
   id: string;
-  authorId: string;
-  authorName: string;
-  authorRole: Role;
+  fullName: string;
+  username: string;
+  phone: string;
+  normalizedPhone: string;
+  email: string;
+  dob: string; // YYYY-MM-DD
+  gender?: Gender;
+  avatarUrl?: string;
+  status: AccountStatus;
+  role: Role;
+  password?: string;
+  credentialDigest?: string;
+  isSystemAccount?: boolean;
+  createdAt: string;
+  // Role-specific attributes
+  institutionId?: string;
+  institutionName?: string;
+  officialInstitutionCode?: string;
+  designation?: string;
+  authorizationStatus?: 'Verified Nodal Officer' | 'Provisional Signatory' | 'Pending Authorization';
+  permissionLevel?: 'Regional Reviewer (Level 2)' | 'National Compliance Auditor (Level 3)';
+  employeeId?: string;
+  department?: string;
+  academicDepartment?: AcademicDepartment;
+  academicYear?: AcademicYear;
+  division?: AcademicDivision;
+  classTeacherDivision?: AcademicDivision;
+  joiningDate?: string;
+  highestQualification?: string;
+  rollNumber?: string;
+  course?: string;
+  yearSemester?: string;
+  approvedFromRequestId?: string;
+  approvedByUserId?: string;
+  approvedByName?: string;
+  approvedAt?: string;
+}
+
+export interface ApprovalHistoryEntry {
+  id: string;
+  fromStatus?: ApprovalRequestStatus | 'Submitted';
+  toStatus?: ApprovalRequestStatus;
+  action?: string;
+  actorUserId?: string;
+  actorName: string;
+  actorUsername?: string;
+  actorRole: Role | 'applicant';
   timestamp: string;
   note: string;
-  actionType: 'Review Note' | 'Correction Request' | 'Resubmission Response' | 'Authorized Decision';
 }
 
-export interface StatusHistoryEntry {
+export interface AccountApprovalRequest {
   id: string;
-  fromStatus: ApplicationStatus | 'Created';
-  toStatus: ApplicationStatus;
-  changedBy: string;
-  changedByRole: Role;
-  timestamp: string;
-  note: string;
-}
-
-export interface ApplicationRecord {
-  id: string;
+  fullName: string;
+  username: string;
+  phone: string;
+  normalizedPhone: string;
+  email: string;
+  dob: string; // YYYY-MM-DD
+  gender: Gender;
+  requestedRole: SignupRole;
+  credentialDigest: string;
   institutionId: string;
   institutionName: string;
   officialInstitutionCode: string;
-  category: ApplicationCategory;
-  submittedDate: string;
-  lastUpdated: string;
-  status: ApplicationStatus;
-  decisionOutcome?:
-    | 'Compliance Verified — Recommended'
-    | 'Conditional Compliance — Inspection Required'
-    | 'Deficiency Recorded — Deferred';
-  checklist: ChecklistItem[];
-  documentIds: string[];
-  reviewNotes: ReviewNote[];
-  statusHistory: StatusHistoryEntry[];
-  assignedReviewer: string;
-}
-
-export type DocumentCategory =
-  | 'Student Records'
-  | 'Faculty Records'
-  | 'Qualifications'
-  | 'Experience Certificates'
-  | 'Infrastructure'
-  | 'Approvals'
-  | 'Financial & Trust Deeds';
-
-export type VerificationPillar =
-  | 'Completeness'
-  | 'Expiry'
-  | 'Consistency'
-  | 'Anomaly Indicators'
-  | 'Issuer Verification'
-  | 'Human Review';
-
-export interface VerificationFinding {
-  id: string;
-  pillar: VerificationPillar;
-  status:
-    | 'Passed'
-    | 'Flagged'
-    | 'Pending'
-    | 'Unavailable'
-    | 'Reviewed'
-    | 'Action Required'
-    | 'Advisory';
-  affectedFieldOrPage: string;
-  explanation: string;
-  evidenceComparison: string;
-  suggestedNextAction: string;
+  academicDepartment?: AcademicDepartment;
+  department?: AcademicDepartment;
+  academicYear?: AcademicYear;
+  division?: AcademicDivision;
+  classTeacherDivision?: AcademicDivision;
+  status: ApprovalRequestStatus;
+  approverRole: 'faculty' | 'institutional_rep' | 'admin';
+  assignedApproverRole?: 'faculty' | 'institutional_rep' | 'admin';
+  assignedApproverUserId?: string;
+  assignedApproverName?: string;
+  routedApproverUserIds: string[];
+  routedApproverLabel: string;
+  noApproverAssigned: boolean;
+  approverUnassigned?: boolean;
+  submittedAt: string;
+  updatedAt?: string;
+  decisionNote?: string;
+  reviewerNote?: string;
+  decidedByUserId?: string;
+  decidedByName?: string;
+  decidedByRole?: Role;
+  decidedAt?: string;
+  provisionedUserId?: string;
+  history: ApprovalHistoryEntry[];
 }
 
 export interface DocumentVersion {
   versionNumber: number;
   fileName: string;
   fileSize: string;
-  mimeType: string;
+  mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
   uploadedAt: string;
   uploadedBy: string;
   changeNote: string;
 }
 
-export type ExpiryStatus = 'Valid' | 'Expiring Soon' | 'Expired' | 'No Expiry';
+export interface VerificationFinding {
+  id: string;
+  pillar:
+    | 'Completeness'
+    | 'Expiry'
+    | 'Consistency'
+    | 'Anomaly Indicators'
+    | 'Issuer Verification'
+    | 'Human Review';
+  status: VerificationPillarStatus;
+  affectedFieldOrPage: string;
+  explanation: string;
+  evidenceComparison: string;
+  suggestedNextAction: string;
+}
 
 export interface DocumentRecord {
   id: string;
-  internalCode: string; // e.g., FAC-QUA-KAS-02
+  internalCode: string; // e.g. FAC-QUA-KAS-02
   name: string;
   category: DocumentCategory;
   suggestedAiCategory: DocumentCategory;
@@ -185,28 +200,85 @@ export interface DocumentRecord {
   personUserId?: string;
   certificateNumber: string;
   issuingAuthority: string;
-  issueDate: string;
-  expiryDate?: string;
-  uploadDate: string;
+  issueDate: string; // YYYY-MM-DD
+  expiryDate?: string; // YYYY-MM-DD or undefined if no expiry
+  uploadDate: string; // YYYY-MM-DD
   fileName: string;
   fileSize: string;
   mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
+  // 6-pillar statuses
   completenessStatus: 'Complete' | 'Missing Pages/Fields' | 'Pending Review';
   consistencyStatus: 'Consistent' | 'Mismatch Flagged' | 'Pending Check';
   anomalyStatus: 'No Anomaly Detected' | 'Suspected Alteration / Duplicate' | 'Not Screened';
-  issuerVerificationStatus:
-    | 'Verified'
-    | 'Failed'
-    | 'Pending'
-    | 'Unavailable'
-    | 'Not Checked';
-  humanReviewStatus: 'Pending' | 'Reviewed' | 'Action Required';
-  extractedSummary: Record<string, string>;
-  findings: VerificationFinding[];
-  versions: DocumentVersion[];
+  issuerVerificationStatus: 'Verified' | 'Pending' | 'Failed' | 'Not Checked' | 'Unavailable';
+  humanReviewStatus: 'Reviewed' | 'Pending' | 'Action Required';
+  // Infrastructure / Visual Inspection metadata (optional)
   isInfrastructureEvidence?: boolean;
   facilityAreaSqm?: number;
   advisoryInspectionNote?: string;
+  extractedSummary: Record<string, string>;
+  findings: VerificationFinding[];
+  versions: DocumentVersion[];
+}
+
+export interface ChecklistItem {
+  id: string;
+  title: string;
+  required: boolean;
+  documentCategory: DocumentCategory;
+  linkedDocumentId?: string;
+  status: ChecklistItemStatus;
+  notes?: string;
+}
+
+export interface ReviewNoteEntry {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorRole: Role;
+  timestamp: string;
+  actionType:
+    | 'Review Note'
+    | 'Correction Request'
+    | 'Resubmission Response'
+    | 'Authorized Decision'
+    | 'Status Change';
+  note: string;
+}
+
+export interface StatusHistoryEntry {
+  id: string;
+  fromStatus: string;
+  toStatus: ApplicationStatus;
+  changedBy: string;
+  changedByRole: Role;
+  timestamp: string;
+  note: string;
+}
+
+export type ApplicationCategory =
+  | 'Extension of Approval (EoA)'
+  | 'New Course Approval (AI & Data Science)'
+  | 'Increase in Intake (B.Tech CSE)'
+  | 'Infrastructure & Lab Readiness Audit'
+  | 'Faculty Cadre Ratio Compliance'
+  | 'Post-Graduate Research Center Renewal';
+
+export interface ApplicationRecord {
+  id: string; // e.g. APP-2026-0104
+  institutionId: string;
+  institutionName: string;
+  officialInstitutionCode: string;
+  category: ApplicationCategory;
+  submittedDate: string; // YYYY-MM-DD
+  lastUpdated: string; // YYYY-MM-DD
+  status: ApplicationStatus;
+  decisionOutcome?: 'Compliance Verified — Recommended' | 'Conditional Compliance — Inspection Required' | 'Deficiency Recorded — Deferred';
+  assignedReviewer: string;
+  checklist: ChecklistItem[];
+  documentIds: string[];
+  reviewNotes: ReviewNoteEntry[];
+  statusHistory: StatusHistoryEntry[];
 }
 
 export interface ComplianceRule {
@@ -226,22 +298,14 @@ export interface ComplianceRule {
 export interface PortalNotification {
   id: string;
   recipientRole: Role | 'all';
-  institutionId?: string;
   recipientUserId?: string;
+  institutionId?: string;
   title: string;
   message: string;
   createdAt: string;
   read: boolean;
-  type: 'review_request' | 'status_change' | 'missing_info' | 'expiry_alert';
-  targetView:
-    | 'dashboard'
-    | 'applications'
-    | 'documents'
-    | 'verification'
-    | 'expiry'
-    | 'reports'
-    | 'profile'
-    | 'settings';
+  type: 'expiry_alert' | 'status_change' | 'missing_info' | 'review_request';
+  targetView: MainView;
   targetRecordId?: string;
 }
 
@@ -252,7 +316,7 @@ export interface AuditEvent {
   actorUsername: string;
   actorRole: Role;
   action: string;
-  targetType: 'Application' | 'Document' | 'Account' | 'ComplianceRule' | 'System';
+  targetType: 'Application' | 'Document' | 'Account' | 'ComplianceRule' | 'ApprovalRequest';
   targetId: string;
   details: string;
 }

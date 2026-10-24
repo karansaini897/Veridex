@@ -226,23 +226,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={onOpenLogin}
-                  className="px-3.5 py-2 rounded-xl bg-[#FCF9F2] hover:bg-[#EFE6D5] text-stone-800 border border-[#C2410C]/40 text-xs font-semibold transition-all whitespace-nowrap shrink-0 cursor-pointer"
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={onOpenLogin}
-                  className="btn-primary px-4 py-2 text-xs"
-                >
-                  <span>Get Started</span>
-                  <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={onOpenLogin}
+                data-testid="landing-signin-btn"
+                className="btn-primary px-4 py-2 text-xs"
+              >
+                <span>Sign In</span>
+                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
             )}
           </div>
         </div>
@@ -1091,7 +1083,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 onClick={isAuthenticated && onReturnToWorkspace ? onReturnToWorkspace : onOpenLogin}
                 className="px-6 py-3 rounded-xl bg-[#C2410C] hover:bg-[#9A3412] text-white text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-md border border-[#7C2D12] flex items-center gap-2"
               >
-                <span>{isAuthenticated ? 'Return to Active Workspace' : 'Get Started — Sign In to Portal'}</span>
+                <span>{isAuthenticated ? 'Return to Active Workspace' : 'Sign In to Portal'}</span>
                 <ArrowRight className="w-4 h-4 text-white" aria-hidden="true" />
               </button>
             </div>

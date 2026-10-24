@@ -14,13 +14,21 @@ import {
   Building2,
   Scale,
   ArrowLeft,
+  UserPlus,
+  ClipboardCheck,
 } from 'lucide-react';
-import { UserAccount } from '../types/portal';
-import { normalizePhoneNumber } from '../lib/domain';
+import { AccountApprovalRequest, UserAccount } from '../types/portal';
+import {
+  computeCredentialDigest,
+  normalizePhoneNumber,
+  verifyUserCredential,
+} from '../lib/domain';
 
 interface LoginViewProps {
   users: UserAccount[];
+  approvalRequests?: AccountApprovalRequest[];
   onLoginSuccess: (user: UserAccount) => void;
+  onOpenSignUp?: (initialMode?: 'register' | 'status', prefillIdentifier?: string) => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
   onBackToLanding?: () => void;
@@ -30,7 +38,9 @@ const SMOOTH_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export const LoginView: React.FC<LoginViewProps> = ({
   users,
+  approvalRequests = [],
   onLoginSuccess,
+  onOpenSignUp,
   darkMode,
   onToggleDarkMode,
   onBackToLanding,
@@ -39,6 +49,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [matchedRequestForNotice, setMatchedRequestForNotice] = useState<AccountApprovalRequest | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [recoveryIdentifier, setRecoveryIdentifier] = useState('');
@@ -47,6 +58,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setMatchedRequestForNotice(null);
 
     const trimmedId = identifier.trim();
     if (!trimmedId) {
@@ -64,27 +76,60 @@ export const LoginView: React.FC<LoginViewProps> = ({
       const matchedUser = users.find(
         (u) =>
           u.username.toLowerCase() === trimmedId.toLowerCase() ||
+          u.email.toLowerCase() === trimmedId.toLowerCase() ||
           (normalizedInputPhone && u.normalizedPhone === normalizedInputPhone)
       );
 
-      if (!matchedUser || matchedUser.password !== password) {
+      if (matchedUser && verifyUserCredential(matchedUser, password)) {
+        if (matchedUser.status !== 'Active') {
+          setIsSubmitting(false);
+          setError(
+            `Account "${matchedUser.username}" is currently ${matchedUser.status}. Contact an authorized administrator.`
+          );
+          return;
+        }
         setIsSubmitting(false);
-        setError(
-          'Invalid username/phone number or password. Please verify your credentials or contact your Regional Nodal Administrator.'
-        );
+        onLoginSuccess(matchedUser);
         return;
       }
 
-      if (matchedUser.status !== 'Active') {
+      // Check if credentials match an existing account approval request
+      const inputDigest = computeCredentialDigest(password);
+      const matchedReq = approvalRequests.find(
+        (r) =>
+          (r.username.toLowerCase() === trimmedId.toLowerCase() ||
+            r.email.toLowerCase() === trimmedId.toLowerCase() ||
+            (normalizedInputPhone && r.normalizedPhone === normalizedInputPhone)) &&
+          r.credentialDigest === inputDigest
+      );
+
+      if (matchedReq && matchedReq.status !== 'Approved') {
         setIsSubmitting(false);
-        setError(
-          `Account "${matchedUser.username}" is currently ${matchedUser.status}. Contact an authorized administrator.`
-        );
+        setMatchedRequestForNotice(matchedReq);
+        if (matchedReq.status === 'Pending Approval') {
+          setError(
+            `Your registration request (${matchedReq.id}) is currently Pending Approval (${matchedReq.routedApproverLabel}). You can sign in once an authorized approver approves your account.`
+          );
+        } else if (matchedReq.status === 'Correction Requested') {
+          setError(
+            `Correction Requested on registration (${matchedReq.id}): ${
+              matchedReq.decisionNote || 'Please review and update your registration details.'
+            }`
+          );
+        } else {
+          setError(
+            `Registration request (${matchedReq.id}) was Rejected${
+              matchedReq.decisionNote ? `: ${matchedReq.decisionNote}` : '.'
+            }`
+          );
+        }
         return;
       }
 
       setIsSubmitting(false);
-      onLoginSuccess(matchedUser);
+      setError(
+        'Invalid username/phone number or password. Please verify your credentials or contact your Regional Nodal Administrator.'
+      );
     }, 180);
   };
 
@@ -94,7 +139,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
       <div className="h-1.5 w-full tricolour-bar sticky top-0 z-50" />
 
       {/* Top Bar */}
-      <header className="flex items-center justify-between gap-8 px-6 py-3.5 liquid-glass-elevated sticky top-1.5 z-30 border-b-2 border-[#C2410C]/40">
+      <header className="flex items-center justify-between gap-4 sm:gap-8 px-4 sm:px-6 py-3.5 liquid-glass-elevated sticky top-1.5 z-30 border-b-2 border-[#C2410C]/40">
         <div className="flex items-center gap-3">
           <img
             src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_16.59.09_2f2ed194.jpeg"
@@ -119,7 +164,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           <span>Authorized Official Access</span>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           {onBackToLanding && (
             <button
               type="button"
@@ -128,6 +173,17 @@ export const LoginView: React.FC<LoginViewProps> = ({
             >
               <ArrowLeft className="w-3.5 h-3.5 text-[#046A38]" />
               <span>Product Overview</span>
+            </button>
+          )}
+          {onOpenSignUp && (
+            <button
+              type="button"
+              onClick={() => onOpenSignUp('register')}
+              data-testid="header-signup-btn"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#046A38] hover:bg-[#03542C] text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Sign Up</span>
             </button>
           )}
           <button
@@ -176,10 +232,28 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.22, ease: SMOOTH_EASE }}
-                className="mb-5 p-3.5 rounded-xl bg-red-500/10 dark:bg-red-950/60 border border-red-400/70 dark:border-red-500/30 flex items-start gap-2.5 text-xs text-red-900 dark:text-red-200"
+                className="mb-5 p-3.5 rounded-xl bg-red-500/10 dark:bg-red-950/60 border border-red-400/70 dark:border-red-500/30 space-y-2 text-xs text-red-900 dark:text-red-200"
               >
-                <AlertCircle className="w-4 h-4 text-red-700 dark:text-red-400 shrink-0 mt-0.5" />
-                <span>{error}</span>
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-red-700 dark:text-red-400 shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+                {matchedRequestForNotice && onOpenSignUp && (
+                  <div className="pt-1 pl-6">
+                    <button
+                      type="button"
+                      onClick={() => onOpenSignUp('status', matchedRequestForNotice.username)}
+                      className="px-3 py-1.5 rounded-lg bg-[#C2410C] hover:bg-[#9A3412] text-white text-[11px] font-semibold cursor-pointer inline-flex items-center gap-1.5"
+                    >
+                      <ClipboardCheck className="w-3.5 h-3.5" />
+                      <span>
+                        {matchedRequestForNotice.status === 'Correction Requested'
+                          ? 'Review & Amend Registration Request'
+                          : 'View Registration Status'}
+                      </span>
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -254,11 +328,39 @@ export const LoginView: React.FC<LoginViewProps> = ({
             </button>
           </form>
 
-          <div className="mt-5 pt-4 border-t border-[#C2410C]/30 text-xs text-stone-700 dark:text-stone-300 space-y-2">
+          {onOpenSignUp && (
+            <div className="mt-5 pt-4 border-t border-[#C2410C]/30 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+                  New to VERIDEX?
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onOpenSignUp('status')}
+                  data-testid="check-request-status-link"
+                  className="text-xs font-semibold text-[#046A38] dark:text-emerald-400 hover:underline cursor-pointer inline-flex items-center gap-1"
+                >
+                  <ClipboardCheck className="w-3.5 h-3.5" />
+                  <span>Check Request Status</span>
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenSignUp('register')}
+                data-testid="open-signup-btn"
+                className="w-full py-2.5 px-4 rounded-xl liquid-glass-subtle liquid-glass-interactive border-2 border-[#046A38]/45 text-stone-900 dark:text-stone-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <UserPlus className="w-4 h-4 text-[#046A38]" />
+                <span>Sign Up — Request Role Account</span>
+              </button>
+            </div>
+          )}
+
+          <div className="mt-4 pt-3 border-t border-[#C2410C]/25 text-xs text-stone-700 dark:text-stone-300 space-y-2">
             <div className="flex items-start gap-2">
               <ShieldCheck className="w-4 h-4 text-[#046A38] shrink-0 mt-0.5" />
               <p>
-                <strong>Role &amp; Account Provisioning:</strong> Accounts are provisioned by authorized Regional Nodal Administrators. Self-registration of administrative privileges is strictly disabled.
+                <strong>Role &amp; Account Approval Governance:</strong> New Student, Faculty, and Institutional Manager registrations enter a tiered approval queue before account activation. Self-registration of Admin privileges is strictly disabled.
               </p>
             </div>
           </div>

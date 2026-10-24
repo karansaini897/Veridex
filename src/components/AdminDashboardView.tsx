@@ -43,6 +43,7 @@ interface AdminDashboardViewProps {
   applications: ApplicationRecord[];
   documents: DocumentRecord[];
   auditEvents: AuditEvent[];
+  pendingApprovalCount?: number;
   onOpenApplication: (appId: string) => void;
   onOpenDocument: (docId: string) => void;
   onNavigate: (view: MainView) => void;
@@ -101,6 +102,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   applications,
   documents,
   auditEvents,
+  pendingApprovalCount = 0,
   onOpenApplication,
   onOpenDocument,
   onNavigate,
@@ -255,6 +257,14 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             type="button"
+            onClick={() => onNavigate('accounts')}
+            data-testid="dashboard-open-approvals-btn"
+            className="btn-secondary whitespace-nowrap shrink-0"
+          >
+            Account Approvals {pendingApprovalCount > 0 ? `(${pendingApprovalCount})` : ''}
+          </button>
+          <button
+            type="button"
             onClick={() => onNavigate('verification')}
             className="btn-secondary whitespace-nowrap shrink-0"
           >
@@ -287,7 +297,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             <AnimatedMetricValue value={metrics.totalApplications} />
           </div>
           <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">
-            Across 5 registered institutions
+            Across 6 registered institutions
           </div>
         </motion.button>
 

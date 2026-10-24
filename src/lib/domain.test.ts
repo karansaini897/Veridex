@@ -308,3 +308,245 @@ test('every registered account in SEED_USERS has both username and password form
   }
 });
 
+test('SEED_INSTITUTIONS, SEED_USERS, SEED_APPLICATIONS, and SEED_DOCUMENTS use the exact 6 required colleges and user role mappings', async () => {
+  const { SEED_INSTITUTIONS, SEED_USERS, SEED_APPLICATIONS, SEED_DOCUMENTS } = await import('../data/seedData');
+
+  const expectedCollegeNames = [
+    'VESIT',
+    'D.J. Sanghvi',
+    'Veermata Jijabai Technological Institute (VJTI)',
+    'NMIMS',
+    'University of Mumbai',
+    'ST. Xaviers',
+  ];
+  assert.deepEqual(
+    SEED_INSTITUTIONS.map((i) => i.name),
+    expectedCollegeNames
+  );
+
+  const validIds = new Set(SEED_INSTITUTIONS.map((i) => i.id));
+  const validNames = new Set(expectedCollegeNames);
+
+  for (const app of SEED_APPLICATIONS) {
+    assert.ok(validIds.has(app.institutionId), `Invalid institutionId on ${app.id}`);
+    assert.ok(validNames.has(app.institutionName), `Invalid institutionName on ${app.id}: ${app.institutionName}`);
+  }
+
+  for (const doc of SEED_DOCUMENTS) {
+    assert.ok(validIds.has(doc.institutionId), `Invalid institutionId on ${doc.id}`);
+    assert.ok(validNames.has(doc.institutionName), `Invalid institutionName on ${doc.id}: ${doc.institutionName}`);
+  }
+
+  const karan = SEED_USERS.find((u) => u.username === 'karan.saini');
+  const aashay = SEED_USERS.find((u) => u.username === 'aashay.khadkikar');
+  const shravani = SEED_USERS.find((u) => u.username === 'shravani.salunkhe');
+  const shreya = SEED_USERS.find((u) => u.username === 'shreya.kaulgud');
+  const rutvi = SEED_USERS.find((u) => u.username === 'rutvi.patkar');
+  const gauri = SEED_USERS.find((u) => u.username === 'gauri.sardal');
+
+  assert.equal(karan?.role, 'admin');
+  assert.equal(aashay?.role, 'institutional_rep');
+  assert.equal(aashay?.institutionName, 'VESIT');
+
+  assert.equal(shravani?.role, 'faculty');
+  assert.equal(shravani?.institutionName, 'VESIT');
+  assert.equal(shravani?.academicDepartment, 'CMPN');
+  assert.equal(shravani?.academicYear, 'Second Year');
+  assert.equal(shravani?.classTeacherDivision, 'A');
+
+  assert.equal(shreya?.role, 'student');
+  assert.equal(shreya?.institutionName, 'VESIT');
+  assert.equal(shreya?.academicDepartment, 'CMPN');
+  assert.equal(shreya?.academicYear, 'Second Year');
+  assert.equal(shreya?.division, 'A');
+
+  assert.equal(rutvi?.role, 'institutional_rep');
+  assert.equal(rutvi?.institutionName, 'Veermata Jijabai Technological Institute (VJTI)');
+
+  assert.equal(gauri?.role, 'institutional_rep');
+  assert.equal(gauri?.institutionName, 'D.J. Sanghvi');
+});
+
+test('validateSignupSubmission enforces role-specific fields and blocks duplicates across fullName, username, phone, email, and dob', async () => {
+  const { SEED_USERS, SEED_APPROVAL_REQUESTS } = await import('../data/seedData');
+  const { validateSignupSubmission, ACADEMIC_DEPARTMENTS } = await import('./domain');
+
+  assert.deepEqual([...ACADEMIC_DEPARTMENTS], ['CMPN', 'IT', 'AURO', 'EXTC', 'AIDS']);
+
+  // Missing student academic fields
+  const missingStudentScope = validateSignupSubmission(
+    {
+      requestedRole: 'student',
+      fullName: 'Aarav Kulkarni',
+      username: 'aarav.kulkarni',
+      phone: '+91 98209 55112',
+      email: 'aarav.kulkarni@vesit.example.edu.in',
+      dob: '2005-04-12',
+      gender: 'Male',
+      password: 'aarav.kulkarni',
+      confirmPassword: 'aarav.kulkarni',
+      institutionId: 'INST-VESIT-104',
+    },
+    SEED_USERS,
+    SEED_APPROVAL_REQUESTS
+  );
+  assert.equal(missingStudentScope.valid, false);
+  assert.ok(missingStudentScope.errors.academicDepartment);
+  assert.ok(missingStudentScope.errors.academicYear);
+  assert.ok(missingStudentScope.errors.division);
+
+  // Duplicate against existing user (fullName, username, phone, email, dob)
+  const shreya = SEED_USERS.find((u) => u.username === 'shreya.kaulgud')!;
+  const dupAgainstShreya = validateSignupSubmission(
+    {
+      requestedRole: 'student',
+      fullName: 'shreya kaulgud',
+      username: 'SHREYA.KAULGUD',
+      phone: '098201-11200',
+      email: shreya.email.toUpperCase(),
+      dob: shreya.dob,
+      gender: 'Female',
+      password: 'password123',
+      confirmPassword: 'password123',
+      institutionId: 'INST-VESIT-104',
+      academicDepartment: 'CMPN',
+      academicYear: 'Second Year',
+      division: 'A',
+    },
+    SEED_USERS,
+    SEED_APPROVAL_REQUESTS
+  );
+  assert.equal(dupAgainstShreya.valid, false);
+  assert.ok(dupAgainstShreya.errors.fullName);
+  assert.ok(dupAgainstShreya.errors.username);
+  assert.ok(dupAgainstShreya.errors.phone);
+  assert.ok(dupAgainstShreya.errors.email);
+  assert.ok(dupAgainstShreya.errors.dob);
+
+  // Valid unique student submission
+  const validStudent = validateSignupSubmission(
+    {
+      requestedRole: 'student',
+      fullName: 'Aarav Kulkarni',
+      username: 'aarav.kulkarni',
+      phone: '+91 98209 55112',
+      email: 'aarav.kulkarni@vesit.example.edu.in',
+      dob: '2005-04-12',
+      gender: 'Male',
+      password: 'aarav.kulkarni',
+      confirmPassword: 'aarav.kulkarni',
+      institutionId: 'INST-VESIT-104',
+      academicDepartment: 'CMPN',
+      academicYear: 'Second Year',
+      division: 'A',
+    },
+    SEED_USERS,
+    SEED_APPROVAL_REQUESTS
+  );
+  assert.equal(validStudent.valid, true);
+});
+
+test('resolveApprovalRouting, canUserActionApprovalRequest, and buildApprovedUserAccountFromRequest enforce multi-tier approval chain', async () => {
+  const { SEED_INSTITUTIONS, SEED_USERS } = await import('../data/seedData');
+  const {
+    resolveApprovalRouting,
+    canUserActionApprovalRequest,
+    buildApprovedUserAccountFromRequest,
+    computeCredentialDigest,
+    verifyUserCredential,
+  } = await import('./domain');
+
+  const karan = SEED_USERS.find((u) => u.username === 'karan.saini')!;
+  const aashay = SEED_USERS.find((u) => u.username === 'aashay.khadkikar')!;
+  const shravani = SEED_USERS.find((u) => u.username === 'shravani.salunkhe')!;
+  const shreya = SEED_USERS.find((u) => u.username === 'shreya.kaulgud')!;
+
+  // 1. Student in VESIT CMPN Second Year Div A routes to Class Teacher Dr. Shravani Salunkhe
+  const stuRouting = resolveApprovalRouting(
+    {
+      requestedRole: 'student',
+      institutionId: 'INST-VESIT-104',
+      academicDepartment: 'CMPN',
+      academicYear: 'Second Year',
+      division: 'A',
+    },
+    SEED_USERS,
+    SEED_INSTITUTIONS
+  );
+  assert.equal(stuRouting.approverRole, 'faculty');
+  assert.equal(stuRouting.noApproverAssigned, false);
+  assert.deepEqual(stuRouting.routedApproverUserIds, [shravani.id]);
+
+  // 2. Faculty in VESIT routes to Institutional Manager Dr. Aashay Khadkikar
+  const facRouting = resolveApprovalRouting(
+    {
+      requestedRole: 'faculty',
+      institutionId: 'INST-VESIT-104',
+      academicDepartment: 'AURO',
+      academicYear: 'Third Year',
+      classTeacherDivision: 'B',
+    },
+    SEED_USERS,
+    SEED_INSTITUTIONS
+  );
+  assert.equal(facRouting.approverRole, 'institutional_rep');
+  assert.equal(facRouting.noApproverAssigned, false);
+  assert.deepEqual(facRouting.routedApproverUserIds, [aashay.id]);
+
+  // 3. Institutional Manager for NMIMS routes to Admin Karan Saini
+  const mgrRouting = resolveApprovalRouting(
+    {
+      requestedRole: 'institutional_rep',
+      institutionId: 'INST-NMIMS-401',
+    },
+    SEED_USERS,
+    SEED_INSTITUTIONS
+  );
+  assert.equal(mgrRouting.approverRole, 'admin');
+  assert.equal(mgrRouting.noApproverAssigned, false);
+  assert.deepEqual(mgrRouting.routedApproverUserIds, [karan.id]);
+
+  // Verify authorization checks and account creation upon approval
+  const mockStudentReq = {
+    id: 'REQ-TEST-101',
+    requestedRole: 'student' as const,
+    status: 'Pending Approval' as const,
+    submittedAt: '2026-10-24 10:00 IST',
+    fullName: 'Aarav Kulkarni',
+    username: 'aarav.kulkarni',
+    phone: '+91 98209 55112',
+    normalizedPhone: '+919820955112',
+    email: 'aarav.kulkarni@vesit.example.edu.in',
+    dob: '2005-04-12',
+    gender: 'Male' as const,
+    credentialDigest: computeCredentialDigest('aarav.kulkarni', 'aarav.kulkarni'),
+    institutionId: 'INST-VESIT-104',
+    institutionName: 'VESIT',
+    officialInstitutionCode: 'INST-VESIT-104',
+    academicDepartment: 'CMPN' as const,
+    academicYear: 'Second Year' as const,
+    division: 'A' as const,
+    approverRole: stuRouting.approverRole,
+    routedApproverUserIds: stuRouting.routedApproverUserIds,
+    routedApproverLabel: stuRouting.routedApproverLabel,
+    noApproverAssigned: stuRouting.noApproverAssigned,
+    history: [],
+  };
+
+  assert.equal(canUserActionApprovalRequest(shravani, mockStudentReq), true);
+  assert.equal(canUserActionApprovalRequest(shreya, mockStudentReq), false);
+  assert.equal(canUserActionApprovalRequest(aashay, mockStudentReq), false); // Assigned faculty exists, so manager cannot bypass
+
+  const approvedAccount = buildApprovedUserAccountFromRequest(mockStudentReq, shravani);
+  assert.equal(approvedAccount.status, 'Active');
+  assert.equal(approvedAccount.role, 'student');
+  assert.equal(approvedAccount.institutionName, 'VESIT');
+  assert.equal(approvedAccount.academicDepartment, 'CMPN');
+  assert.equal(approvedAccount.academicYear, 'Second Year');
+  assert.equal(approvedAccount.division, 'A');
+  assert.equal(approvedAccount.approvedByUserId, shravani.id);
+  assert.equal(verifyUserCredential(approvedAccount, 'aarav.kulkarni'), true);
+  assert.equal(verifyUserCredential(approvedAccount, 'wrong.password'), false);
+});
+
+

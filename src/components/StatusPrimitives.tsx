@@ -96,7 +96,7 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
         icon: <FileEdit className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />,
       };
 
-    // Checklist & Document statuses
+    // Checklist & Document & Account Approval statuses
     case 'Verified':
     case 'Passed':
     case 'Reviewed':
@@ -106,6 +106,7 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
     case 'Valid':
     case 'Active':
     case 'Active Rule':
+    case 'Approved':
       return {
         tone: 'success',
         label: normalized === 'No Anomaly Detected' ? 'No Anomaly Signal' : normalized,
@@ -117,6 +118,7 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
     case 'Pending Check':
     case 'Pending':
     case 'Pending Activation':
+    case 'Pending Approval':
       return {
         tone: 'review',
         label: normalized,
@@ -125,6 +127,8 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
 
     case 'Advisory':
     case 'Expiring Soon':
+    case 'Correction Requested':
+    case 'No Approver Assigned':
       return {
         tone: 'warning',
         label: normalized,
@@ -140,6 +144,7 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
     case 'Failed':
     case 'Expired':
     case 'Suspended':
+    case 'Rejected':
       return {
         tone: 'danger',
         label:
@@ -149,7 +154,7 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
               ? 'Review Signal: Alteration / Duplicate'
               : normalized,
         icon:
-          normalized === 'Suspended' ? (
+          normalized === 'Suspended' || normalized === 'Rejected' ? (
             <Ban className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
           ) : (
             <ShieldAlert className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />

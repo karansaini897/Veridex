@@ -49,6 +49,7 @@ interface InstitutionalDashboardViewProps {
   applications: ApplicationRecord[];
   documents: DocumentRecord[];
   auditEvents: AuditEvent[];
+  pendingApprovalCount?: number;
   onOpenApplication: (appId: string) => void;
   onOpenDocument: (docId: string) => void;
   onCreateApplication: (params: {
@@ -111,6 +112,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
   applications,
   documents,
   auditEvents,
+  pendingApprovalCount = 0,
   onOpenApplication,
   onOpenDocument,
   onCreateApplication,
@@ -209,11 +211,13 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                 {currentUser.fullName}
               </h1>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                {currentUser.institutionName} · {currentUser.course} · {currentUser.yearSemester}
+                {currentUser.institutionName} · Dept: {currentUser.academicDepartment || currentUser.department || 'CMPN'} · {currentUser.academicYear || currentUser.yearSemester || 'Second Year'} · Division: {currentUser.division || 'A'}
               </p>
             </div>
             <div className="text-right font-mono-tabular text-xs text-slate-600 dark:text-slate-400">
-              <div>Roll / PRN: <strong>{currentUser.rollNumber}</strong></div>
+              {currentUser.rollNumber && (
+                <div>Roll / PRN: <strong>{currentUser.rollNumber}</strong></div>
+              )}
               <div>Account Status: <strong>{currentUser.status}</strong></div>
             </div>
           </div>
@@ -349,8 +353,8 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
               <Building2 className="w-4 h-4 text-[#046A38] dark:text-emerald-400" />
               <span>
                 {currentUser.role === 'faculty'
-                  ? 'Faculty Compliance & Dossier Workspace'
-                  : 'Authorized Institutional Compliance Portal'}
+                  ? `Faculty Compliance & Class Teacher Workspace (${currentUser.academicDepartment || 'CMPN'} · ${currentUser.academicYear || 'Second Year'} · Div ${currentUser.classTeacherDivision || 'A'})`
+                  : 'Authorized Institutional Manager Compliance Portal'}
               </span>
             </div>
             <h1 className="text-2xl font-display font-bold text-stone-900 dark:text-white tracking-tight">
@@ -369,25 +373,35 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             </div>
           </div>
 
-          {currentUser.role === 'institutional_rep' && (
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => onNavigate('documents')}
-                className="btn-secondary whitespace-nowrap shrink-0"
-              >
-                Register Document Record
-              </button>
-              <button
-                type="button"
-                onClick={() => setNewAppModalOpen(true)}
-                className="btn-primary flex items-center gap-1.5 whitespace-nowrap shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Start New Application</span>
-              </button>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => onNavigate('accounts')}
+              data-testid="dashboard-open-approvals-btn"
+              className="btn-secondary whitespace-nowrap shrink-0"
+            >
+              Account Approvals {pendingApprovalCount > 0 ? `(${pendingApprovalCount})` : ''}
+            </button>
+            {currentUser.role === 'institutional_rep' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('documents')}
+                  className="btn-secondary whitespace-nowrap shrink-0"
+                >
+                  Register Document Record
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewAppModalOpen(true)}
+                  className="btn-primary flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Start New Application</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </motion.div>
 

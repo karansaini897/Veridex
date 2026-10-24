@@ -10,12 +10,19 @@ import {
   Moon,
   RefreshCw,
   Server,
+  ShieldCheck,
 } from 'lucide-react';
-import { UserAccount } from '../types/portal';
+import { AccountApprovalRequest, UserAccount } from '../types/portal';
 import {
+  GENDER_OPTIONS,
   calculateAgeFromDob,
+  computeCredentialDigest,
+  formatRoleDisplayName,
   getLocalTodayDate,
-  validateAccountUniqueness,
+  isValidEmail,
+  normalizeFullName,
+  normalizePhoneNumber,
+  verifyUserCredential,
 } from '../lib/domain';
 import {
   cardEntranceVariants,
@@ -26,6 +33,7 @@ interface ProfileAndSettingsViewProps {
   mode: 'profile' | 'settings';
   currentUser: UserAccount;
   users: UserAccount[];
+  approvalRequests?: AccountApprovalRequest[];
   onUpdateProfile: (updated: Partial<UserAccount>) => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
@@ -36,6 +44,7 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
   mode,
   currentUser,
   users,
+  approvalRequests = [],
   onUpdateProfile,
   darkMode,
   onToggleDarkMode,
@@ -106,32 +115,89 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
     setProfileError(null);
     setProfileSuccess(null);
 
-    if (!fullName.trim()) {
+    const trimmedName = fullName.trim();
+    const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedDob = dob.trim();
+    const normPhone = normalizePhoneNumber(phone);
+
+    if (!trimmedName) {
       setProfileError('Full name cannot be empty.');
       return;
     }
+    if (!trimmedUsername) {
+      setProfileError('Username cannot be empty.');
+      return;
+    }
+    if (!normPhone) {
+      setProfileError('Enter a valid 10-digit Indian mobile number (+91XXXXXXXXXX).');
+      return;
+    }
+    if (!trimmedEmail || !isValidEmail(trimmedEmail)) {
+      setProfileError('Enter a valid email address.');
+      return;
+    }
+    const ageCheck = calculateAgeFromDob(trimmedDob, todayStr);
+    if (ageCheck === null || ageCheck < 15 || ageCheck > 100) {
+      setProfileError('Enter a valid Date of Birth (applicant age between 15 and 100 years).');
+      return;
+    }
 
-    const uniqueness = validateAccountUniqueness(
-      { username, phone, excludeUserId: currentUser.id },
-      users
+    const normFull = normalizeFullName(trimmedName);
+    const otherUsers = users.filter((u) => u.id !== currentUser.id);
+    const activeRequests = approvalRequests.filter(
+      (r) => r.status === 'Pending Approval' || r.status === 'Correction Requested'
     );
 
-    if (!uniqueness.valid) {
+    if (
+      otherUsers.some((u) => normalizeFullName(u.fullName) === normFull) ||
+      activeRequests.some((r) => normalizeFullName(r.fullName) === normFull)
+    ) {
+      setProfileError(`Full Name "${trimmedName}" is already registered to another account.`);
+      return;
+    }
+
+    if (
+      otherUsers.some((u) => u.username.toLowerCase() === trimmedUsername.toLowerCase()) ||
+      activeRequests.some((r) => r.username.toLowerCase() === trimmedUsername.toLowerCase())
+    ) {
+      setProfileError(`Username "${trimmedUsername}" is already registered to another account.`);
+      return;
+    }
+
+    if (
+      otherUsers.some((u) => u.normalizedPhone === normPhone) ||
+      activeRequests.some((r) => r.normalizedPhone === normPhone)
+    ) {
+      setProfileError(`Phone number "${normPhone}" is already registered to another account.`);
+      return;
+    }
+
+    if (
+      otherUsers.some((u) => u.email.toLowerCase() === trimmedEmail) ||
+      activeRequests.some((r) => r.email.toLowerCase() === trimmedEmail)
+    ) {
+      setProfileError(`Email "${trimmedEmail}" is already registered to another account.`);
+      return;
+    }
+
+    if (
+      otherUsers.some((u) => u.dob === trimmedDob) ||
+      activeRequests.some((r) => r.dob === trimmedDob)
+    ) {
       setProfileError(
-        uniqueness.errors.username ||
-          uniqueness.errors.phone ||
-          'Username or phone number is already registered.'
+        `Date of Birth "${trimmedDob}" conflicts with an existing registered identity record.`
       );
       return;
     }
 
     onUpdateProfile({
-      fullName: fullName.trim(),
-      username: username.trim(),
+      fullName: trimmedName,
+      username: trimmedUsername,
       phone: phone.trim(),
-      normalizedPhone: uniqueness.normalizedPhone,
-      email: email.trim(),
-      dob,
+      normalizedPhone: normPhone,
+      email: trimmedEmail,
+      dob: trimmedDob,
       gender,
       designation: designation.trim() || currentUser.designation,
     });
@@ -143,7 +209,7 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
     e.preventDefault();
     setPwMessage(null);
 
-    if (currentPasswordInput !== currentUser.password) {
+    if (!verifyUserCredential(currentUser, currentPasswordInput)) {
       setPwMessage({
         type: 'error',
         text: 'Current password does not match your active account credential.',
@@ -165,13 +231,16 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
       return;
     }
 
-    onUpdateProfile({ password: newPasswordInput });
+    onUpdateProfile({
+      credentialDigest: computeCredentialDigest(newPasswordInput),
+      password: undefined,
+    });
     setCurrentPasswordInput('');
     setNewPasswordInput('');
     setConfirmPasswordInput('');
     setPwMessage({
       type: 'success',
-      text: 'Password updated for your current session.',
+      text: 'Password credential updated for your account.',
     });
   };
 
@@ -281,13 +350,13 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
                 </div>
                 <ul className="list-disc list-inside mt-1.5 space-y-1 text-emerald-800 dark:text-emerald-300">
                   <li>
-                    Role-based access control &amp; strict institutional data isolation across Regional Administrators, Institutional Nodal Officers, Faculty/Staff, and Students.
+                    Role-based access control &amp; strict institutional data isolation across Regional Administrators, Institutional Managers, Faculty, and Students.
                   </li>
                   <li>
-                    Global username and normalized phone number uniqueness enforcement across all registered accounts, with automated age verification from Date of Birth.
+                    Tiered account registration approval workflow: Student → Class Teacher Faculty, Faculty → Institutional Manager, and Institutional Manager → Regional Admin.
                   </li>
                   <li>
-                    End-to-end statutory workflow: Dossier initiation → Category checklist → Document submission &amp; version history → Officer scrutiny &amp; clarification directive → Institutional resubmission → Authorized decision.
+                    Global uniqueness enforcement across Full Name, Username, Phone Number, Email ID, and Date of Birth, with automated age calculation.
                   </li>
                   <li>
                     6-Pillar automated verification engine, configurable statutory rules, certificate validity calendar, and audit trail logging.
@@ -322,14 +391,14 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
   return (
     <div className="space-y-8">
       <div className="border-b border-slate-200 dark:border-slate-800 pb-5">
-        <p className="text-xs font-medium text-blue-700 dark:text-blue-400">
-          Role-Specific Identity &amp; Account Security
+        <p className="text-xs font-medium text-[#C2410C] dark:text-amber-400">
+          Role-Specific Identity &amp; Immutable Institutional Scope
         </p>
         <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
           User Profile &amp; Credentials
         </h1>
         <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-          Manage your profile photo, personal contact details, and account password. Assigned role and institutional authorization are enforced by the system.
+          Manage your profile photo, personal contact details, and account password. Approved institutional, department, academic year, and division assignments are fixed after approval.
         </p>
       </div>
 
@@ -339,7 +408,7 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
         animate="visible"
         className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
       >
-        {/* Left 4 Cols: Avatar & Role Summary Card */}
+        {/* Left 4 Cols: Avatar & Immutable Role Summary Card */}
         <motion.section
           variants={cardEntranceVariants}
           className="lg:col-span-4 liquid-glass rounded-2xl p-6 space-y-5"
@@ -361,8 +430,8 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
               <h2 className="text-base font-display font-bold text-slate-900 dark:text-white truncate">
                 {currentUser.fullName}
               </h2>
-              <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">
-                @{currentUser.username} · {currentUser.role.replace('_', ' ')}
+              <p className="text-xs text-[#C2410C] dark:text-amber-400 font-semibold">
+                @{currentUser.username} · {formatRoleDisplayName(currentUser.role)}
               </p>
               <p className="text-[11px] text-slate-500 font-mono-tabular mt-0.5">
                 Normalized Phone: {currentUser.normalizedPhone}
@@ -394,15 +463,26 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
           </div>
 
           {/* Read-only Role & Institution Metadata */}
-          <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-            <div className="text-[11px] font-semibold text-slate-500">
-              ROLE-AUTHORIZED ATTRIBUTES (READ-ONLY)
+          <div
+            data-testid="immutable-profile-attributes"
+            className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5 text-xs"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                Approved Institutional Scope
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-[#C2410C]/40 text-[10px] font-bold text-[#C2410C] dark:text-amber-300">
+                Fixed after approval
+              </span>
             </div>
-            <div className="flex justify-between">
+
+            <div className="flex justify-between gap-2">
               <span className="text-slate-500">Assigned Role</span>
-              <span className="font-semibold text-slate-900 dark:text-white">{currentUser.role}</span>
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {formatRoleDisplayName(currentUser.role)}
+              </span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-2">
               <span className="text-slate-500">Account Status</span>
               <span className="font-semibold text-emerald-700 dark:text-emerald-400">
                 {currentUser.status}
@@ -410,57 +490,175 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
             </div>
             {currentUser.institutionName && (
               <div className="flex justify-between gap-2">
-                <span className="text-slate-500">Institution</span>
-                <span className="font-medium text-slate-900 dark:text-white text-right">
+                <span className="text-slate-500">College</span>
+                <span
+                  data-testid="profile-readonly-college"
+                  className="font-semibold text-slate-900 dark:text-white text-right"
+                >
                   {currentUser.institutionName}
                 </span>
               </div>
             )}
             {currentUser.officialInstitutionCode && (
-              <div className="flex justify-between">
-                <span className="text-slate-500">Institution Code</span>
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">College Code</span>
                 <span className="font-mono-tabular font-semibold">
                   {currentUser.officialInstitutionCode}
                 </span>
               </div>
             )}
-            {currentUser.permissionLevel && (
-              <div className="flex justify-between">
-                <span className="text-slate-500">Permission Level</span>
-                <span className="font-medium">{currentUser.permissionLevel}</span>
-              </div>
-            )}
-            {currentUser.authorizationStatus && (
-              <div className="flex justify-between">
-                <span className="text-slate-500">Signatory Status</span>
-                <span className="font-medium">{currentUser.authorizationStatus}</span>
-              </div>
-            )}
-            {currentUser.employeeId && (
-              <div className="flex justify-between">
-                <span className="text-slate-500">Employee ID</span>
-                <span className="font-mono-tabular">{currentUser.employeeId}</span>
-              </div>
-            )}
-            {currentUser.rollNumber && (
-              <div className="flex justify-between">
-                <span className="text-slate-500">Student Roll / PRN</span>
-                <span className="font-mono-tabular">{currentUser.rollNumber}</span>
-              </div>
-            )}
-            {currentUser.course && (
-              <div className="flex justify-between">
-                <span className="text-slate-500">Course &amp; Sem</span>
-                <span>
-                  {currentUser.course} ({currentUser.yearSemester})
+            {(currentUser.academicDepartment || currentUser.department) && (
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">Department</span>
+                <span
+                  data-testid="profile-readonly-department"
+                  className="font-semibold text-slate-900 dark:text-white"
+                >
+                  {currentUser.academicDepartment || currentUser.department}
                 </span>
+              </div>
+            )}
+            {(currentUser.academicYear || currentUser.yearSemester) && (
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">
+                  {currentUser.role === 'student' ? 'Year' : 'Academic Year'}
+                </span>
+                <span
+                  data-testid="profile-readonly-year"
+                  className="font-semibold text-slate-900 dark:text-white"
+                >
+                  {currentUser.academicYear || currentUser.yearSemester}
+                </span>
+              </div>
+            )}
+            {currentUser.role === 'student' && currentUser.division && (
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">Division</span>
+                <span
+                  data-testid="profile-readonly-division"
+                  className="font-mono-tabular font-bold text-[#046A38] dark:text-emerald-400"
+                >
+                  Division {currentUser.division}
+                </span>
+              </div>
+            )}
+            {currentUser.role === 'faculty' && currentUser.classTeacherDivision && (
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">Class Teacher Division</span>
+                <span
+                  data-testid="profile-readonly-ct-division"
+                  className="font-mono-tabular font-bold text-[#046A38] dark:text-emerald-400"
+                >
+                  Division {currentUser.classTeacherDivision}
+                </span>
+              </div>
+            )}
+            {currentUser.permissionLevel && (
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">Permission Level</span>
+                <span className="font-medium text-right">{currentUser.permissionLevel}</span>
+              </div>
+            )}
+            {currentUser.approvedByName && (
+              <div className="flex justify-between gap-2 pt-1 border-t border-slate-200/70 dark:border-slate-800">
+                <span className="text-slate-500">Approved By</span>
+                <span className="font-medium text-right">{currentUser.approvedByName}</span>
               </div>
             )}
           </div>
         </motion.section>
 
-        {/* Right 8 Cols: Edit Personal Information & Password */}
+        {/* Right 8 Cols: Read-Only Institutional Assignment + Edit Personal Information & Password */}
         <div className="lg:col-span-8 space-y-6">
+          {/* Read-Only Institutional & Academic Assignment Fields */}
+          {currentUser.role !== 'admin' && (
+            <motion.section
+              variants={cardEntranceVariants}
+              className="liquid-glass rounded-2xl p-6 space-y-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-base font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#046A38]" />
+                  <span>Approved Institutional &amp; Academic Assignment (Read-Only)</span>
+                </h2>
+                <span className="text-[11px] font-semibold text-[#C2410C]">
+                  Fixed after approval · Cannot be modified from profile
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                <div>
+                  <label className="block font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    Role
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    readOnly
+                    value={formatRoleDisplayName(currentUser.role)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    College
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    readOnly
+                    value={currentUser.institutionName || '—'}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                  />
+                </div>
+                {(currentUser.role === 'student' || currentUser.role === 'faculty') && (
+                  <>
+                    <div>
+                      <label className="block font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        Department
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        readOnly
+                        value={currentUser.academicDepartment || currentUser.department || '—'}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        {currentUser.role === 'student' ? 'Year' : 'Academic Year'}
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        readOnly
+                        value={currentUser.academicYear || currentUser.yearSemester || '—'}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        {currentUser.role === 'student' ? 'Division' : 'Class Teacher Division'}
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        readOnly
+                        value={
+                          currentUser.role === 'student'
+                            ? currentUser.division || '—'
+                            : currentUser.classTeacherDivision || '—'
+                        }
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.section>
+          )}
+
           <motion.section
             variants={cardEntranceVariants}
             className="liquid-glass rounded-2xl p-6 space-y-4"
@@ -535,7 +733,7 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
 
                 <div>
                   <label htmlFor="prof-email" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Email Address
+                    Email Address (Globally Unique)
                   </label>
                   <input
                     id="prof-email"
@@ -564,7 +762,7 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
 
                 <div>
                   <label htmlFor="prof-gender" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Gender (Optional)
+                    Gender
                   </label>
                   <select
                     id="prof-gender"
@@ -572,10 +770,11 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
                     onChange={(e) => setGender(e.target.value as UserAccount['gender'])}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
                   >
-                    <option value="Female">Female</option>
-                    <option value="Male">Male</option>
-                    <option value="Non-binary">Non-binary</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
+                    {GENDER_OPTIONS.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

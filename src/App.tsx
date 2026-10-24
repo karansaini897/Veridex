@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
 import {
+  AccountApprovalRequest,
   AccountStatus,
   ApplicationCategory,
   ApplicationRecord,
@@ -18,6 +19,7 @@ import {
 } from './types/portal';
 import {
   SEED_APPLICATIONS,
+  SEED_APPROVAL_REQUESTS,
   SEED_AUDIT_EVENTS,
   SEED_COMPLIANCE_RULES,
   SEED_DOCUMENTS,
@@ -27,17 +29,23 @@ import {
 } from './data/seedData';
 import {
   addDaysToLocalDate,
+  buildApprovedUserAccountFromRequest,
   buildCategoryChecklist,
   canUserAccessApplication,
+  canUserActionApprovalRequest,
   canUserPerformAdminAction,
+  computeCredentialDigest,
   createRecordId,
+  formatRoleDisplayName,
   formatTimestampForDisplay,
   generateInternalDocumentCode,
   getCurrentIsoTimestamp,
   getLocalTodayDate,
+  resolveApprovalRouting,
   sanitizeUserForStorage,
 } from './lib/domain';
 import { LoginView } from './components/LoginView';
+import { SignUpView } from './components/SignUpView';
 import { LandingPageView } from './components/LandingPageView';
 import { AppShell } from './components/AppShell';
 import { AdminDashboardView } from './components/AdminDashboardView';
@@ -51,14 +59,15 @@ import { ProfileAndSettingsView } from './components/ProfileAndSettingsView';
 import { GeminiChatbotWidget } from './components/GeminiChatbotWidget';
 
 const STORAGE_KEYS = {
-  theme: 'veridex_portal_theme_v6',
-  currentUserId: 'veridex_portal_current_user_v6',
-  users: 'veridex_portal_users_v6',
-  applications: 'veridex_portal_apps_v6',
-  documents: 'veridex_portal_docs_v6',
-  rules: 'veridex_portal_rules_v6',
-  notifications: 'veridex_portal_notifs_v6',
-  audit: 'veridex_portal_audit_v6',
+  theme: 'veridex_portal_theme_v7',
+  currentUserId: 'veridex_portal_current_user_v7',
+  users: 'veridex_portal_users_v7',
+  approvalRequests: 'veridex_portal_approval_reqs_v7',
+  applications: 'veridex_portal_apps_v7',
+  documents: 'veridex_portal_docs_v7',
+  rules: 'veridex_portal_rules_v7',
+  notifications: 'veridex_portal_notifs_v7',
+  audit: 'veridex_portal_audit_v7',
 };
 
 function loadFromStorage<T>(key: string, fallback: T): T {
@@ -75,9 +84,14 @@ function loadUsersFromStorage(): UserAccount[] {
   const stored = loadFromStorage<UserAccount[]>(STORAGE_KEYS.users, SEED_USERS);
   return stored.map((u) => {
     const seedMatch = SEED_USERS.find((s) => s.id === u.id || s.username === u.username);
+    const fallbackPassword = u.password ?? seedMatch?.password;
     return {
       ...u,
-      password: u.password ?? seedMatch?.password ?? u.username,
+      password: fallbackPassword,
+      credentialDigest:
+        u.credentialDigest ??
+        seedMatch?.credentialDigest ??
+        (fallbackPassword ? computeCredentialDigest(u.username, fallbackPassword) : undefined),
     };
   });
 }
@@ -108,6 +122,9 @@ export default function App() {
   }, [darkMode]);
 
   const [users, setUsers] = useState<UserAccount[]>(loadUsersFromStorage);
+  const [approvalRequests, setApprovalRequests] = useState<AccountApprovalRequest[]>(() =>
+    loadFromStorage(STORAGE_KEYS.approvalRequests, SEED_APPROVAL_REQUESTS)
+  );
   const [applications, setApplications] = useState<ApplicationRecord[]>(() =>
     loadFromStorage(STORAGE_KEYS.applications, SEED_APPLICATIONS)
   );
@@ -133,7 +150,9 @@ export default function App() {
     }
   });
 
-  const [showLogin, setShowLogin] = useState<boolean>(false);
+  const [authScreenMode, setAuthScreenMode] = useState<'landing' | 'login' | 'signup'>('landing');
+  const [signupInitialMode, setSignupInitialMode] = useState<'register' | 'status'>('register');
+  const [signupPrefillId, setSignupPrefillId] = useState<string>('');
   const [showPublicOverview, setShowPublicOverview] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<MainView>('dashboard');
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
@@ -144,6 +163,7 @@ export default function App() {
     try {
       const sanitizedUsers = users.map(sanitizeUserForStorage);
       window.localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(sanitizedUsers));
+      window.localStorage.setItem(STORAGE_KEYS.approvalRequests, JSON.stringify(approvalRequests));
       window.localStorage.setItem(STORAGE_KEYS.applications, JSON.stringify(applications));
       window.localStorage.setItem(STORAGE_KEYS.documents, JSON.stringify(documents));
       window.localStorage.setItem(STORAGE_KEYS.rules, JSON.stringify(complianceRules));
@@ -157,12 +177,19 @@ export default function App() {
     } catch {
       // ignore storage errors
     }
-  }, [users, applications, documents, complianceRules, notifications, auditEvents, currentUserId]);
+  }, [users, approvalRequests, applications, documents, complianceRules, notifications, auditEvents, currentUserId]);
 
   const currentUser = users.find((u) => u.id === currentUserId) || null;
 
+  const pendingApprovalCount = useMemo(() => {
+    if (!currentUser) return 0;
+    return approvalRequests.filter(
+      (req) => req.status === 'Pending Approval' && canUserActionApprovalRequest(currentUser, req)
+    ).length;
+  }, [approvalRequests, currentUser]);
+
   const appendAudit = (
-    actor: UserAccount,
+    actor: Pick<UserAccount, 'fullName' | 'username' | 'role'>,
     action: string,
     targetType: AuditEvent['targetType'],
     targetId: string,
@@ -184,7 +211,7 @@ export default function App() {
 
   const handleLoginSuccess = (user: UserAccount) => {
     setCurrentUserId(user.id);
-    setShowLogin(false);
+    setAuthScreenMode('landing');
     setShowPublicOverview(false);
     setActiveView('dashboard');
     setSelectedApplicationId(null);
@@ -194,7 +221,7 @@ export default function App() {
       'User Session Authenticated',
       'Account',
       user.id,
-      `Signed in as ${user.fullName} (${user.role}).`
+      `Signed in as ${user.fullName} (${formatRoleDisplayName(user.role)}).`
     );
   };
 
@@ -205,10 +232,11 @@ export default function App() {
         'User Signed Out',
         'Account',
         currentUser.id,
-        `Signed out from ${currentUser.role} session.`
+        `Signed out from ${formatRoleDisplayName(currentUser.role)} session.`
       );
     }
     setCurrentUserId(null);
+    setAuthScreenMode('landing');
     setShowPublicOverview(false);
     setSelectedApplicationId(null);
     setSelectedDocumentId(null);
@@ -216,6 +244,7 @@ export default function App() {
 
   const handleResetRegistryData = () => {
     setUsers(SEED_USERS);
+    setApprovalRequests(SEED_APPROVAL_REQUESTS);
     setApplications(SEED_APPLICATIONS);
     setDocuments(SEED_DOCUMENTS);
     setComplianceRules(SEED_COMPLIANCE_RULES);
@@ -229,18 +258,265 @@ export default function App() {
   // Enforce role-based route access when navigating
   const handleNavigate = (view: MainView) => {
     if (!currentUser) return;
-    if (view === 'accounts' && currentUser.role !== 'admin') {
+    if (view === 'accounts' && currentUser.role === 'student') {
+      setActiveView('dashboard');
+      return;
+    }
+    if (view === 'reports' && currentUser.role !== 'admin' && currentUser.role !== 'institutional_rep') {
       setActiveView('dashboard');
       return;
     }
     if (
-      (view === 'applications' || view === 'verification' || view === 'expiry' || view === 'reports') &&
+      (view === 'applications' || view === 'verification' || view === 'expiry') &&
       currentUser.role === 'student'
     ) {
       setActiveView('dashboard');
       return;
     }
     setActiveView(view);
+  };
+
+  // Create Account Approval Request from Sign-Up (never creates active account until approved)
+  const handleCreateSignupRequest = (
+    draft: Omit<
+      AccountApprovalRequest,
+      | 'id'
+      | 'status'
+      | 'submittedAt'
+      | 'updatedAt'
+      | 'approverRole'
+      | 'routedApproverUserIds'
+      | 'routedApproverLabel'
+      | 'noApproverAssigned'
+      | 'history'
+    >
+  ): AccountApprovalRequest => {
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+    const routing = resolveApprovalRouting(
+      {
+        requestedRole: draft.requestedRole,
+        institutionId: draft.institutionId,
+        academicDepartment: draft.academicDepartment,
+        academicYear: draft.academicYear,
+        division: draft.division,
+        classTeacherDivision: draft.classTeacherDivision,
+      },
+      users,
+      SEED_INSTITUTIONS
+    );
+
+    const newReq: AccountApprovalRequest = {
+      ...draft,
+      id: createRecordId('REQ'),
+      status: 'Pending Approval',
+      submittedAt: nowDisplay,
+      updatedAt: nowDisplay,
+      approverRole: routing.approverRole,
+      routedApproverUserIds: routing.routedApproverUserIds,
+      routedApproverLabel: routing.routedApproverLabel,
+      noApproverAssigned: routing.noApproverAssigned,
+      history: [
+        {
+          id: createRecordId('AH'),
+          timestamp: nowDisplay,
+          actorName: draft.fullName,
+          actorUsername: draft.username,
+          actorRole: draft.requestedRole,
+          action: 'Submitted',
+          note: `Submitted ${formatRoleDisplayName(draft.requestedRole)} account registration request for ${draft.institutionName}. Routed to: ${routing.routedApproverLabel}.`,
+        },
+      ],
+    };
+    setApprovalRequests((prev) => [newReq, ...prev]);
+
+    setNotifications((prev) => [
+      {
+        id: createRecordId('NOTIF'),
+        recipientRole: newReq.approverRole,
+        institutionId: newReq.approverRole === 'admin' ? undefined : newReq.institutionId,
+        title: `Account Approval Request: ${newReq.fullName} (${formatRoleDisplayName(newReq.requestedRole)})`,
+        message: `${newReq.fullName} (@${newReq.username}) requested a ${formatRoleDisplayName(newReq.requestedRole)} account at ${newReq.institutionName}.`,
+        createdAt: nowDisplay,
+        read: false,
+        type: 'review_request',
+        targetView: 'accounts',
+        targetRecordId: newReq.id,
+      },
+      ...prev,
+    ]);
+
+    appendAudit(
+      {
+        fullName: newReq.fullName,
+        username: newReq.username,
+        role: newReq.requestedRole,
+      },
+      'Account Registration Requested',
+      'ApprovalRequest',
+      newReq.id,
+      `Submitted ${formatRoleDisplayName(newReq.requestedRole)} registration request for ${newReq.institutionName}. Routed to: ${newReq.routedApproverLabel}.`
+    );
+
+    return newReq;
+  };
+
+  // Amend & Resubmit Account Approval Request after Correction Requested
+  const handleResubmitSignupRequest = (
+    requestId: string,
+    updatedFields: Partial<AccountApprovalRequest>,
+    applicantNote?: string
+  ): AccountApprovalRequest | null => {
+    const existing = approvalRequests.find((r) => r.id === requestId);
+    if (!existing) return null;
+
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+    const mergedRole = updatedFields.requestedRole || existing.requestedRole;
+    const mergedInstitutionId = updatedFields.institutionId || existing.institutionId;
+    const mergedDept = updatedFields.academicDepartment ?? existing.academicDepartment;
+    const mergedYear = updatedFields.academicYear ?? existing.academicYear;
+    const mergedDiv = updatedFields.division ?? existing.division;
+    const mergedClassDiv = updatedFields.classTeacherDivision ?? existing.classTeacherDivision;
+
+    const routing = resolveApprovalRouting(
+      {
+        requestedRole: mergedRole,
+        institutionId: mergedInstitutionId,
+        academicDepartment: mergedDept,
+        academicYear: mergedYear,
+        division: mergedDiv,
+        classTeacherDivision: mergedClassDiv,
+      },
+      users,
+      SEED_INSTITUTIONS
+    );
+
+    const updatedReq: AccountApprovalRequest = {
+      ...existing,
+      ...updatedFields,
+      status: 'Pending Approval',
+      updatedAt: nowDisplay,
+      approverRole: routing.approverRole,
+      routedApproverUserIds: routing.routedApproverUserIds,
+      routedApproverLabel: routing.routedApproverLabel,
+      noApproverAssigned: routing.noApproverAssigned,
+      history: [
+        ...existing.history,
+        {
+          id: createRecordId('AH'),
+          timestamp: nowDisplay,
+          actorName: updatedFields.fullName || existing.fullName,
+          actorUsername: updatedFields.username || existing.username,
+          actorRole: mergedRole,
+          action: 'Resubmitted',
+          note:
+            applicantNote ||
+            `Applicant amended details and resubmitted request for ${routing.routedApproverLabel}.`,
+        },
+      ],
+    };
+
+    setApprovalRequests((prev) =>
+      prev.map((r) => (r.id === requestId ? updatedReq : r))
+    );
+
+    appendAudit(
+      {
+        fullName: updatedReq.fullName,
+        username: updatedReq.username,
+        role: updatedReq.requestedRole,
+      },
+      'Account Registration Resubmitted',
+      'ApprovalRequest',
+      updatedReq.id,
+      `Amended and resubmitted ${formatRoleDisplayName(updatedReq.requestedRole)} registration request (${updatedReq.institutionName}).`
+    );
+
+    return updatedReq;
+  };
+
+  // Approver Decision on Account Approval Request
+  const handleDecideApprovalRequest = (
+    requestId: string,
+    decision: 'Approved' | 'Rejected' | 'Correction Requested',
+    note: string
+  ) => {
+    if (!currentUser) return;
+    const targetReq = approvalRequests.find((r) => r.id === requestId);
+    if (!targetReq || !canUserActionApprovalRequest(currentUser, targetReq)) return;
+
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+    const updatedReq: AccountApprovalRequest = {
+      ...targetReq,
+      status: decision,
+      updatedAt: nowDisplay,
+      decidedAt: nowDisplay,
+      decidedByUserId: currentUser.id,
+      decidedByName: currentUser.fullName,
+      decidedByRole: currentUser.role,
+      decisionNote: note,
+      history: [
+        ...targetReq.history,
+        {
+          id: createRecordId('AH'),
+          timestamp: nowDisplay,
+          actorName: currentUser.fullName,
+          actorUsername: currentUser.username,
+          actorRole: currentUser.role,
+          action: decision,
+          note,
+        },
+      ],
+    };
+
+    let nextUsers = users;
+    if (decision === 'Approved') {
+      const newUserAccount = buildApprovedUserAccountFromRequest(updatedReq, currentUser);
+      nextUsers = [newUserAccount, ...users];
+      setUsers(nextUsers);
+    }
+
+    setApprovalRequests((prev) =>
+      prev.map((req) => {
+        if (req.id === requestId) return updatedReq;
+        // Re-evaluate routing for any pending requests so newly approved Faculty/Institutional Managers pick up unassigned requests in their scope
+        if (decision === 'Approved' && req.status === 'Pending Approval') {
+          const refreshedRouting = resolveApprovalRouting(
+            {
+              requestedRole: req.requestedRole,
+              institutionId: req.institutionId,
+              academicDepartment: req.academicDepartment,
+              academicYear: req.academicYear,
+              division: req.division,
+              classTeacherDivision: req.classTeacherDivision,
+            },
+            nextUsers,
+            SEED_INSTITUTIONS
+          );
+          return {
+            ...req,
+            routedApproverUserIds: refreshedRouting.routedApproverUserIds,
+            routedApproverLabel: refreshedRouting.routedApproverLabel,
+            noApproverAssigned: refreshedRouting.noApproverAssigned,
+          };
+        }
+        return req;
+      })
+    );
+
+    const auditActionLabel =
+      decision === 'Approved'
+        ? 'Account Registration Approved'
+        : decision === 'Correction Requested'
+          ? 'Account Registration Correction Requested'
+          : 'Account Registration Rejected';
+
+    appendAudit(
+      currentUser,
+      auditActionLabel,
+      'ApprovalRequest',
+      updatedReq.id,
+      `${decision} ${formatRoleDisplayName(updatedReq.requestedRole)} request for ${updatedReq.fullName} (@${updatedReq.username}, ${updatedReq.institutionName}). Note: ${note}`
+    );
   };
 
   // Create New Application (Institutional Representative)
@@ -277,9 +553,7 @@ export default function App() {
         suggestedFolder: `/Repository/${firstItem.documentCategory.replace(/\s+/g, '-')}`,
         categoryConfirmed: true,
         institutionId: currentUser.institutionId,
-        institutionName:
-          currentUser.institutionName ||
-          "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai",
+        institutionName: currentUser.institutionName || 'VESIT',
         relatedApplicationId: newAppId,
         personName: currentUser.fullName,
         personUserId: currentUser.id,
@@ -340,9 +614,7 @@ export default function App() {
     const newApp: ApplicationRecord = {
       id: newAppId,
       institutionId: currentUser.institutionId,
-      institutionName:
-        currentUser.institutionName ||
-        "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai",
+      institutionName: currentUser.institutionName || 'VESIT',
       officialInstitutionCode: currentUser.officialInstitutionCode || currentUser.institutionId,
       category: params.category,
       submittedDate: params.submitImmediately ? todayStr : '—',
@@ -870,12 +1142,44 @@ export default function App() {
     appendAudit(currentUser, `Document Marked ${status}`, 'Document', docId, note);
   };
 
-  // If not authenticated, render LandingPageView by default or LoginView when Sign In is requested
+  // If not authenticated, render LandingPageView by default, LoginView, or SignUpView
   if (!currentUser) {
-    if (!showLogin) {
+    if (authScreenMode === 'landing') {
       return (
         <>
-          <LandingPageView onOpenLogin={() => setShowLogin(true)} />
+          <LandingPageView onOpenLogin={() => setAuthScreenMode('login')} />
+          <GeminiChatbotWidget
+            currentUser={null}
+            applications={applications}
+            documents={documents}
+          />
+        </>
+      );
+    }
+    if (authScreenMode === 'signup') {
+      return (
+        <>
+          <SignUpView
+            institutions={SEED_INSTITUTIONS}
+            users={users}
+            approvalRequests={approvalRequests}
+            onCreateRequest={handleCreateSignupRequest}
+            onResubmitRequest={handleResubmitSignupRequest}
+            onBackToLogin={() => {
+              setSignupInitialMode('register');
+              setSignupPrefillId('');
+              setAuthScreenMode('login');
+            }}
+            onBackToLanding={() => {
+              setSignupInitialMode('register');
+              setSignupPrefillId('');
+              setAuthScreenMode('landing');
+            }}
+            darkMode={darkMode}
+            onToggleDarkMode={() => setDarkMode((prev) => !prev)}
+            initialMode={signupInitialMode}
+            initialLookupIdentifier={signupPrefillId}
+          />
           <GeminiChatbotWidget
             currentUser={null}
             applications={applications}
@@ -888,10 +1192,16 @@ export default function App() {
       <>
         <LoginView
           users={users}
+          approvalRequests={approvalRequests}
           onLoginSuccess={handleLoginSuccess}
+          onOpenSignUp={(mode, prefill) => {
+            setSignupInitialMode(mode || 'register');
+            setSignupPrefillId(prefill || '');
+            setAuthScreenMode('signup');
+          }}
           darkMode={darkMode}
           onToggleDarkMode={() => setDarkMode((prev) => !prev)}
-          onBackToLanding={() => setShowLogin(false)}
+          onBackToLanding={() => setAuthScreenMode('landing')}
         />
         <GeminiChatbotWidget
           currentUser={null}
@@ -934,6 +1244,7 @@ export default function App() {
       applications={applications}
       documents={documents}
       notifications={notifications}
+      pendingApprovalCount={pendingApprovalCount}
       activeView={activeView}
       onNavigate={handleNavigate}
       onOpenApplication={(appId) => setSelectedApplicationId(appId)}
@@ -959,7 +1270,7 @@ export default function App() {
           'Switched Active Account Session',
           'Account',
           targetUser.id,
-          `Switched active role session to ${targetUser.fullName} (${targetUser.role}).`
+          `Switched active role session to ${targetUser.fullName} (${formatRoleDisplayName(targetUser.role)}).`
         );
       }}
       onLogout={handleLogout}
@@ -976,6 +1287,7 @@ export default function App() {
             applications={applications}
             documents={documents}
             auditEvents={auditEvents}
+            pendingApprovalCount={pendingApprovalCount}
             onOpenApplication={(appId) => setSelectedApplicationId(appId)}
             onOpenDocument={(docId) => {
               setActiveView('documents');
@@ -990,6 +1302,7 @@ export default function App() {
             applications={applications}
             documents={documents}
             auditEvents={auditEvents}
+            pendingApprovalCount={pendingApprovalCount}
             onOpenApplication={(appId) => setSelectedApplicationId(appId)}
             onOpenDocument={(docId) => {
               setActiveView('documents');
@@ -1007,6 +1320,7 @@ export default function App() {
             applications={applications}
             documents={documents}
             auditEvents={auditEvents}
+            pendingApprovalCount={pendingApprovalCount}
             onOpenApplication={(appId) => setSelectedApplicationId(appId)}
             onOpenDocument={(docId) => {
               setActiveView('documents');
@@ -1022,6 +1336,7 @@ export default function App() {
             applications={applications}
             documents={documents}
             auditEvents={auditEvents}
+            pendingApprovalCount={pendingApprovalCount}
             onOpenApplication={(appId) => setSelectedApplicationId(appId)}
             onOpenDocument={(docId) => {
               setActiveView('documents');
@@ -1093,9 +1408,7 @@ export default function App() {
               suggestedFolder: '/Repository/Campus/Safety-And-Infrastructure',
               categoryConfirmed: true,
               institutionId: currentUser.institutionId || 'INST-VESIT-104',
-              institutionName:
-                currentUser.institutionName ||
-                "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai",
+              institutionName: currentUser.institutionName || 'VESIT',
               personName: currentUser.fullName,
               personUserId: currentUser.id,
               certificateNumber: certNumber,
@@ -1163,6 +1476,7 @@ export default function App() {
           mode={activeView}
           currentUser={currentUser}
           users={users}
+          approvalRequests={approvalRequests}
           institutions={SEED_INSTITUTIONS}
           applications={applications}
           documents={documents}
@@ -1179,7 +1493,7 @@ export default function App() {
               'Account Provisioned',
               'Account',
               created.username,
-              `Provisioned ${created.role} account for ${created.fullName} (${created.normalizedPhone}).`
+              `Provisioned ${formatRoleDisplayName(created.role)} account for ${created.fullName} (${created.normalizedPhone}).`
             );
           }}
           onUpdateAccountStatus={(userId, status: AccountStatus) => {
@@ -1194,6 +1508,7 @@ export default function App() {
               `Updated account status to ${status}.`
             );
           }}
+          onDecideApprovalRequest={handleDecideApprovalRequest}
           onOpenApplication={(appId) => setSelectedApplicationId(appId)}
           onOpenDocument={(docId) => {
             setActiveView('documents');
@@ -1207,6 +1522,7 @@ export default function App() {
           mode={activeView}
           currentUser={currentUser}
           users={users}
+          approvalRequests={approvalRequests}
           onUpdateProfile={(updatedFields) => {
             setUsers((prev) =>
               prev.map((u) => (u.id === currentUser.id ? { ...u, ...updatedFields } : u))

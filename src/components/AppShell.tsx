@@ -37,6 +37,7 @@ interface AppShellProps {
   applications: ApplicationRecord[];
   documents: DocumentRecord[];
   notifications: PortalNotification[];
+  pendingApprovalCount?: number;
   activeView: MainView;
   onNavigate: (view: MainView) => void;
   onOpenApplication: (appId: string) => void;
@@ -60,6 +61,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   applications,
   documents,
   notifications,
+  pendingApprovalCount = 0,
   activeView,
   onNavigate,
   onOpenApplication,
@@ -95,9 +97,9 @@ export const AppShell: React.FC<AppShellProps> = ({
       case 'admin':
         return 'VERIDEX Regional Admin';
       case 'institutional_rep':
-        return 'Institutional Representative';
+        return 'Institutional Manager';
       case 'faculty':
-        return 'Faculty / Staff';
+        return 'Faculty';
       case 'student':
         return 'Student';
     }
@@ -119,7 +121,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   // Navigation items filtered by role
   const navItems = useMemo(() => {
-    const items: Array<{ id: MainView; label: string; icon: React.ReactNode; roles: UserAccount['role'][] }> = [
+    const items: Array<{ id: MainView; label: string; icon: React.ReactNode; roles: UserAccount['role'][]; badge?: number }> = [
       {
         id: 'dashboard',
         label:
@@ -165,9 +167,10 @@ export const AppShell: React.FC<AppShellProps> = ({
       },
       {
         id: 'accounts',
-        label: 'Account Management',
+        label: currentUser.role === 'admin' ? 'Account Management' : 'Account Approvals',
         icon: <Users className="w-4 h-4" />,
-        roles: ['admin'],
+        roles: ['admin', 'institutional_rep', 'faculty'],
+        badge: pendingApprovalCount > 0 ? pendingApprovalCount : undefined,
       },
       {
         id: 'profile',
@@ -183,7 +186,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       },
     ];
     return items.filter((item) => item.roles.includes(currentUser.role));
-  }, [currentUser.role]);
+  }, [currentUser.role, pendingApprovalCount]);
 
   // Global search results respecting authorization
   const searchResults = useMemo(() => {
@@ -282,8 +285,9 @@ export const AppShell: React.FC<AppShellProps> = ({
               <button
                 key={item.id}
                 type="button"
+                data-testid={`nav-${item.id}`}
                 onClick={() => onNavigate(item.id)}
-                className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium cursor-pointer whitespace-nowrap ${
+                className={`relative w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs font-medium cursor-pointer whitespace-nowrap ${
                   isActive
                     ? 'text-[#046A38] dark:text-emerald-300 font-bold'
                     : 'text-stone-700 hover:text-stone-900 hover:bg-[#EFE6D5]/70 dark:text-stone-400 dark:hover:text-stone-100'
@@ -296,8 +300,15 @@ export const AppShell: React.FC<AppShellProps> = ({
                     className="absolute inset-0 rounded-xl bg-[#046A38]/10 border border-[#C2410C]/50 shadow-xs"
                   />
                 )}
-                <span className="relative z-10 text-[#046A38] dark:text-emerald-400">{item.icon}</span>
-                <span className="relative z-10">{item.label}</span>
+                <span className="relative z-10 flex items-center gap-3 min-w-0">
+                  <span className="text-[#046A38] dark:text-emerald-400 shrink-0">{item.icon}</span>
+                  <span className="truncate">{item.label}</span>
+                </span>
+                {item.badge !== undefined && (
+                  <span className="relative z-10 px-1.5 py-0.5 rounded-full bg-[#C2410C] text-white text-[10px] font-mono-tabular font-bold">
+                    {item.badge}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -371,14 +382,21 @@ export const AppShell: React.FC<AppShellProps> = ({
                       onNavigate(item.id);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium ${
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs font-medium ${
                       activeView === item.id
                         ? 'bg-[#046A38]/12 text-[#046A38] dark:text-emerald-300 font-bold border border-[#C2410C]/45'
                         : 'text-stone-700 dark:text-stone-400'
                     }`}
                   >
-                    <span className="text-[#046A38] dark:text-emerald-400">{item.icon}</span>
-                    <span>{item.label}</span>
+                    <span className="flex items-center gap-3 min-w-0">
+                      <span className="text-[#046A38] dark:text-emerald-400 shrink-0">{item.icon}</span>
+                      <span className="truncate">{item.label}</span>
+                    </span>
+                    {item.badge !== undefined && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-[#C2410C] text-white text-[10px] font-mono-tabular font-bold">
+                        {item.badge}
+                      </span>
+                    )}
                   </button>
                 ))}
               </nav>

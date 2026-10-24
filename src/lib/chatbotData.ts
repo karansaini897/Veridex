@@ -68,7 +68,7 @@ export function getRoleChatbotConfig(
           id: 'adm-1',
           category: 'Queue Triage',
           question: 'Which institutional applications have flagged consistency or expiry issues right now?',
-          answer: `Currently, there are ${applications.length} total institutional applications in the registry (${pendingApps.length} in the active review queue and ${infoReqApps.length} awaiting additional information as of ${todayDate}).\n\n• Flagged Dossiers Requiring Officer Attention:\n1. APP-2026-0104 (Vivekanand Education Society's Institute of Technology (VESIT), Mumbai — Extension of Approval): Municipal Fire & Life Safety Certificate (INF-FAC-VES-01) is expired and Ph.D. degree record (FAC-QUA-KUL-01) has a middle-initial variance.\n2. APP-2026-0103 (Eastern Metropolitan Technical Campus, Kolkata — Extension of Approval): WBFES Fire Safety Certificate (INF-FAC-EMT-01) carries an integrity review flag requiring manual inspection.\n3. APP-2026-0105 (Kaveri College of Engineering & Research, Bengaluru — Increase in Intake): BBMP Occupancy Certificate (INF-FAC-KAV-02) is missing Page 3 Annexure-B.\n\nUse "Review Dossier" in the Applications Registry to inspect the side-by-side evidence comparison before recording a human decision.`,
+          answer: `Currently, there are ${applications.length} total institutional applications in the registry (${pendingApps.length} in the active review queue and ${infoReqApps.length} awaiting additional information as of ${todayDate}).\n\n• Flagged Dossiers Requiring Officer Attention:\n1. APP-2026-0104 (VESIT — Extension of Approval): Municipal Fire & Life Safety Certificate (INF-FAC-VES-01) is expired and Ph.D. degree record (FAC-QUA-KUL-01) has a middle-initial variance.\n2. APP-2026-0103 (Veermata Jijabai Technological Institute (VJTI) — Extension of Approval): Fire Safety Certificate (INF-FAC-EMT-01) carries an integrity review flag requiring manual inspection.\n3. APP-2026-0105 (D.J. Sanghvi — Increase in Intake): Occupancy Certificate (INF-FAC-KAV-02) is missing Page 3 Annexure-B.\n\nUse "Review Dossier" in the Applications Registry to inspect the side-by-side evidence comparison before recording a human decision.`,
         },
         {
           id: 'adm-2',
@@ -101,7 +101,7 @@ export function getRoleChatbotConfig(
   if (role === 'institutional_rep') {
     const instCode = currentUser?.officialInstitutionCode || 'INST-VESIT-104';
     const instName =
-      currentUser?.institutionName || "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai";
+      currentUser?.institutionName || 'VESIT';
     const myApps = applications.filter(
       (a) => a.institutionId === currentUser?.institutionId
     );
@@ -163,7 +163,7 @@ export function getRoleChatbotConfig(
   if (role === 'faculty') {
     const instCode = currentUser?.officialInstitutionCode || 'INST-VESIT-104';
     const instName =
-      currentUser?.institutionName || "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai";
+      currentUser?.institutionName || 'VESIT';
     const facDocs = documents.filter(
       (d) =>
         d.institutionId === currentUser?.institutionId &&
