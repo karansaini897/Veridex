@@ -6,7 +6,20 @@ import {
   ArrowRight,
   X,
   Building2,
+  BarChart3,
+  PieChart as PieChartIcon,
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  Cell,
+} from 'recharts';
 import {
   ApplicationCategory,
   ApplicationRecord,
@@ -21,6 +34,7 @@ import {
   calculateExpiryDetails,
   canUserAccessApplication,
   canUserAccessDocument,
+  computeInstitutionChartData,
   REFERENCE_DATE,
 } from '../lib/domain';
 
@@ -141,6 +155,31 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
     [selectedCategory]
   );
 
+  const instChartData = useMemo(
+    () => computeInstitutionChartData(myApps, myDocs, REFERENCE_DATE),
+    [myApps, myDocs]
+  );
+
+  const studentChartData = useMemo(() => {
+    return myDocs.map((doc) => {
+      const checks = [
+        doc.completenessStatus === 'Complete',
+        doc.consistencyStatus === 'Consistent',
+        doc.issuerVerificationStatus === 'Verified',
+        doc.humanReviewStatus === 'Reviewed',
+      ];
+      const passedCount = checks.filter(Boolean).length;
+      const totalPillars = checks.length;
+      return {
+        code: doc.internalCode,
+        title: doc.name,
+        verifiedPillars: passedCount,
+        totalPillars,
+        readinessScore: Math.round((passedCount / totalPillars) * 100),
+      };
+    });
+  }, [myDocs]);
+
   // Student Role Dedicated View
   if (currentUser.role === 'student') {
     return (
@@ -176,6 +215,50 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             <strong>Role-Based Data Isolation Active:</strong> As a student account, you only have access to your own verified academic and scholarship documents and your personal profile. Institutional application workflows and other students' records are restricted.
           </div>
         </motion.div>
+
+        {/* Student Record Verification Analytics Chart */}
+        {studentChartData.length > 0 && (
+          <motion.section
+            variants={DASHBOARD_ITEM_VARIANTS}
+            aria-label="Student Record Verification Analytics"
+            className="liquid-glass rounded-2xl p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#046A38] dark:text-emerald-400">
+                  <BarChart3 className="w-4 h-4" />
+                  <span>My Record Verification Readiness</span>
+                </div>
+                <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white mt-0.5">
+                  Verification Pillar Score by Authorized Student Record (%)
+                </h2>
+              </div>
+            </div>
+            <div className="h-48 w-full" data-testid="student-verification-chart">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={studentChartData}
+                  layout="vertical"
+                  margin={{ top: 4, right: 24, left: 12, bottom: 4 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" horizontal={false} />
+                  <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: '#44403C' }} />
+                  <YAxis type="category" dataKey="code" width={110} tick={{ fontSize: 11, fill: '#1C1917', fontWeight: 600 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#FCF9F2',
+                      borderColor: '#C2410C',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                    }}
+                    formatter={(val: number) => [`${val}% Verified`, 'Readiness']}
+                  />
+                  <Bar dataKey="readinessScore" name="Verification Readiness %" fill="#046A38" radius={[0, 6, 6, 0]} barSize={22} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.section>
+        )}
 
         <motion.section
           variants={DASHBOARD_ITEM_VARIANTS}
@@ -359,6 +442,127 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Requires renewal or check</div>
         </motion.div>
+      </motion.section>
+
+      {/* Institutional Recharts Data Visualization Section */}
+      <motion.section
+        aria-label="Institutional Compliance Analytics"
+        variants={DASHBOARD_ITEM_VARIANTS}
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+      >
+        {/* Left 6 Cols: Dossier Checklist Completion & Verification Breakdown */}
+        <div className="lg:col-span-6 liquid-glass rounded-2xl p-5 flex flex-col justify-between">
+          <div className="mb-4">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-[#046A38] dark:text-emerald-400">
+              <BarChart3 className="w-4 h-4 shrink-0" />
+              <span>Application Checklist Progress</span>
+            </div>
+            <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white mt-0.5">
+              Dossier Checklist Readiness ({currentUser.officialInstitutionCode})
+            </h2>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Separate side-by-side comparison of Verified, Uploaded, Flagged for Review, and Pending checklist items.
+            </p>
+          </div>
+
+          <div className="h-60 w-full" data-testid="institute-dossier-chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={instChartData.dossierReadiness}
+                margin={{ top: 8, right: 16, left: 0, bottom: 4 }}
+                barGap={6}
+                barCategoryGap="24%"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" />
+                <XAxis dataKey="appId" tick={{ fontSize: 11, fill: '#292524', fontWeight: 600 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#44403C' }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#FCF9F2',
+                    borderColor: '#C2410C',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    color: '#1C1917',
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
+                <Bar dataKey="verified" name="Verified" fill="#046A38" maxBarSize={28} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="uploaded" name="Uploaded" fill="#1D4ED8" maxBarSize={28} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="flagged" name="Flagged for Review" fill="#C2410C" maxBarSize={28} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="pendingUpload" name="Pending Upload" fill="#A8A29E" maxBarSize={28} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="pt-3 mt-2 border-t border-[#C2410C]/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-400 font-mono-tabular">
+            <span>Scoped Dossiers: {myApps.length}</span>
+            <span>·</span>
+            <span>Action Required: {actionRequiredApps.length}</span>
+          </div>
+        </div>
+
+        {/* Right 6 Cols: Repository Document Health by Category */}
+        <div className="lg:col-span-6 liquid-glass rounded-2xl p-5 flex flex-col justify-between">
+          <div className="mb-4">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-[#046A38] dark:text-emerald-400">
+              <PieChartIcon className="w-4 h-4 shrink-0" />
+              <span>Repository Document Health &amp; Expiry Status</span>
+            </div>
+            <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white mt-0.5">
+              Clean vs Attention-Needed Certificates by Category
+            </h2>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Separate side-by-side comparison of valid certificates and flagged/expiring items per category.
+            </p>
+          </div>
+
+          <div className="h-60 w-full" data-testid="institute-category-chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={instChartData.documentCategoryHealth}
+                layout="vertical"
+                margin={{ top: 4, right: 18, left: 8, bottom: 4 }}
+                barGap={4}
+                barCategoryGap="22%"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#44403C' }} />
+                <YAxis
+                  type="category"
+                  dataKey="category"
+                  width={98}
+                  tick={{ fontSize: 11, fill: '#292524', fontWeight: 600 }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#FCF9F2',
+                    borderColor: '#C2410C',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    color: '#1C1917',
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
+                <Bar dataKey="verifiedClean" name="Valid & Consistent" fill="#046A38" barSize={10} radius={[0, 4, 4, 0]} />
+                <Bar
+                  dataKey="attentionNeeded"
+                  name="Flagged / Expiring"
+                  fill="#C2410C"
+                  radius={[0, 4, 4, 0]}
+                  barSize={10}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="pt-3 mt-2 border-t border-[#C2410C]/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-400 font-mono-tabular">
+            {instChartData.expirySummary.map((item) => (
+              <span key={item.name}>
+                {item.name}: <strong>{item.count}</strong>
+              </span>
+            ))}
+          </div>
+        </div>
       </motion.section>
 
       {/* Institution's Applications & Personalized Checklists */}

@@ -44,6 +44,7 @@ import { VerificationComplianceView } from './components/VerificationComplianceV
 import { ExpiryCalendarView } from './components/ExpiryCalendarView';
 import { ReportsAndAccountsView } from './components/ReportsAndAccountsView';
 import { ProfileAndSettingsView } from './components/ProfileAndSettingsView';
+import { GeminiChatbotWidget } from './components/GeminiChatbotWidget';
 
 const STORAGE_KEYS = {
   theme: 'veridex_portal_theme_v4',
@@ -835,16 +836,32 @@ export default function App() {
   // If not authenticated, render LandingPageView by default or LoginView when Sign In is requested
   if (!currentUser) {
     if (!showLogin) {
-      return <LandingPageView onOpenLogin={() => setShowLogin(true)} />;
+      return (
+        <>
+          <LandingPageView onOpenLogin={() => setShowLogin(true)} />
+          <GeminiChatbotWidget
+            currentUser={null}
+            applications={applications}
+            documents={documents}
+          />
+        </>
+      );
     }
     return (
-      <LoginView
-        users={users}
-        onLoginSuccess={handleLoginSuccess}
-        darkMode={darkMode}
-        onToggleDarkMode={() => setDarkMode((prev) => !prev)}
-        onBackToLanding={() => setShowLogin(false)}
-      />
+      <>
+        <LoginView
+          users={users}
+          onLoginSuccess={handleLoginSuccess}
+          darkMode={darkMode}
+          onToggleDarkMode={() => setDarkMode((prev) => !prev)}
+          onBackToLanding={() => setShowLogin(false)}
+        />
+        <GeminiChatbotWidget
+          currentUser={null}
+          applications={applications}
+          documents={documents}
+        />
+      </>
     );
   }
 
@@ -1171,6 +1188,13 @@ export default function App() {
           />
         )}
       </AnimatePresence>
+
+      {/* Role-Specific Gemini Compliance Assistant */}
+      <GeminiChatbotWidget
+        currentUser={currentUser}
+        applications={applications}
+        documents={documents}
+      />
     </AppShell>
   );
 }

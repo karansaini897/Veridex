@@ -10,7 +10,22 @@ import {
   CheckCircle2,
   Clock,
   SlidersHorizontal,
+  BarChart3,
+  TrendingUp,
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  AreaChart,
+  Area,
+  Cell,
+} from 'recharts';
 import {
   ApplicationRecord,
   ApplicationStatus,
@@ -21,6 +36,7 @@ import {
 } from '../types/portal';
 import {
   calculateExpiryDetails,
+  computeAdminChartData,
   computeDashboardMetrics,
   REFERENCE_DATE,
 } from '../lib/domain';
@@ -98,9 +114,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [sortField, setSortField] = useState<'lastUpdated' | 'submittedDate' | 'institutionName' | 'status' | 'id'>('lastUpdated');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [visibleLimit, setVisibleLimit] = useState(8);
+  const [trendMode, setTrendMode] = useState<'timeline' | 'categories'>('timeline');
 
   const metrics = useMemo(
     () => computeDashboardMetrics(applications, documents, REFERENCE_DATE),
+    [applications, documents]
+  );
+
+  const chartData = useMemo(
+    () => computeAdminChartData(applications, documents, REFERENCE_DATE),
     [applications, documents]
   );
 
@@ -345,6 +367,222 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           </div>
         </motion.div>
       </motion.section>
+
+      {/* Recharts Data Visualization Section: Application Statuses & Document Processing Trends */}
+      {!showFullTableOnly && (
+        <motion.section
+          aria-label="Compliance Analytics and Data Visualization"
+          variants={DASHBOARD_ITEM_VARIANTS}
+          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+        >
+          {/* Left 5 Cols: Application Status Distribution Chart */}
+          <div className="lg:col-span-5 liquid-glass rounded-2xl p-5 flex flex-col justify-between">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#046A38] dark:text-emerald-400">
+                  <BarChart3 className="w-4 h-4 shrink-0" />
+                  <span>Application Status Distribution</span>
+                </div>
+                <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white mt-0.5">
+                  Dossiers by Current Workflow Stage
+                </h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Live breakdown of all {applications.length} institutional applications across statutory review states.
+                </p>
+              </div>
+            </div>
+
+            <div className="h-64 w-full" data-testid="admin-status-chart">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData.statusDistribution}
+                  layout="vertical"
+                  margin={{ top: 4, right: 20, left: 8, bottom: 4 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    allowDecimals={false}
+                    tick={{ fontSize: 11, fill: '#57534E' }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="shortLabel"
+                    width={96}
+                    tick={{ fontSize: 11, fill: '#292524', fontWeight: 600 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#FCF9F2',
+                      borderColor: '#C2410C',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      color: '#1C1917',
+                    }}
+                    formatter={(value: number) => [`${value} Dossier(s)`, 'Count']}
+                  />
+                  <Bar dataKey="count" name="Applications" radius={[0, 6, 6, 0]} barSize={18}>
+                    {chartData.statusDistribution.map((entry) => (
+                      <Cell key={entry.status} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="pt-3 mt-2 border-t border-[#C2410C]/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-400 font-mono-tabular">
+              <span>Decided: {chartData.statusDistribution.find((s) => s.status === 'Decision Recorded')?.count ?? 0}</span>
+              <span>·</span>
+              <span>In Review Queue: {metrics.pendingReview}</span>
+              <span>·</span>
+              <span>Deficiency Notice: {metrics.requiringAdditionalInfo}</span>
+            </div>
+          </div>
+
+          {/* Right 7 Cols: Document Processing & Verification Trends Chart */}
+          <div className="lg:col-span-7 liquid-glass rounded-2xl p-5 flex flex-col justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#046A38] dark:text-emerald-400">
+                  <TrendingUp className="w-4 h-4 shrink-0" />
+                  <span>Document Processing &amp; Verification Trends</span>
+                </div>
+                <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white mt-0.5">
+                  {trendMode === 'timeline'
+                    ? 'Cumulative Repository Intake, OCR Extraction & Officer Sign-Off'
+                    : 'Verification Status Breakdown by Document Category'}
+                </h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Tracks {documents.length} repository certificates across OCR parsing, issuer verification, and consistency checks.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-[#EFE6D5] dark:bg-slate-800 border border-[#C2410C]/35 shrink-0 self-start">
+                <button
+                  type="button"
+                  onClick={() => setTrendMode('timeline')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                    trendMode === 'timeline'
+                      ? 'bg-[#C2410C] text-white'
+                      : 'text-stone-700 dark:text-stone-300 hover:text-stone-900'
+                  }`}
+                >
+                  Monthly Trend
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTrendMode('categories')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                    trendMode === 'categories'
+                      ? 'bg-[#046A38] text-white'
+                      : 'text-stone-700 dark:text-stone-300 hover:text-stone-900'
+                  }`}
+                >
+                  By Category
+                </button>
+              </div>
+            </div>
+
+            <div className="h-64 w-full" data-testid="admin-trends-chart">
+              <ResponsiveContainer width="100%" height="100%">
+                {trendMode === 'timeline' ? (
+                  <AreaChart
+                    data={chartData.processingTrends}
+                    margin={{ top: 8, right: 16, left: 0, bottom: 4 }}
+                  >
+                    <defs>
+                      <linearGradient id="veridexUploadedGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#1D4ED8" stopOpacity={0.28} />
+                        <stop offset="95%" stopColor="#1D4ED8" stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="veridexVerifiedGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#046A38" stopOpacity={0.34} />
+                        <stop offset="95%" stopColor="#046A38" stopOpacity={0.03} />
+                      </linearGradient>
+                      <linearGradient id="veridexFlaggedGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#C2410C" stopOpacity={0.32} />
+                        <stop offset="95%" stopColor="#C2410C" stopOpacity={0.03} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" />
+                    <XAxis dataKey="period" tick={{ fontSize: 11, fill: '#44403C' }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#44403C' }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#FCF9F2',
+                        borderColor: '#C2410C',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        color: '#1C1917',
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
+                    <Area
+                      type="monotone"
+                      dataKey="uploaded"
+                      name="Uploaded & OCR Parsed"
+                      stroke="#1D4ED8"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#veridexUploadedGrad)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="verified"
+                      name="Verified & Reviewed"
+                      stroke="#046A38"
+                      strokeWidth={2.2}
+                      fillOpacity={1}
+                      fill="url(#veridexVerifiedGrad)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="flagged"
+                      name="Flagged / Expired Signals"
+                      stroke="#C2410C"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#veridexFlaggedGrad)"
+                    />
+                  </AreaChart>
+                ) : (
+                  <BarChart
+                    data={chartData.categoryBreakdown}
+                    margin={{ top: 8, right: 16, left: 0, bottom: 4 }}
+                    barGap={4}
+                    barCategoryGap="20%"
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(194, 65, 12, 0.16)" />
+                    <XAxis dataKey="category" tick={{ fontSize: 11, fill: '#44403C' }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#44403C' }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#FCF9F2',
+                        borderColor: '#C2410C',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        color: '#1C1917',
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
+                    <Bar dataKey="verified" name="Verified" fill="#046A38" maxBarSize={22} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="pending" name="Pending Officer Review" fill="#1D4ED8" maxBarSize={22} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="flagged" name="Flagged / Expiring" fill="#C2410C" maxBarSize={22} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                )}
+              </ResponsiveContainer>
+            </div>
+
+            <div className="pt-3 mt-2 border-t border-[#C2410C]/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-400 font-mono-tabular">
+              <span>Total Repository Docs: {documents.length}</span>
+              <span>·</span>
+              <span>Verified &amp; Reviewed: {metrics.documentsVerified}</span>
+              <span>·</span>
+              <span>Expiring / Lapsed: {metrics.expiringDocuments}</span>
+            </div>
+          </div>
+        </motion.section>
+      )}
 
       {/* Main Applications Table */}
       <motion.section
