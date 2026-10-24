@@ -12,6 +12,12 @@ import {
   sectionEntranceVariants,
   staggerContainerVariants,
 } from '../lib/motion';
+import {
+  AnimatedMetricValue,
+  EmptyStateCard,
+  FileTypeMarker,
+  StatusBadge,
+} from './StatusPrimitives';
 
 interface ExpiryCalendarViewProps {
   currentUser: UserAccount;
@@ -167,31 +173,31 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
         className="grid grid-cols-1 sm:grid-cols-3 gap-4"
       >
         <motion.div variants={cardEntranceVariants} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs text-slate-500">Expired Certificates</div>
+          <div className="text-xs font-medium text-stone-500">Expired Certificates</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-red-700 dark:text-red-400 mt-1">
-            {counts.expired}
+            <AnimatedMetricValue value={counts.expired} />
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">
+          <div className="text-[11px] text-stone-500 mt-1">
             Immediate renewal registration required
           </div>
         </motion.div>
 
         <motion.div variants={cardEntranceVariants} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs text-slate-500">Expiring Within 45 Days</div>
-          <div className="text-2xl font-display font-bold font-mono-tabular text-amber-700 dark:text-amber-400 mt-1">
-            {counts.soon}
+          <div className="text-xs font-medium text-stone-500">Expiring Within 45 Days</div>
+          <div className="text-2xl font-display font-bold font-mono-tabular text-[#C2410C] dark:text-amber-400 mt-1">
+            <AnimatedMetricValue value={counts.soon} />
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">
+          <div className="text-[11px] text-stone-500 mt-1">
             Approaching statutory renewal window
           </div>
         </motion.div>
 
         <motion.div variants={cardEntranceVariants} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs text-slate-500">Valid (&gt;45 Days Remaining)</div>
-          <div className="text-2xl font-display font-bold font-mono-tabular text-emerald-700 dark:text-emerald-400 mt-1">
-            {counts.valid}
+          <div className="text-xs font-medium text-stone-500">Valid (&gt;45 Days Remaining)</div>
+          <div className="text-2xl font-display font-bold font-mono-tabular text-[#046A38] dark:text-emerald-400 mt-1">
+            <AnimatedMetricValue value={counts.valid} />
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">
+          <div className="text-[11px] text-stone-500 mt-1">
             Active statutory validity
           </div>
         </motion.div>
@@ -239,37 +245,30 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
                     <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+                <tbody className="divide-y divide-stone-200 dark:divide-stone-800 text-xs">
                   {filteredItems.map(({ doc, expiry }) => (
-                    <tr key={doc.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/40">
-                      <td className="py-3 px-4 font-mono-tabular font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                    <tr key={doc.id} className="hover:bg-stone-50/90 dark:hover:bg-stone-800/40">
+                      <td className="py-3 px-4 font-mono-tabular font-semibold text-stone-900 dark:text-white whitespace-nowrap">
                         {doc.expiryDate}
                       </td>
-                      <td className="py-3 px-4 font-mono-tabular whitespace-nowrap">
-                        <span
-                          className={
-                            expiry.status === 'Expired'
-                              ? 'text-red-700 dark:text-red-400 font-semibold'
-                              : expiry.status === 'Expiring Soon'
-                                ? 'text-amber-700 dark:text-amber-400 font-semibold'
-                                : 'text-emerald-700 dark:text-emerald-400'
-                          }
-                        >
-                          {expiry.label}
-                        </span>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <StatusBadge status={expiry.status} customLabel={expiry.label} size="sm" />
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-mono-tabular font-semibold text-blue-700 dark:text-blue-400">
-                          {doc.internalCode}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono-tabular font-semibold text-[#C2410C] dark:text-amber-400">
+                            {doc.internalCode}
+                          </span>
+                          <FileTypeMarker mimeType={doc.mimeType} fileName={doc.fileName} />
                         </div>
-                        <div className="font-medium text-slate-900 dark:text-white">
+                        <div className="font-medium text-stone-900 dark:text-white mt-0.5">
                           {doc.name}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                      <td className="py-3 px-4 text-stone-600 dark:text-stone-300 whitespace-nowrap">
                         {doc.category}
                       </td>
-                      <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
+                      <td className="py-3 px-4 text-stone-700 dark:text-stone-300">
                         {doc.institutionName}
                       </td>
                       <td className="py-3 px-4 font-mono-tabular whitespace-nowrap">
@@ -277,7 +276,7 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
                           <button
                             type="button"
                             onClick={() => onOpenApplication(doc.relatedApplicationId!)}
-                            className="text-blue-700 dark:text-blue-400 font-medium hover:underline cursor-pointer"
+                            className="text-[#C2410C] dark:text-amber-400 font-semibold hover:underline cursor-pointer"
                           >
                             {doc.relatedApplicationId}
                           </button>
@@ -289,13 +288,25 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
                         <button
                           type="button"
                           onClick={() => onOpenDocument(doc.id)}
-                          className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-blue-600 hover:text-white text-xs font-medium cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-[#EFE6D5] dark:bg-stone-800 hover:bg-[#C2410C] hover:text-white text-xs font-semibold cursor-pointer"
                         >
                           Open Document
                         </button>
                       </td>
                     </tr>
                   ))}
+                  {filteredItems.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="p-6">
+                        <EmptyStateCard
+                          title="No Certificates in Selected Expiry State"
+                          description="No authorized documents with expiration dates match this status filter."
+                          actionLabel={statusFilter !== 'All' ? 'Show All Expiry Records' : undefined}
+                          onAction={statusFilter !== 'All' ? () => setStatusFilter('All') : undefined}
+                        />
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

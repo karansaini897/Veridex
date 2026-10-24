@@ -28,6 +28,7 @@ import {
   UserAccount,
 } from '../types/portal';
 import { canUserAccessApplication, canUserAccessDocument } from '../lib/domain';
+import { EmptyStateCard, FileTypeMarker, StatusBadge } from './StatusPrimitives';
 
 interface AppShellProps {
   currentUser: UserAccount;
@@ -435,7 +436,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 type="button"
                 onClick={onOpenPublicLanding}
                 data-testid="open-public-overview"
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl liquid-glass-subtle hover:border-blue-400/40 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl liquid-glass-subtle hover:border-[#C2410C] text-xs font-semibold text-stone-800 dark:text-stone-200 cursor-pointer"
               >
                 <span>Public Overview</span>
               </button>
@@ -445,9 +446,9 @@ export const AppShell: React.FC<AppShellProps> = ({
               type="button"
               onClick={() => setSearchOpen(true)}
               aria-label="Search applications, documents, and institutions"
-              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl liquid-glass-subtle hover:border-blue-400/40 text-xs text-slate-600 dark:text-slate-300 cursor-pointer"
+              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl liquid-glass-subtle hover:border-[#C2410C] text-xs text-stone-700 dark:text-stone-300 cursor-pointer"
             >
-              <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <Search className="w-3.5 h-3.5 text-[#046A38] shrink-0" />
               <span className="hidden md:inline">Search records, codes, IDs...</span>
               <span className="hidden sm:inline md:hidden">Search</span>
             </button>
@@ -461,11 +462,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                   setNotifOpen((prev) => !prev);
                   setProfileMenuOpen(false);
                 }}
-                className="relative p-2 rounded-xl liquid-glass-subtle hover:border-blue-400/40 text-slate-600 dark:text-slate-300 cursor-pointer"
+                className="relative p-2 rounded-xl liquid-glass-subtle hover:border-[#C2410C] text-stone-700 dark:text-stone-300 cursor-pointer"
               >
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 px-1 min-w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-mono-tabular font-semibold flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 px-1 min-w-4 h-4 rounded-full bg-[#C2410C] text-white text-[10px] font-mono-tabular font-bold flex items-center justify-center">
                     {unreadCount}
                   </span>
                 )}
@@ -480,12 +481,12 @@ export const AppShell: React.FC<AppShellProps> = ({
                     transition={{ duration: 0.18, ease: SMOOTH_EASE }}
                     className="absolute right-0 mt-2 w-80 sm:w-96 liquid-glass-elevated rounded-2xl p-3 z-50"
                   >
-                    <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-200/70 dark:border-blue-400/15">
+                    <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-[#C2410C]/30">
                       <div>
-                        <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                        <span className="text-xs font-bold text-stone-900 dark:text-white">
                           Official Portal Notifications
                         </span>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <p className="text-[11px] text-stone-600 dark:text-stone-400">
                           Regulatory &amp; dossier status alerts
                         </p>
                       </div>
@@ -493,7 +494,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                         <button
                           type="button"
                           onClick={onMarkAllNotificationsRead}
-                          className="text-[11px] font-medium text-blue-700 dark:text-blue-400 hover:underline cursor-pointer"
+                          className="text-[11px] font-semibold text-[#C2410C] dark:text-orange-400 hover:underline cursor-pointer"
                         >
                           Mark all read
                         </button>
@@ -501,9 +502,10 @@ export const AppShell: React.FC<AppShellProps> = ({
                     </div>
                     <div className="space-y-1.5 max-h-80 overflow-y-auto">
                       {visibleNotifications.length === 0 ? (
-                        <p className="text-xs text-slate-500 py-6 text-center">
-                          No notifications for your role.
-                        </p>
+                        <EmptyStateCard
+                          title="No Active Notifications"
+                          description="You have no pending regulatory or dossier alerts for your current role."
+                        />
                       ) : (
                         visibleNotifications.map((n) => (
                           <button
@@ -522,19 +524,19 @@ export const AppShell: React.FC<AppShellProps> = ({
                             }}
                             className={`w-full text-left p-2.5 rounded-xl border transition-colors cursor-pointer ${
                               n.read
-                                ? 'border-transparent hover:bg-slate-200/40 dark:hover:bg-slate-800/40 text-slate-600 dark:text-slate-400'
-                                : 'border-blue-400/30 bg-blue-500/10 text-slate-900 dark:text-white'
+                                ? 'border-transparent hover:bg-[#EFE6D5]/60 dark:hover:bg-stone-800/60 text-stone-600 dark:text-stone-400'
+                                : 'border-[#C2410C]/45 bg-[#C2410C]/10 text-stone-900 dark:text-white'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <span className="text-xs font-semibold leading-snug">
                                 {n.title}
                               </span>
-                              <span className="text-[10px] font-mono-tabular text-slate-400 shrink-0">
+                              <span className="text-[10px] font-mono-tabular text-stone-500 shrink-0">
                                 {n.createdAt.split(' ')[0]}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-600 dark:text-slate-300/80 mt-1 leading-relaxed">
+                            <p className="text-xs text-stone-700 dark:text-stone-300 mt-1 leading-relaxed">
                               {n.message}
                             </p>
                           </button>
@@ -551,9 +553,9 @@ export const AppShell: React.FC<AppShellProps> = ({
               type="button"
               onClick={onToggleDarkMode}
               aria-label={darkMode ? 'Switch to light theme' : 'Switch to dark theme'}
-              className="p-2 rounded-xl liquid-glass-subtle hover:border-blue-400/40 text-slate-600 dark:text-slate-300 cursor-pointer"
+              className="p-2 rounded-xl liquid-glass-subtle hover:border-[#C2410C] text-stone-700 dark:text-stone-300 cursor-pointer"
             >
-              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-700" />}
+              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-[#046A38]" />}
             </button>
 
             {/* User Avatar & Profile Menu */}
@@ -565,7 +567,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                   setNotifOpen(false);
                 }}
                 aria-label="Open user profile menu"
-                className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-xl liquid-glass-subtle hover:border-blue-400/40 cursor-pointer"
+                className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-xl liquid-glass-subtle hover:border-[#C2410C] cursor-pointer"
               >
                 {currentUser.avatarUrl ? (
                   <img
@@ -575,11 +577,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                     className="w-6 h-6 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-600 to-indigo-800 text-white text-[11px] font-display font-semibold flex items-center justify-center shadow-xs">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#046A38] to-[#03542C] text-white text-[11px] font-display font-bold flex items-center justify-center shadow-xs">
                     {initials}
                   </div>
                 )}
-                <span className="hidden sm:inline text-xs font-medium text-slate-800 dark:text-slate-200 max-w-28 truncate">
+                <span className="hidden sm:inline text-xs font-semibold text-stone-800 dark:text-stone-200 max-w-28 truncate">
                   {currentUser.fullName}
                 </span>
               </button>
@@ -593,11 +595,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                     transition={{ duration: 0.18, ease: SMOOTH_EASE }}
                     className="absolute right-0 mt-2 w-60 liquid-glass-elevated rounded-2xl p-2 z-50"
                   >
-                    <div className="px-3 py-2 border-b border-slate-200/70 dark:border-blue-400/15">
-                      <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                    <div className="px-3 py-2 border-b border-[#C2410C]/30">
+                      <div className="text-xs font-bold text-stone-900 dark:text-white truncate">
                         {currentUser.fullName}
                       </div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono-tabular truncate">
+                      <div className="text-[11px] text-stone-600 dark:text-stone-400 font-mono-tabular truncate">
                         @{currentUser.username} · {currentUser.phone}
                       </div>
                     </div>
@@ -608,9 +610,9 @@ export const AppShell: React.FC<AppShellProps> = ({
                           setProfileMenuOpen(false);
                           onNavigate('profile');
                         }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-blue-950/40 rounded-xl cursor-pointer"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-stone-800 dark:text-stone-200 hover:bg-[#EFE6D5]/70 dark:hover:bg-stone-800/70 rounded-xl cursor-pointer"
                       >
-                        <UserCircle className="w-4 h-4" />
+                        <UserCircle className="w-4 h-4 text-[#046A38]" />
                         <span>Profile &amp; Photo</span>
                       </button>
                       <button
@@ -619,20 +621,20 @@ export const AppShell: React.FC<AppShellProps> = ({
                           setProfileMenuOpen(false);
                           onNavigate('settings');
                         }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-blue-950/40 rounded-xl cursor-pointer"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-stone-800 dark:text-stone-200 hover:bg-[#EFE6D5]/70 dark:hover:bg-stone-800/70 rounded-xl cursor-pointer"
                       >
-                        <Settings className="w-4 h-4" />
+                        <Settings className="w-4 h-4 text-[#046A38]" />
                         <span>VERIDEX Settings</span>
                       </button>
                     </div>
-                    <div className="pt-1 border-t border-slate-200/70 dark:border-blue-400/15">
+                    <div className="pt-1 border-t border-[#C2410C]/30">
                       <button
                         type="button"
                         onClick={() => {
                           setProfileMenuOpen(false);
                           onLogout();
                         }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-500/10 rounded-xl cursor-pointer"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-700 dark:text-red-400 hover:bg-red-500/10 rounded-xl cursor-pointer"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>Sign Out</span>
@@ -672,7 +674,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: SMOOTH_EASE }}
-            className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/65 backdrop-blur-md pt-16 p-4"
+            className="fixed inset-0 z-50 flex items-start justify-center bg-stone-950/65 backdrop-blur-md pt-16 p-4"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.98, y: 8 }}
@@ -681,21 +683,21 @@ export const AppShell: React.FC<AppShellProps> = ({
               transition={{ duration: 0.22, ease: SMOOTH_EASE }}
               className="liquid-glass-elevated rounded-2xl max-w-2xl w-full overflow-hidden"
             >
-              <div className="p-4 border-b border-slate-200/70 dark:border-blue-400/15 flex items-center gap-3">
-                <Search className="w-4 h-4 text-slate-400 shrink-0" />
+              <div className="p-4 border-b border-[#C2410C]/30 flex items-center gap-3">
+                <Search className="w-4 h-4 text-[#046A38] shrink-0" />
                 <input
                   type="text"
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by Application ID (APP-2026-0104), Document Code (FAC-QUA-KAS-02), Certificate #, Person, or Institution..."
-                  className="flex-1 text-sm bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
+                  className="flex-1 text-sm bg-transparent text-stone-900 dark:text-white placeholder:text-stone-400 focus:outline-none"
                 />
                 <button
                   type="button"
                   aria-label="Close global search"
                   onClick={() => setSearchOpen(false)}
-                  className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="p-1 text-stone-500 hover:text-stone-900 dark:hover:text-stone-200"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -709,17 +711,17 @@ export const AppShell: React.FC<AppShellProps> = ({
                       key={tab}
                       type="button"
                       onClick={() => setSearchFilter(tab)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize cursor-pointer ${
                         searchFilter === tab
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+                          ? 'bg-[#C2410C] text-white shadow-xs'
+                          : 'text-stone-700 dark:text-stone-300 hover:bg-[#EFE6D5] dark:hover:bg-stone-800'
                       }`}
                     >
                       {tab}
                     </button>
                   ))}
                 </div>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-stone-600 dark:text-stone-400">
                   Scoped to {currentUser.role === 'admin' ? 'All Authorized Records' : currentUser.institutionName}
                 </span>
               </div>
@@ -727,7 +729,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               {/* Results Body */}
               <div className="p-4 max-h-96 overflow-y-auto space-y-5">
                 {!searchQuery.trim() ? (
-                  <div className="text-xs text-slate-500 dark:text-slate-400 py-6 text-center space-y-2">
+                  <div className="text-xs text-stone-600 dark:text-stone-400 py-6 text-center space-y-2">
                     <p>Type to search across records you are authorized to access.</p>
                     <div className="flex flex-wrap justify-center gap-2 pt-1">
                       {['APP-2026-0104', 'FAC-QUA-KAS-02', 'INF-FAC-VES-01', 'Salunkhe', 'VESIT'].map((chip) => (
@@ -735,7 +737,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                           key={chip}
                           type="button"
                           onClick={() => setSearchQuery(chip)}
-                          className="px-2.5 py-1 rounded-lg liquid-glass-subtle text-slate-700 dark:text-slate-300 font-mono-tabular text-[11px] hover:border-blue-400/40 cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg liquid-glass-subtle text-stone-800 dark:text-stone-200 font-mono-tabular text-[11px] hover:border-[#C2410C] cursor-pointer"
                         >
                           {chip}
                         </button>
@@ -747,14 +749,17 @@ export const AppShell: React.FC<AppShellProps> = ({
                     {searchResults.apps.length === 0 &&
                       searchResults.docs.length === 0 &&
                       searchResults.insts.length === 0 && (
-                        <p className="text-xs text-slate-500 py-8 text-center">
-                          No matching authorized records found for "{searchQuery}".
-                        </p>
+                        <EmptyStateCard
+                          title={`No matching records for "${searchQuery}"`}
+                          description="Check the internal code, certificate reference number, or clear your search filter."
+                          actionLabel="Clear Search"
+                          onAction={() => setSearchQuery('')}
+                        />
                       )}
 
                     {searchResults.apps.length > 0 && (
                       <div>
-                        <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+                        <h3 className="text-xs font-bold text-stone-600 dark:text-stone-400 mb-2">
                           Applications ({searchResults.apps.length})
                         </h3>
                         <div className="space-y-1.5">
@@ -766,21 +771,24 @@ export const AppShell: React.FC<AppShellProps> = ({
                                 setSearchOpen(false);
                                 onOpenApplication(app.id);
                               }}
-                              className="w-full text-left p-2.5 rounded-xl liquid-glass-subtle hover:border-blue-500/50 flex items-center justify-between gap-3 cursor-pointer"
+                              className="w-full text-left p-2.5 rounded-xl liquid-glass-subtle hover:border-[#C2410C] flex items-center justify-between gap-3 cursor-pointer"
                             >
-                              <div>
-                                <div className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                                  <span className="font-mono-tabular text-blue-700 dark:text-blue-400">
+                              <div className="min-w-0">
+                                <div className="text-xs font-semibold text-stone-900 dark:text-white flex items-center gap-2 flex-wrap">
+                                  <span className="font-mono-tabular font-bold text-[#C2410C] dark:text-orange-400">
                                     {app.id}
                                   </span>
                                   <span>·</span>
                                   <span>{app.category}</span>
                                 </div>
-                                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                  {app.institutionName} · Status: {app.status}
+                                <div className="text-[11px] text-stone-600 dark:text-stone-400 mt-0.5 truncate">
+                                  {app.institutionName}
                                 </div>
                               </div>
-                              <ArrowUpRight className="w-4 h-4 text-slate-400 shrink-0" />
+                              <div className="flex items-center gap-2 shrink-0">
+                                <StatusBadge status={app.status} />
+                                <ArrowUpRight className="w-4 h-4 text-stone-500 shrink-0" />
+                              </div>
                             </button>
                           ))}
                         </div>
@@ -789,7 +797,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
                     {searchResults.docs.length > 0 && (
                       <div>
-                        <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+                        <h3 className="text-xs font-bold text-stone-600 dark:text-stone-400 mb-2">
                           Documents ({searchResults.docs.length})
                         </h3>
                         <div className="space-y-1.5">
@@ -801,20 +809,24 @@ export const AppShell: React.FC<AppShellProps> = ({
                                 setSearchOpen(false);
                                 onOpenDocument(doc.id);
                               }}
-                              className="w-full text-left p-2.5 rounded-xl liquid-glass-subtle hover:border-blue-500/50 flex items-center justify-between gap-3 cursor-pointer"
+                              className="w-full text-left p-2.5 rounded-xl liquid-glass-subtle hover:border-[#C2410C] flex items-center justify-between gap-3 cursor-pointer"
                             >
                               <div className="min-w-0">
-                                <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">
-                                  <span className="font-mono-tabular text-blue-700 dark:text-blue-400 mr-2">
+                                <div className="text-xs font-semibold text-stone-900 dark:text-white flex items-center gap-2 flex-wrap">
+                                  <FileTypeMarker mimeType={doc.mimeType} fileName={doc.fileName} compact />
+                                  <span className="font-mono-tabular font-bold text-[#C2410C] dark:text-orange-400">
                                     {doc.internalCode}
                                   </span>
-                                  {doc.name}
+                                  <span className="truncate">{doc.name}</span>
                                 </div>
-                                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-mono-tabular truncate">
+                                <div className="text-[11px] text-stone-600 dark:text-stone-400 mt-0.5 font-mono-tabular truncate">
                                   Cert #{doc.certificateNumber} · {doc.personName} · {doc.institutionName}
                                 </div>
                               </div>
-                              <ArrowUpRight className="w-4 h-4 text-slate-400 shrink-0" />
+                              <div className="flex items-center gap-2 shrink-0">
+                                <StatusBadge status={doc.issuerVerificationStatus} />
+                                <ArrowUpRight className="w-4 h-4 text-stone-500 shrink-0" />
+                              </div>
                             </button>
                           ))}
                         </div>
@@ -823,7 +835,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
                     {searchResults.insts.length > 0 && (
                       <div>
-                        <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+                        <h3 className="text-xs font-bold text-stone-600 dark:text-stone-400 mb-2">
                           Institutions ({searchResults.insts.length})
                         </h3>
                         <div className="space-y-1.5">
@@ -835,17 +847,17 @@ export const AppShell: React.FC<AppShellProps> = ({
                                 setSearchOpen(false);
                                 onNavigate('applications');
                               }}
-                              className="w-full text-left p-2.5 rounded-xl liquid-glass-subtle hover:border-blue-500/50 flex items-center justify-between gap-3 cursor-pointer"
+                              className="w-full text-left p-2.5 rounded-xl liquid-glass-subtle hover:border-[#C2410C] flex items-center justify-between gap-3 cursor-pointer"
                             >
                               <div>
-                                <div className="text-xs font-semibold text-slate-900 dark:text-white">
+                                <div className="text-xs font-semibold text-stone-900 dark:text-white">
                                   {inst.name}
                                 </div>
-                                <div className="text-[11px] text-slate-500 font-mono-tabular">
+                                <div className="text-[11px] text-stone-600 dark:text-stone-400 font-mono-tabular">
                                   {inst.code} · AICTE ID: {inst.aictePermanentId} · Nodal: {inst.representativeName}
                                 </div>
                               </div>
-                              <ArrowUpRight className="w-4 h-4 text-slate-400 shrink-0" />
+                              <ArrowUpRight className="w-4 h-4 text-stone-500 shrink-0" />
                             </button>
                           ))}
                         </div>
@@ -861,3 +873,4 @@ export const AppShell: React.FC<AppShellProps> = ({
     </div>
   );
 };
+

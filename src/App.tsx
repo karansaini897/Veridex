@@ -134,6 +134,7 @@ export default function App() {
   });
 
   const [showLogin, setShowLogin] = useState<boolean>(false);
+  const [showPublicOverview, setShowPublicOverview] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<MainView>('dashboard');
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
@@ -184,6 +185,7 @@ export default function App() {
   const handleLoginSuccess = (user: UserAccount) => {
     setCurrentUserId(user.id);
     setShowLogin(false);
+    setShowPublicOverview(false);
     setActiveView('dashboard');
     setSelectedApplicationId(null);
     setSelectedDocumentId(null);
@@ -207,6 +209,7 @@ export default function App() {
       );
     }
     setCurrentUserId(null);
+    setShowPublicOverview(false);
     setSelectedApplicationId(null);
     setSelectedDocumentId(null);
   };
@@ -899,6 +902,23 @@ export default function App() {
     );
   }
 
+  if (showPublicOverview) {
+    return (
+      <>
+        <LandingPageView
+          onOpenLogin={() => setShowPublicOverview(false)}
+          isAuthenticated
+          onReturnToWorkspace={() => setShowPublicOverview(false)}
+        />
+        <GeminiChatbotWidget
+          currentUser={currentUser}
+          applications={applications}
+          documents={documents}
+        />
+      </>
+    );
+  }
+
   const selectedApplication =
     applications.find(
       (a) => a.id === selectedApplicationId && canUserAccessApplication(currentUser, a)
@@ -946,6 +966,7 @@ export default function App() {
       onResetRegistryData={handleResetRegistryData}
       darkMode={darkMode}
       onToggleDarkMode={() => setDarkMode((prev) => !prev)}
+      onOpenPublicLanding={() => setShowPublicOverview(true)}
     >
       {/* Main View Router */}
       {activeView === 'dashboard' &&

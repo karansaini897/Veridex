@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import {
   ShieldCheck,
   FileCheck2,
@@ -16,26 +16,116 @@ import {
   Info,
   ChevronRight,
   Activity,
+  Building2,
+  ClipboardList,
+  UserCheck,
+  FileText,
 } from 'lucide-react';
+import { StatusBadge } from './StatusPrimitives';
 
 interface LandingPageViewProps {
   onOpenLogin: () => void;
+  isAuthenticated?: boolean;
+  onReturnToWorkspace?: () => void;
 }
 
 const SMOOTH_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
+interface HeroJourneyStage {
+  stepNumber: string;
+  shortTitle: string;
+  title: string;
+  actor: string;
+  statusBadge: string;
+  summary: string;
+  recordCode: string;
+  evidenceDetail: string;
+  nextActionLabel: string;
+}
+
+const HERO_JOURNEY_STAGES: HeroJourneyStage[] = [
+  {
+    stepNumber: '01',
+    shortTitle: 'Prepare Dossier',
+    title: 'Institution Prepares Application Dossier',
+    actor: 'Institutional Nodal Officer (VESIT)',
+    statusBadge: 'Draft',
+    summary:
+      'Selects an approval category (e.g., Extension of Approval) to initialize a tailored statutory checklist and dossier record.',
+    recordCode: 'APP-2026-0104 · INST-VESIT-104',
+    evidenceDetail:
+      '5 mandatory statutory categories mapped: Affiliation, Fire Safety, Faculty Qualifications, Corpus Audit, and Cadre Roster.',
+    nextActionLabel: 'Register supporting document metadata against checklist items',
+  },
+  {
+    stepNumber: '02',
+    shortTitle: 'Organize Checklist',
+    title: 'Document Details Organized Against Checklist',
+    actor: 'Versioned Repository Index',
+    statusBadge: 'Uploaded',
+    summary:
+      'Assigns deterministic internal document codes, records certificate references and validity dates, and links each record to its checklist requirement.',
+    recordCode: 'APR-REG-VES-01 · Cert #UOM/AFF/2026/4412',
+    evidenceDetail:
+      'Structured repository path /Repository/Regulatory/Statutory-Approvals (PDF · 1.84 MB · Version v1 recorded).',
+    nextActionLabel: 'Compare registered metadata and validity windows against compliance rules',
+  },
+  {
+    stepNumber: '03',
+    shortTitle: 'Review Finding',
+    title: 'Review Signal or Finding Surfaced for Inspection',
+    actor: '6-Pillar Compliance Check',
+    statusBadge: 'Flagged for Review',
+    summary:
+      'Highlights expired clearances, missing annexure pages, or cross-document name variations as transparent prompts for officer inspection—never as automatic proof of fraud.',
+    recordCode: 'INF-FAC-VES-01 · Pillar: Expiry & Consistency',
+    evidenceDetail:
+      'Fire & Life Safety NOC validity window flagged + faculty surname spelling variation noted across degree scroll and roster.',
+    nextActionLabel: 'Route finding to authorized regional reviewer for human evaluation',
+  },
+  {
+    stepNumber: '04',
+    shortTitle: 'Record Decision',
+    title: 'Authorized Reviewer Records Next Action',
+    actor: 'Regional Compliance Reviewer (Admin)',
+    statusBadge: 'Decision Recorded',
+    summary:
+      'An authorized human officer inspects the linked evidence, requests institutional clarification if needed, or records the formal compliance determination.',
+    recordCode: 'Audit Entry · Officer Sign-Off Logged',
+    evidenceDetail:
+      'Human-in-the-loop governance: every clarification notice, resubmission, and recorded outcome is logged with actor and timestamp.',
+    nextActionLabel: 'Complete audit trail preserved across institutional and admin views',
+  },
+];
+
 export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onOpenLogin,
+  isAuthenticated = false,
+  onReturnToWorkspace,
 }) => {
+  const prefersReducedMotion = useReducedMotion();
+  const [activeJourneyStep, setActiveJourneyStep] = useState<number>(0);
+  const [journeyPausedByUser, setJourneyPausedByUser] = useState<boolean>(false);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState<0 | 1 | 2>(1);
   const [boardFilter, setBoardFilter] = useState<'all' | 'validation' | 'governance'>('all');
+
+  // Restrained sequential focus transition across the 4-step hero journey (disabled when reduced motion is preferred or user manually selects a step)
+  useEffect(() => {
+    if (prefersReducedMotion || journeyPausedByUser) return;
+    const interval = window.setInterval(() => {
+      setActiveJourneyStep((prev) => (prev + 1) % HERO_JOURNEY_STAGES.length);
+    }, 4500);
+    return () => window.clearInterval(interval);
+  }, [prefersReducedMotion, journeyPausedByUser]);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
     }
   };
+
+  const currentStage = HERO_JOURNEY_STAGES[activeJourneyStep];
 
   return (
     <div className="min-h-screen bg-[#F4EDE1] text-stone-900 font-sans selection:bg-[#C2410C]/20 selection:text-[#7C2D12] overflow-x-hidden">
@@ -65,13 +155,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
       {/* Top Navigation Bar (Strict 3-Zone Contract: Brand + Tagline | Nav Links | Actions) */}
       <header className="sticky top-1.5 z-40 border-b-2 border-[#C2410C]/35 bg-[#FAF5EB]/95 backdrop-blur-md shadow-xs">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4 sm:gap-8">
           {/* Zone 1: Brand Wordmark + Hindi Tagline */}
           <a
             href="#top"
             onClick={(e) => {
               e.preventDefault();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
             }}
             className="flex items-center gap-3 whitespace-nowrap shrink-0 group"
           >
@@ -99,112 +189,240 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <button
               type="button"
               onClick={() => scrollToSection('platform')}
-              className="hover:text-[#C2410C] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="hover:text-[#C2410C] transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1"
             >
               Platform
             </button>
             <button
               type="button"
               onClick={() => scrollToSection('features')}
-              className="hover:text-[#C2410C] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="hover:text-[#C2410C] transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1"
             >
               Features
             </button>
             <button
               type="button"
               onClick={() => scrollToSection('workflow')}
-              className="hover:text-[#C2410C] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="hover:text-[#C2410C] transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1"
             >
               Workflow
             </button>
             <button
               type="button"
               onClick={() => scrollToSection('about')}
-              className="hover:text-[#C2410C] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="hover:text-[#C2410C] transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1"
             >
               About
             </button>
           </nav>
 
           {/* Zone 3: Sign In & Get Started Actions */}
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={onOpenLogin}
-              className="px-4 py-2 rounded-xl bg-[#FCF9F2] hover:bg-[#EFE6D5] text-stone-900 border-2 border-[#C2410C]/45 text-xs font-semibold transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={onOpenLogin}
-              className="px-4 py-2 rounded-xl bg-[#C2410C] hover:bg-[#9A3412] text-white text-xs font-semibold transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-sm border border-[#7C2D12]"
-            >
-              Get Started
-            </button>
+          <div className="flex items-center gap-2.5 shrink-0">
+            {isAuthenticated && onReturnToWorkspace ? (
+              <button
+                type="button"
+                onClick={onReturnToWorkspace}
+                className="btn-primary px-4 py-2 text-xs"
+              >
+                <span>Return to Workspace</span>
+                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onOpenLogin}
+                  className="px-3.5 py-2 rounded-xl bg-[#FCF9F2] hover:bg-[#EFE6D5] text-stone-800 border border-[#C2410C]/40 text-xs font-semibold transition-all whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenLogin}
+                  className="btn-primary px-4 py-2 text-xs"
+                >
+                  <span>Get Started</span>
+                  <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
 
       <main id="top" className="relative z-10">
         {/* =========================================================
-            HERO SECTION + LAYERED FLOATING SOFTWARE MOCKUP
+            HERO SECTION + 4-STEP DOSSIER-TO-DECISION VISUAL JOURNEY
            ========================================================= */}
-        <section className="pt-14 sm:pt-18 pb-20 px-6 max-w-7xl mx-auto">
+        <section className="pt-12 sm:pt-16 pb-20 px-4 sm:px-6 max-w-7xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: 14 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: SMOOTH_EASE }}
             className="text-center max-w-3xl mx-auto space-y-5"
           >
-            <p className="text-xs font-bold tracking-wider uppercase text-[#C2410C]">
-              Institutional Validation &amp; Regulatory Compliance Portal
-            </p>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-md bg-[#FCF9F2] border border-[#C2410C]/40 shadow-2xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#046A38]" aria-hidden="true" />
+              <span className="text-[11px] font-bold tracking-wider uppercase text-[#C2410C]">
+                Institutional Validation &amp; Regulatory Compliance Portal
+              </span>
+            </div>
 
-            <h1 className="font-display font-bold text-4xl sm:text-5xl lg:text-[54px] leading-[1.08] tracking-tight text-stone-900">
+            <h1 className="font-display font-bold text-4xl sm:text-5xl lg:text-[56px] leading-[1.06] tracking-tight text-stone-900">
               Document Verification,{' '}
               <span className="bg-gradient-to-r from-[#C2410C] via-[#B45309] to-[#046A38] bg-clip-text text-transparent">
                 Reimagined.
               </span>
             </h1>
 
-            <p className="text-sm sm:text-base text-stone-700 max-w-xl mx-auto leading-relaxed">
-              Validate applications, organize institutional records, and surface compliance issues through one clear review workflow.
+            <p className="text-sm sm:text-base text-stone-700 max-w-2xl mx-auto leading-relaxed">
+              Validate institutional applications, organize supporting document records against statutory checklists, and surface evidence-linked compliance findings through one structured review workflow.
             </p>
 
-            {/* Primary & Secondary Hero CTAs */}
+            {/* Primary & Secondary Hero CTAs — Primary Action Clearly Dominant */}
             <div className="pt-3 flex flex-wrap items-center justify-center gap-3.5">
               <button
                 type="button"
-                onClick={() => scrollToSection('platform')}
-                className="px-5 py-2.5 rounded-xl bg-[#FCF9F2] hover:bg-[#EFE6D5] text-stone-900 border-2 border-[#C2410C]/50 text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-xs whitespace-nowrap"
+                onClick={isAuthenticated && onReturnToWorkspace ? onReturnToWorkspace : onOpenLogin}
+                className="px-6 py-3 rounded-xl bg-[#C2410C] hover:bg-[#9A3412] text-white text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-md border border-[#7C2D12] inline-flex items-center gap-2 whitespace-nowrap"
               >
-                Explore the Platform
+                <span>{isAuthenticated ? 'Open Active Workspace' : 'Sign In to Workspace'}</span>
+                <ArrowRight className="w-4 h-4 text-white" aria-hidden="true" />
               </button>
               <button
                 type="button"
-                onClick={onOpenLogin}
-                className="px-5 py-2.5 rounded-xl bg-[#046A38] hover:bg-[#03542C] text-white text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-md border border-[#023E20] flex items-center gap-2 whitespace-nowrap"
+                onClick={() => scrollToSection('platform')}
+                className="px-5 py-3 rounded-xl bg-[#FCF9F2] hover:bg-[#EFE6D5] text-stone-800 border border-[#C2410C]/45 text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs whitespace-nowrap"
               >
-                <span>Sign In</span>
-                <ArrowRight className="w-3.5 h-3.5 text-white" />
+                Explore the Platform
               </button>
             </div>
           </motion.div>
 
+          {/* Compact 4-Step Visual Compliance Journey Focal Point */}
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.06, ease: SMOOTH_EASE }}
+            className="mt-10 max-w-6xl mx-auto rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/60 shadow-[0_18px_45px_rgba(124,45,18,0.12)] overflow-hidden"
+            aria-label="Interactive Dossier-to-Decision Compliance Journey"
+          >
+            <div className="px-4 sm:px-6 py-3 bg-[#F3E9D7] border-b border-[#C2410C]/35 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-[#046A38]" aria-hidden="true" />
+                <span className="text-xs font-display font-bold text-stone-900">
+                  End-to-End Institutional Compliance Journey
+                </span>
+              </div>
+              <span className="text-[11px] font-mono-tabular text-stone-600">
+                Select any stage to inspect workflow details
+              </span>
+            </div>
+
+            {/* 4-Step Stepper Selector */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#C2410C]/25 border-b border-[#C2410C]/30 bg-[#FAF5EB]">
+              {HERO_JOURNEY_STAGES.map((stage, idx) => {
+                const isActive = activeJourneyStep === idx;
+                return (
+                  <button
+                    key={stage.stepNumber}
+                    type="button"
+                    onClick={() => {
+                      setActiveJourneyStep(idx);
+                      setJourneyPausedByUser(true);
+                    }}
+                    aria-pressed={isActive}
+                    className={`p-3.5 sm:p-4 text-left transition-colors cursor-pointer relative ${
+                      isActive
+                        ? 'bg-[#FCF9F2] text-stone-900'
+                        : 'hover:bg-[#F3E9D7]/60 text-stone-600'
+                    }`}
+                  >
+                    {isActive && (
+                      <div
+                        className="h-1 w-full bg-gradient-to-r from-[#C2410C] to-[#046A38] absolute top-0 left-0 right-0"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <div className="flex items-center justify-between gap-2 text-[11px] font-mono-tabular">
+                      <span
+                        className={`font-bold ${
+                          isActive ? 'text-[#C2410C]' : 'text-stone-500'
+                        }`}
+                      >
+                        STEP {stage.stepNumber}
+                      </span>
+                      {idx < activeJourneyStep ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#046A38]" aria-hidden="true" />
+                      ) : isActive ? (
+                        <span className="w-2 h-2 rounded-full bg-[#C2410C]" aria-hidden="true" />
+                      ) : null}
+                    </div>
+                    <div className="text-xs sm:text-sm font-display font-bold text-stone-900 mt-1">
+                      {stage.shortTitle}
+                    </div>
+                    <div className="text-[11px] text-stone-600 truncate mt-0.5">
+                      {stage.actor}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active Journey Stage Detail Panel */}
+            <div className="p-4 sm:p-6 bg-[#FCF9F2] grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+              <div className="lg:col-span-7 space-y-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-mono-tabular font-bold text-[#C2410C]">
+                    Stage {currentStage.stepNumber} of 04
+                  </span>
+                  <span aria-hidden="true" className="text-stone-400">·</span>
+                  <span className="text-xs font-semibold text-stone-700">
+                    {currentStage.actor}
+                  </span>
+                  <StatusBadge status={currentStage.statusBadge} />
+                </div>
+                <h2 className="text-base sm:text-lg font-display font-bold text-stone-900">
+                  {currentStage.title}
+                </h2>
+                <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
+                  {currentStage.summary}
+                </p>
+              </div>
+
+              <div className="lg:col-span-5 rounded-xl bg-[#F4EDE1] border border-[#C2410C]/40 p-4 space-y-2.5">
+                <div className="flex items-center justify-between gap-2 border-b border-[#C2410C]/20 pb-2">
+                  <span className="text-[11px] font-mono-tabular font-bold text-[#046A38] flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    <span>{currentStage.recordCode}</span>
+                  </span>
+                  <span className="text-[10px] font-mono-tabular px-2 py-0.5 rounded bg-[#FCF9F2] border border-[#C2410C]/30 text-stone-700">
+                    Structured Record
+                  </span>
+                </div>
+                <p className="text-xs text-stone-800 leading-relaxed font-medium">
+                  {currentStage.evidenceDetail}
+                </p>
+                <div className="pt-1.5 border-t border-[#C2410C]/20 flex items-center justify-between gap-2 text-[11px] text-[#C2410C] font-semibold">
+                  <span>Next: {currentStage.nextActionLabel}</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
           {/* 3-Card Layered Floating Software Showcase (Beige Surface, Dark Orange Borders, Green Icons) */}
-          <div className="relative mt-14 sm:mt-16 max-w-6xl mx-auto pt-4 pb-6">
+          <div className="relative mt-10 sm:mt-12 max-w-6xl mx-auto pt-2 pb-6">
             <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-5 items-end">
               {/* LEFT FLOATING WING CARD: Validation Architecture Coverage */}
               <motion.div
-                initial={{ opacity: 0, x: -24, rotate: -3 }}
-                animate={{ opacity: 1, x: 0, rotate: -3 }}
+                initial={prefersReducedMotion ? false : { opacity: 0, x: -24, rotate: -2 }}
+                animate={{ opacity: 1, x: 0, rotate: -2 }}
                 transition={{ duration: 0.55, delay: 0.1, ease: SMOOTH_EASE }}
                 className="hidden lg:block lg:col-span-3 -mr-6 mb-6 z-10 rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/55 p-5 shadow-[0_18px_45px_rgba(124,45,18,0.14)]"
               >
                 <div className="flex items-center justify-between text-xs font-medium text-stone-700 mb-4">
                   <span className="flex items-center gap-1.5 font-display font-bold text-stone-900">
-                    <Activity className="w-4 h-4 text-[#046A38]" />
+                    <Activity className="w-4 h-4 text-[#046A38]" aria-hidden="true" />
                     <span>Validation Engine</span>
                   </span>
                   <span className="text-[10px] font-mono-tabular font-semibold text-[#C2410C]">
@@ -212,9 +430,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   </span>
                 </div>
 
-                {/* SVG Ring Chart (100% Full Circle) */}
+                {/* SVG Ring Chart */}
                 <div className="relative w-32 h-32 mx-auto my-3 flex items-center justify-center">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
                     <circle
                       cx="50"
                       cy="50"
@@ -251,7 +469,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <div className="space-y-2 pt-3 border-t border-[#C2410C]/25 text-xs">
                   <div className="flex items-center justify-between text-stone-700">
                     <span>Checklist Completeness</span>
-                    <span className="font-mono-tabular font-semibold text-[#046A38]">Automated</span>
+                    <span className="font-mono-tabular font-semibold text-[#046A38]">Tracked</span>
                   </div>
                   <div className="flex items-center justify-between text-stone-700">
                     <span>Expiry Window Watch</span>
@@ -266,7 +484,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               {/* CENTER MAIN PRODUCT BOARD MOCKUP */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.05, ease: SMOOTH_EASE }}
                 className="lg:col-span-6 z-20 rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/65 shadow-[0_24px_60px_rgba(124,45,18,0.18)] overflow-hidden"
@@ -274,7 +492,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 {/* Board Window Top Toolbar */}
                 <div className="px-4 py-3 border-b-2 border-[#C2410C]/35 bg-[#F3E9D7] flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <FileCheck2 className="w-4 h-4 text-[#046A38]" />
+                    <FileCheck2 className="w-4 h-4 text-[#046A38]" aria-hidden="true" />
                     <span className="text-xs font-display font-bold text-stone-900">
                       Application Validation Board
                     </span>
@@ -320,7 +538,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                           Maps approvals, faculty records, and safety annexures into structured folders.
                         </div>
                         <div className="pt-1 border-t border-[#C2410C]/20 text-[10px] text-[#046A38] font-mono-tabular font-semibold">
-                          OCR Key-Value Field Parsing
+                          Structured Metadata Indexing
                         </div>
                       </div>
                     )}
@@ -334,7 +552,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                           Sequential Document Coding
                         </div>
                         <div className="text-[10px] text-stone-600 leading-relaxed">
-                          Preserves full revision history when renewed certificates are uploaded.
+                          Preserves full revision history when renewed certificates are registered.
                         </div>
                       </div>
                     )}
@@ -361,7 +579,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         </div>
                       </div>
                       <div className="text-[10px] text-stone-600 leading-relaxed">
-                        Compares application declarations against uploaded supporting evidence.
+                        Compares application declarations against registered supporting evidence.
                       </div>
                       <div className="pt-1 border-t border-[#C2410C]/20 text-[10px] text-[#046A38] font-semibold">
                         Norm &amp; Threshold Evaluation
@@ -406,7 +624,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
                     <div className="rounded-xl bg-[#FCF9F2] border border-[#C2410C]/45 p-3 space-y-1.5">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-stone-900 leading-snug">
-                        <Lock className="w-3.5 h-3.5 text-[#046A38] shrink-0" />
+                        <Lock className="w-3.5 h-3.5 text-[#046A38] shrink-0" aria-hidden="true" />
                         <span>Confidential Records Protected</span>
                       </div>
                       <div className="text-[10px] text-stone-600 leading-relaxed">
@@ -419,18 +637,18 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               {/* RIGHT FLOATING WING CARD: Verification Signal & Access Control */}
               <motion.div
-                initial={{ opacity: 0, x: 24, rotate: 3 }}
-                animate={{ opacity: 1, x: 0, rotate: 3 }}
+                initial={prefersReducedMotion ? false : { opacity: 0, x: 24, rotate: 2 }}
+                animate={{ opacity: 1, x: 0, rotate: 2 }}
                 transition={{ duration: 0.55, delay: 0.14, ease: SMOOTH_EASE }}
                 className="hidden lg:block lg:col-span-3 -ml-6 mb-6 z-10 rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/55 p-5 shadow-[0_18px_45px_rgba(124,45,18,0.14)] space-y-3.5"
               >
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-xs font-display font-bold text-stone-900">
-                    <Sparkles className="w-4 h-4 text-[#046A38]" />
-                    <span>Verification Signal</span>
+                    <Sparkles className="w-4 h-4 text-[#046A38]" aria-hidden="true" />
+                    <span>Review Signal</span>
                   </span>
                   <span className="text-[10px] font-mono-tabular font-semibold text-[#C2410C]">
-                    OCR Extraction
+                    Evidence-Linked
                   </span>
                 </div>
 
@@ -439,7 +657,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     Cross-Document Field Check
                   </div>
                   <p className="text-[11px] text-stone-700 leading-relaxed">
-                    Extracted intake &amp; certificate validity compared against institutional checklist rules.
+                    Registered certificate numbers &amp; validity dates compared against institutional checklist rules.
                   </p>
                   <button
                     type="button"
@@ -474,7 +692,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
            ========================================================= */}
         <section
           id="platform"
-          className="py-20 px-6 max-w-7xl mx-auto border-t-2 border-[#C2410C]/25"
+          className="py-20 px-4 sm:px-6 max-w-7xl mx-auto border-t-2 border-[#C2410C]/25"
         >
           <div className="max-w-2xl mb-12">
             <p className="text-xs font-bold uppercase tracking-wider text-[#C2410C] mb-1.5">
@@ -505,15 +723,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               <div className="space-y-3 pt-4 border-t border-[#C2410C]/25 text-xs text-stone-700">
                 <div className="flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-[#C2410C] shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-4 h-4 text-[#C2410C] shrink-0 mt-0.5" aria-hidden="true" />
                   <span>Unstructured uploads make missing pages or unsigned annexures easy to overlook until late-stage committee review.</span>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-[#C2410C] shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-4 h-4 text-[#C2410C] shrink-0 mt-0.5" aria-hidden="true" />
                   <span>Lapsed municipal safety or affiliation certificates go unnoticed without automated validity window tracking.</span>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-[#C2410C] shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-4 h-4 text-[#C2410C] shrink-0 mt-0.5" aria-hidden="true" />
                   <span>Clarification requests and resubmitted document versions become scattered across email threads.</span>
                 </div>
               </div>
@@ -535,15 +753,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               <div className="space-y-3 pt-4 border-t border-[#046A38]/25 text-xs text-stone-800">
                 <div className="flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#046A38] shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-4 h-4 text-[#046A38] shrink-0 mt-0.5" aria-hidden="true" />
                   <span>Tailored checklists map every required approval, faculty record, and financial annexure to a unique internal document code.</span>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#046A38] shrink-0 mt-0.5" />
-                  <span>OCR field extraction and expiry calendars highlight potential discrepancies before final review.</span>
+                  <CheckCircle2 className="w-4 h-4 text-[#046A38] shrink-0 mt-0.5" aria-hidden="true" />
+                  <span>Structured metadata summaries and expiry calendars highlight potential discrepancies before final review.</span>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#046A38] shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-4 h-4 text-[#046A38] shrink-0 mt-0.5" aria-hidden="true" />
                   <span>Role-isolated workspaces keep institutional nodal officers and compliance reviewers aligned with full activity history.</span>
                 </div>
               </div>
@@ -556,7 +774,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
            ========================================================= */}
         <section
           id="features"
-          className="py-20 px-6 max-w-7xl mx-auto border-t-2 border-[#C2410C]/25"
+          className="py-20 px-4 sm:px-6 max-w-7xl mx-auto border-t-2 border-[#C2410C]/25"
         >
           <div className="max-w-2xl mb-12">
             <p className="text-xs font-bold uppercase tracking-wider text-[#C2410C] mb-1.5">
@@ -578,7 +796,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <span className="text-xs font-mono-tabular font-bold text-[#C2410C]">
                     01 · Application Validation
                   </span>
-                  <FileCheck2 className="w-5 h-5 text-[#046A38]" />
+                  <FileCheck2 className="w-5 h-5 text-[#046A38]" aria-hidden="true" />
                 </div>
                 <h3 className="text-lg font-display font-bold text-stone-900">
                   Category-Specific Statutory Checklists
@@ -600,13 +818,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <span className="text-xs font-mono-tabular font-bold text-[#C2410C]">
                     02 · Document Organization
                   </span>
-                  <FolderKanban className="w-5 h-5 text-[#046A38]" />
+                  <FolderKanban className="w-5 h-5 text-[#046A38]" aria-hidden="true" />
                 </div>
                 <h3 className="text-lg font-display font-bold text-stone-900">
                   Structured Repository &amp; Versioning
                 </h3>
                 <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
-                  Assigns deterministic internal codes, structures institutional repository paths, and preserves version history when renewed certificates are uploaded.
+                  Assigns deterministic internal codes, structures institutional repository paths, and preserves version history when renewed certificates are registered.
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-[#F3E9D7] border border-[#C2410C]/35 text-[11px] font-mono-tabular font-semibold text-[#046A38]">
@@ -614,20 +832,20 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               </div>
             </div>
 
-            {/* Feature 3: OCR-Assisted Extraction (5 cols) */}
+            {/* Feature 3: Structured Metadata Summary (5 cols) */}
             <div className="md:col-span-5 rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/45 hover:border-[#9A3412] transition-all p-6 flex flex-col justify-between space-y-4 shadow-xs">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono-tabular font-bold text-[#C2410C]">
-                    03 · OCR-Assisted Extraction
+                    03 · Structured Field Summary
                   </span>
-                  <ScanText className="w-5 h-5 text-[#046A38]" />
+                  <ScanText className="w-5 h-5 text-[#046A38]" aria-hidden="true" />
                 </div>
                 <h3 className="text-lg font-display font-bold text-stone-900">
-                  Structured Key-Value Field Parsing
+                  Side-by-Side Certificate Metadata Inspection
                 </h3>
                 <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
-                  Surfaces certificate numbers, issuing authorities, approved intake figures, and validity dates alongside the original document record for rapid side-by-side inspection.
+                  Surfaces certificate numbers, issuing authorities, approved intake figures, and validity dates alongside the document record for rapid side-by-side reviewer inspection.
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-[#F3E9D7] border border-[#C2410C]/35 text-[11px] font-mono-tabular font-semibold text-[#046A38]">
@@ -642,7 +860,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <span className="text-xs font-mono-tabular font-bold text-[#C2410C]">
                     04 · Expiry Monitoring
                   </span>
-                  <CalendarClock className="w-5 h-5 text-[#046A38]" />
+                  <CalendarClock className="w-5 h-5 text-[#046A38]" aria-hidden="true" />
                 </div>
                 <h3 className="text-lg font-display font-bold text-stone-900">
                   Proactive Validity &amp; Renewal Calendar
@@ -664,7 +882,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <span className="text-xs font-mono-tabular font-bold text-[#C2410C]">
                   05 · Consistency Checks
                 </span>
-                <GitCompare className="w-5 h-5 text-[#046A38]" />
+                <GitCompare className="w-5 h-5 text-[#046A38]" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-display font-bold text-stone-900">
                 Cross-Document Field &amp; Name Comparison
@@ -680,7 +898,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <span className="text-xs font-mono-tabular font-bold text-[#C2410C]">
                   06 · Compliance Rules
                 </span>
-                <Scale className="w-5 h-5 text-[#046A38]" />
+                <Scale className="w-5 h-5 text-[#046A38]" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-display font-bold text-stone-900">
                 Configurable Regulatory Rule Engine
@@ -697,7 +915,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
            ========================================================= */}
         <section
           id="workflow"
-          className="py-20 px-6 max-w-7xl mx-auto border-t-2 border-[#C2410C]/25"
+          className="py-20 px-4 sm:px-6 max-w-7xl mx-auto border-t-2 border-[#C2410C]/25"
         >
           <div className="max-w-2xl mb-10">
             <p className="text-xs font-bold uppercase tracking-wider text-[#C2410C] mb-1.5">
@@ -718,17 +936,19 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 step: 'Step 01 · Submit',
                 title: 'Institution Submits Dossier & Checklist Documents',
                 actor: 'Institutional Nodal Representative',
+                icon: <Building2 className="w-4 h-4 text-[#046A38]" aria-hidden="true" />,
                 description:
-                  'The institution selects an approval category, uploads required certificates to its isolated repository, confirms document categories, and submits the completed checklist.',
+                  'The institution selects an approval category, registers required certificates in its isolated repository, confirms document categories, and submits the completed checklist.',
                 deliverable: 'Structured Dossier + Versioned Document Codes',
               },
               {
                 index: 1 as const,
                 step: 'Step 02 · Validate',
-                title: 'Automated Checks Surface Evidence-Linked Signals',
+                title: 'Compliance Checks Surface Evidence-Linked Signals',
                 actor: 'VERIDEX Validation Pipeline',
+                icon: <ShieldCheck className="w-4 h-4 text-[#046A38]" aria-hidden="true" />,
                 description:
-                  'VERIDEX runs completeness, expiry window, cross-document consistency, and regulatory rule checks—attaching specific page and field evidence to each finding.',
+                  'VERIDEX evaluates completeness, expiry windows, cross-document consistency, and regulatory rule thresholds—attaching specific page and field evidence to each finding.',
                 deliverable: '6-Pillar Verification Findings & Expiry Alerts',
               },
               {
@@ -736,6 +956,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 step: 'Step 03 · Review',
                 title: 'Authorized Officer Reviews, Queries & Decides',
                 actor: 'Regional Compliance Reviewer (Admin)',
+                icon: <UserCheck className="w-4 h-4 text-[#046A38]" aria-hidden="true" />,
                 description:
                   'A human reviewer inspects the flagged signals, issues clarification or correction requests if needed, reviews institutional resubmissions, and records the final decision.',
                 deliverable: 'Authorized Compliance Determination & Audit Log',
@@ -758,7 +979,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <span className={isActive ? 'text-[#C2410C] font-bold' : 'text-stone-600 font-semibold'}>
                         {item.step}
                       </span>
-                      <span className="text-[11px] text-stone-600">{item.actor}</span>
+                      <span className="inline-flex items-center gap-1 text-[11px] text-stone-600">
+                        {item.icon}
+                        <span>{item.actor}</span>
+                      </span>
                     </div>
                     <h3 className="text-lg font-display font-bold text-stone-900">
                       {item.title}
@@ -770,7 +994,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
                   <div className="pt-3 border-t border-[#C2410C]/25 flex items-center justify-between text-xs font-mono-tabular font-semibold text-[#046A38]">
                     <span>Output: {item.deliverable}</span>
-                    <ChevronRight className="w-4 h-4 text-[#046A38] shrink-0" />
+                    <ChevronRight className="w-4 h-4 text-[#046A38] shrink-0" aria-hidden="true" />
                   </div>
                 </button>
               );
@@ -783,7 +1007,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
            ========================================================= */}
         <section
           id="about"
-          className="py-20 px-6 max-w-7xl mx-auto border-t-2 border-[#C2410C]/25"
+          className="py-20 px-4 sm:px-6 max-w-7xl mx-auto border-t-2 border-[#C2410C]/25"
         >
           <div className="rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/50 p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start shadow-sm">
             <div className="lg:col-span-5 space-y-3">
@@ -791,7 +1015,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 04. Responsible Verification &amp; Governance
               </p>
               <h2 className="text-2xl sm:text-3xl font-display font-bold text-stone-900 tracking-tight">
-                AI flags assist human reviewers—they never replace due process.
+                Review signals assist human officers—they never replace due process.
               </h2>
               <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
                 Regulatory compliance decisions carry high institutional and academic stakes. VERIDEX is architected around strict data confidentiality and transparent human-in-the-loop governance.
@@ -801,17 +1025,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-5 rounded-xl bg-[#F8F2E6] border border-[#C2410C]/40 space-y-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-stone-900">
-                  <ShieldCheck className="w-4 h-4 text-[#046A38] shrink-0" />
+                  <ShieldCheck className="w-4 h-4 text-[#046A38] shrink-0" aria-hidden="true" />
                   <span>Review Signals, Not Proof of Fraud</span>
                 </div>
                 <p className="text-xs text-stone-700 leading-relaxed">
-                  Potential inconsistencies, OCR mismatches, or structural document flags are surfaced strictly as prompts for human inspection. A low-resolution scan or spelling variation is never treated as automatic proof of forgery.
+                  Potential inconsistencies, field mismatches, or structural document flags are surfaced strictly as prompts for human inspection. A low-resolution scan or spelling variation is never treated as automatic proof of forgery.
                 </p>
               </div>
 
               <div className="p-5 rounded-xl bg-[#F8F2E6] border border-[#C2410C]/40 space-y-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-stone-900">
-                  <Info className="w-4 h-4 text-[#046A38] shrink-0" />
+                  <Info className="w-4 h-4 text-[#046A38] shrink-0" aria-hidden="true" />
                   <span>External Issuer Registry Scope</span>
                 </div>
                 <p className="text-xs text-stone-700 leading-relaxed">
@@ -821,7 +1045,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               <div className="p-5 rounded-xl bg-[#F8F2E6] border border-[#C2410C]/40 space-y-2 sm:col-span-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-stone-900">
-                  <Lock className="w-4 h-4 text-[#046A38] shrink-0" />
+                  <Lock className="w-4 h-4 text-[#046A38] shrink-0" aria-hidden="true" />
                   <span>Confidentiality &amp; Mandatory Officer Determination</span>
                 </div>
                 <p className="text-xs text-stone-700 leading-relaxed">
@@ -835,7 +1059,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         {/* =========================================================
             FINAL HIGH-CONTRAST CTA SECTION
            ========================================================= */}
-        <section className="py-20 px-6 max-w-5xl mx-auto">
+        <section className="py-20 px-4 sm:px-6 max-w-5xl mx-auto">
           <div className="rounded-3xl bg-[#FCF9F2] border-2 border-[#C2410C]/65 p-8 sm:p-12 text-center space-y-6 shadow-[0_20px_50px_rgba(124,45,18,0.14)] relative overflow-hidden">
             <div className="h-1.5 w-full tricolour-bar absolute top-0 left-0 right-0" />
             <p className="text-xs font-mono-tabular font-bold uppercase tracking-wider text-[#C2410C]">
@@ -850,11 +1074,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3.5">
               <button
                 type="button"
-                onClick={onOpenLogin}
+                onClick={isAuthenticated && onReturnToWorkspace ? onReturnToWorkspace : onOpenLogin}
                 className="px-6 py-3 rounded-xl bg-[#C2410C] hover:bg-[#9A3412] text-white text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-md border border-[#7C2D12] flex items-center gap-2"
               >
-                <span>Get Started — Sign In to Portal</span>
-                <ArrowRight className="w-4 h-4 text-white" />
+                <span>{isAuthenticated ? 'Return to Active Workspace' : 'Get Started — Sign In to Portal'}</span>
+                <ArrowRight className="w-4 h-4 text-white" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -864,7 +1088,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       {/* =========================================================
           FOOTER
          ========================================================= */}
-      <footer className="border-t-2 border-[#C2410C]/35 bg-[#EAE0CE] py-12 px-6 relative z-10">
+      <footer className="border-t-2 border-[#C2410C]/35 bg-[#EAE0CE] py-12 px-4 sm:px-6 relative z-10">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
           <div className="space-y-2 max-w-md">
             <div className="flex items-center gap-3">

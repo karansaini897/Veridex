@@ -35,6 +35,11 @@ import {
   sectionEntranceVariants,
   slideOverDrawerVariants,
 } from '../lib/motion';
+import {
+  EmptyStateCard,
+  FileTypeMarker,
+  StatusBadge,
+} from './StatusPrimitives';
 
 interface DocumentRepositoryViewProps {
   currentUser: UserAccount;
@@ -300,15 +305,15 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-stone-200/80 dark:border-stone-800 pb-5">
         <div>
-          <p className="text-xs font-medium text-blue-700 dark:text-blue-400">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#C2410C] dark:text-amber-400">
             Institutional Document Repository &amp; Version Control
           </p>
-          <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
+          <h1 className="text-2xl font-display font-bold text-stone-900 dark:text-white tracking-tight mt-0.5">
             Authorized Document Repository ({authorizedDocs.length})
           </h1>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">
             Each record uses a unique internal document code (e.g. <span className="font-mono-tabular">FAC-QUA-KAS-02</span>) separate from its database ID and official certificate number.
           </p>
         </div>
@@ -317,7 +322,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
           <button
             type="button"
             onClick={() => setUploadModalOpen(true)}
-            className="px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="btn-primary flex items-center gap-1.5 whitespace-nowrap shrink-0"
           >
             <Upload className="w-4 h-4" />
             <span>Register Document Record</span>
@@ -338,10 +343,10 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
               key={cat}
               type="button"
               onClick={() => setCategoryFilter(cat)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                 active
-                  ? 'bg-slate-900 text-white dark:bg-blue-600'
-                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                  ? 'bg-[#C2410C] text-white'
+                  : 'bg-[#FCF9F2] dark:bg-stone-900 border border-stone-300 dark:border-stone-800 text-stone-600 dark:text-stone-400 hover:bg-[#EFE6D5]'
               }`}
             >
               {cat} ({count})
@@ -452,63 +457,51 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                     key={doc.id}
                     className="hover:bg-slate-50/90 dark:hover:bg-slate-800/40 transition-colors"
                   >
-                    <td className="py-3 px-4 font-mono-tabular font-semibold text-blue-700 dark:text-blue-400 whitespace-nowrap">
+                    <td className="py-3 px-4 font-mono-tabular font-semibold text-[#C2410C] dark:text-amber-400 whitespace-nowrap">
                       {doc.internalCode}
                       {doc.versions.length > 1 && (
-                        <span className="ml-1.5 text-[10px] text-slate-500">
+                        <span className="ml-1.5 text-[10px] text-stone-500">
                           v{doc.versions.length}
                         </span>
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-medium text-slate-900 dark:text-white">
-                        {doc.name}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-stone-900 dark:text-white">
+                          {doc.name}
+                        </span>
+                        <FileTypeMarker mimeType={doc.mimeType} fileName={doc.fileName} fileSize={doc.fileSize} />
                       </div>
-                      <div className="text-[11px] text-slate-500 font-mono-tabular">
-                        Cert #{doc.certificateNumber} · {doc.fileSize}
+                      <div className="text-[11px] text-stone-500 font-mono-tabular mt-0.5">
+                        Cert #{doc.certificateNumber}
                         {doc.relatedApplicationId ? ` · Linked: ${doc.relatedApplicationId}` : ''}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                    <td className="py-3 px-4 text-stone-600 dark:text-stone-300 whitespace-nowrap">
                       {doc.category}
                     </td>
                     <td className="py-3 px-4">
-                      <div className="text-slate-900 dark:text-white font-medium">
+                      <div className="text-stone-900 dark:text-white font-medium">
                         {doc.personName}
                       </div>
-                      <div className="text-[11px] text-slate-500 truncate max-w-48">
+                      <div className="text-[11px] text-stone-500 truncate max-w-48">
                         {doc.institutionName}
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-mono-tabular whitespace-nowrap">
-                      <span
-                        className={
-                          exp.status === 'Expired'
-                            ? 'text-red-700 dark:text-red-400 font-semibold'
-                            : exp.status === 'Expiring Soon'
-                              ? 'text-amber-700 dark:text-amber-400 font-semibold'
-                              : 'text-slate-600 dark:text-slate-400'
-                        }
-                      >
-                        {exp.label}
-                      </span>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <StatusBadge status={exp.status} customLabel={exp.label} size="sm" />
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
-                      {hasIssue ? (
-                        <span className="text-red-700 dark:text-red-400 font-medium">
-                          Flagged for Review
-                        </span>
-                      ) : (
-                        <span className="text-emerald-700 dark:text-emerald-400 font-medium">
-                          {doc.issuerVerificationStatus}
-                        </span>
-                      )}
+                      <StatusBadge
+                        status={hasIssue ? 'Flagged for Review' : doc.issuerVerificationStatus}
+                        size="sm"
+                      />
                     </td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => onSelectDocument(doc.id)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-blue-600 hover:text-white text-slate-800 dark:text-slate-200 font-medium text-xs transition-colors cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg bg-[#EFE6D5] dark:bg-stone-800 hover:bg-[#C2410C] hover:text-white text-stone-900 dark:text-stone-200 font-semibold text-xs transition-colors cursor-pointer"
                       >
                         Inspect Detail
                       </button>
@@ -519,8 +512,32 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
 
               {filteredDocs.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-xs text-slate-500">
-                    No documents match your active search or filters.
+                  <td colSpan={7} className="p-6">
+                    <EmptyStateCard
+                      title="No Matching Repository Documents"
+                      description="No documents match your active search query or status filters."
+                      actionLabel={
+                        searchQuery ||
+                        categoryFilter !== 'All' ||
+                        validityFilter !== 'All' ||
+                        verificationFilter !== 'All'
+                          ? 'Reset All Filters'
+                          : undefined
+                      }
+                      onAction={
+                        searchQuery ||
+                        categoryFilter !== 'All' ||
+                        validityFilter !== 'All' ||
+                        verificationFilter !== 'All'
+                          ? () => {
+                              setSearchQuery('');
+                              setCategoryFilter('All');
+                              setValidityFilter('All');
+                              setVerificationFilter('All');
+                            }
+                          : undefined
+                      }
+                    />
                   </td>
                 </tr>
               )}
@@ -745,44 +762,48 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
 
               {/* 6-Pillar Statutory Verification Breakdown */}
               <section className="space-y-3">
-                <h3 className="text-sm font-display font-bold text-slate-900 dark:text-white">
+                <h3 className="text-sm font-display font-bold text-stone-900 dark:text-white">
                   6-Pillar Statutory Verification Breakdown
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <div className="text-[11px] text-slate-500">1. Completeness</div>
-                    <div className="font-semibold text-slate-900 dark:text-white mt-0.5">
-                      {selectedDocument.completenessStatus}
+                  <div className="p-3 rounded-xl border border-stone-200 dark:border-stone-800 space-y-1.5">
+                    <div className="text-[11px] text-stone-500">1. Completeness</div>
+                    <div>
+                      <StatusBadge status={selectedDocument.completenessStatus} size="sm" />
                     </div>
                   </div>
-                  <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <div className="text-[11px] text-slate-500">2. Expiry Status</div>
-                    <div className="font-semibold text-slate-900 dark:text-white mt-0.5 font-mono-tabular">
-                      {calculateExpiryDetails(selectedDocument.expiryDate, todayStr).label}
+                  <div className="p-3 rounded-xl border border-stone-200 dark:border-stone-800 space-y-1.5">
+                    <div className="text-[11px] text-stone-500">2. Expiry Status</div>
+                    <div>
+                      <StatusBadge
+                        status={calculateExpiryDetails(selectedDocument.expiryDate, todayStr).status}
+                        customLabel={calculateExpiryDetails(selectedDocument.expiryDate, todayStr).label}
+                        size="sm"
+                      />
                     </div>
                   </div>
-                  <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <div className="text-[11px] text-slate-500">3. Consistency</div>
-                    <div className="font-semibold text-slate-900 dark:text-white mt-0.5">
-                      {selectedDocument.consistencyStatus}
+                  <div className="p-3 rounded-xl border border-stone-200 dark:border-stone-800 space-y-1.5">
+                    <div className="text-[11px] text-stone-500">3. Consistency</div>
+                    <div>
+                      <StatusBadge status={selectedDocument.consistencyStatus} size="sm" />
                     </div>
                   </div>
-                  <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <div className="text-[11px] text-slate-500">4. Anomaly Indicators</div>
-                    <div className="font-semibold text-slate-900 dark:text-white mt-0.5">
-                      {selectedDocument.anomalyStatus}
+                  <div className="p-3 rounded-xl border border-stone-200 dark:border-stone-800 space-y-1.5">
+                    <div className="text-[11px] text-stone-500">4. Anomaly Indicators</div>
+                    <div>
+                      <StatusBadge status={selectedDocument.anomalyStatus} size="sm" />
                     </div>
                   </div>
-                  <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <div className="text-[11px] text-slate-500">5. Issuer Verification</div>
-                    <div className="font-semibold text-slate-900 dark:text-white mt-0.5">
-                      {selectedDocument.issuerVerificationStatus}
+                  <div className="p-3 rounded-xl border border-stone-200 dark:border-stone-800 space-y-1.5">
+                    <div className="text-[11px] text-stone-500">5. Issuer Verification</div>
+                    <div>
+                      <StatusBadge status={selectedDocument.issuerVerificationStatus} size="sm" />
                     </div>
                   </div>
-                  <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <div className="text-[11px] text-slate-500">6. Human Review</div>
-                    <div className="font-semibold text-blue-700 dark:text-blue-400 mt-0.5">
-                      {selectedDocument.humanReviewStatus}
+                  <div className="p-3 rounded-xl border border-stone-200 dark:border-stone-800 space-y-1.5">
+                    <div className="text-[11px] text-stone-500">6. Human Review</div>
+                    <div>
+                      <StatusBadge status={selectedDocument.humanReviewStatus} size="sm" />
                     </div>
                   </div>
                 </div>
@@ -792,21 +813,19 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                   {selectedDocument.findings.map((f) => (
                     <div
                       key={f.id}
-                      className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/50 text-xs space-y-1"
+                      className="p-3.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-[#FCF9F2]/70 dark:bg-stone-950/50 text-xs space-y-1"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-slate-900 dark:text-white">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-stone-900 dark:text-white">
                           {f.pillar} — {f.affectedFieldOrPage}
                         </span>
-                        <span className="font-mono-tabular font-semibold text-blue-700 dark:text-blue-400">
-                          {f.status}
-                        </span>
+                        <StatusBadge status={f.status} size="sm" />
                       </div>
-                      <p className="text-slate-600 dark:text-slate-300">{f.explanation}</p>
-                      <div className="text-[11px] text-slate-500 font-mono-tabular">
+                      <p className="text-stone-600 dark:text-stone-300">{f.explanation}</p>
+                      <div className="text-[11px] text-stone-500 font-mono-tabular">
                         Evidence Comparison: {f.evidenceComparison}
                       </div>
-                      <div className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                      <div className="text-[11px] font-medium text-stone-700 dark:text-stone-300">
                         Suggested Next Action: {f.suggestedNextAction}
                       </div>
                     </div>

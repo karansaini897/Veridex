@@ -29,6 +29,7 @@ import {
   sectionEntranceVariants,
   staggerContainerVariants,
 } from '../lib/motion';
+import { AnimatedMetricValue, StatusBadge } from './StatusPrimitives';
 
 interface ReportsAndAccountsViewProps {
   mode: 'reports' | 'accounts';
@@ -565,19 +566,20 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
                 return (
                   <div key={u.id} className="py-3.5 first:pt-0 last:pb-0 flex items-start justify-between gap-3 text-xs">
                     <div className="space-y-0.5 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-slate-900 dark:text-white">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-stone-900 dark:text-white">
                           {u.fullName}
                         </span>
-                        <span className="text-slate-400">·</span>
-                        <span className="text-blue-700 dark:text-blue-400 font-medium">
+                        <span className="text-stone-400">·</span>
+                        <span className="text-[#C2410C] dark:text-amber-400 font-semibold">
                           {u.role}
                         </span>
+                        <StatusBadge status={u.status} size="sm" />
                       </div>
-                      <div className="text-[11px] text-slate-500 font-mono-tabular">
+                      <div className="text-[11px] text-stone-500 font-mono-tabular">
                         @{u.username} · Normalized Phone: {u.normalizedPhone} · Age: {age ?? '—'}y
                       </div>
-                      <div className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
+                      <div className="text-[11px] text-stone-600 dark:text-stone-400 truncate">
                         {u.institutionName || u.designation}
                       </div>
                     </div>
@@ -643,10 +645,10 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
           variants={cardEntranceVariants}
           className="liquid-glass liquid-glass-interactive rounded-2xl p-5 space-y-3"
         >
-          <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white">
+          <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white">
             Applications by Status ({authorizedApps.length})
           </h2>
-          <div className="divide-y divide-slate-200/60 dark:divide-slate-800 text-xs">
+          <div className="divide-y divide-stone-200/60 dark:divide-stone-800 text-xs">
             {(
               [
                 'Decision Recorded',
@@ -660,10 +662,10 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
             ).map((st) => {
               const count = authorizedApps.filter((a) => a.status === st).length;
               return (
-                <div key={st} className="py-2 flex items-center justify-between">
-                  <span className="text-slate-700 dark:text-slate-300">{st}</span>
-                  <span className="font-mono-tabular font-semibold text-slate-900 dark:text-white">
-                    {count}
+                <div key={st} className="py-2 flex items-center justify-between gap-2">
+                  <StatusBadge status={st} size="sm" />
+                  <span className="font-mono-tabular font-semibold text-stone-900 dark:text-white">
+                    <AnimatedMetricValue value={count} />
                   </span>
                 </div>
               );
@@ -676,10 +678,10 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
           variants={cardEntranceVariants}
           className="liquid-glass liquid-glass-interactive rounded-2xl p-5 space-y-3"
         >
-          <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white">
+          <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white">
             Document Verification Status ({authorizedDocs.length})
           </h2>
-          <div className="divide-y divide-slate-200/60 dark:divide-slate-800 text-xs">
+          <div className="divide-y divide-stone-200/60 dark:divide-stone-800 text-xs">
             {(
               [
                 'Verified',
@@ -691,10 +693,10 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
             ).map((st) => {
               const count = authorizedDocs.filter((d) => d.issuerVerificationStatus === st).length;
               return (
-                <div key={st} className="py-2 flex items-center justify-between">
-                  <span className="text-slate-700 dark:text-slate-300">{st}</span>
-                  <span className="font-mono-tabular font-semibold text-slate-900 dark:text-white">
-                    {count}
+                <div key={st} className="py-2 flex items-center justify-between gap-2">
+                  <StatusBadge status={st} size="sm" />
+                  <span className="font-mono-tabular font-semibold text-stone-900 dark:text-white">
+                    <AnimatedMetricValue value={count} />
                   </span>
                 </div>
               );
@@ -707,19 +709,19 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
           variants={cardEntranceVariants}
           className="liquid-glass liquid-glass-interactive rounded-2xl p-5 space-y-3"
         >
-          <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white">
+          <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white">
             Certificate Expiry Risk Breakdown
           </h2>
-          <div className="divide-y divide-slate-200/60 dark:divide-slate-800 text-xs">
+          <div className="divide-y divide-stone-200/60 dark:divide-stone-800 text-xs">
             {(['Expired', 'Expiring Soon', 'Valid', 'No Expiry'] as const).map((st) => {
               const count = authorizedDocs.filter(
                 (d) => calculateExpiryDetails(d.expiryDate, todayStr).status === st
               ).length;
               return (
-                <div key={st} className="py-2 flex items-center justify-between">
-                  <span className="text-slate-700 dark:text-slate-300">{st}</span>
-                  <span className="font-mono-tabular font-semibold text-slate-900 dark:text-white">
-                    {count}
+                <div key={st} className="py-2 flex items-center justify-between gap-2">
+                  <StatusBadge status={st} size="sm" />
+                  <span className="font-mono-tabular font-semibold text-stone-900 dark:text-white">
+                    <AnimatedMetricValue value={count} />
                   </span>
                 </div>
               );

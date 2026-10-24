@@ -25,6 +25,7 @@ import {
   modalBackdropVariants,
   slideOverDrawerVariants,
 } from '../lib/motion';
+import { FileTypeMarker, StatusBadge } from './StatusPrimitives';
 
 interface ApplicationDetailModalProps {
   application: ApplicationRecord;
@@ -173,22 +174,22 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
         className="liquid-glass-elevated w-full max-w-4xl h-full flex flex-col border-y-0 border-r-0 overflow-hidden"
       >
         {/* Top Header */}
-        <div className="px-6 py-4 border-b border-slate-200/70 dark:border-blue-400/15 flex items-start justify-between gap-4 liquid-glass-subtle">
+        <div className="px-6 py-4 border-b border-stone-200/70 dark:border-stone-800 flex items-start justify-between gap-4 liquid-glass-subtle">
           <div>
-            <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400 font-mono-tabular font-semibold">
+            <div className="flex items-center gap-2 text-xs text-[#C2410C] dark:text-amber-400 font-mono-tabular font-semibold flex-wrap">
               <span>{application.id}</span>
               <span aria-hidden="true">·</span>
               <span>Code: {application.officialInstitutionCode}</span>
               <span aria-hidden="true">·</span>
-              <span>Status: {application.status}</span>
+              <StatusBadge status={application.status} size="sm" />
             </div>
             <h2
               id="app-dossier-title"
-              className="text-lg sm:text-xl font-display font-bold text-slate-900 dark:text-white mt-0.5"
+              className="text-lg sm:text-xl font-display font-bold text-stone-900 dark:text-white mt-1"
             >
               {application.category}
             </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
               {application.institutionName} ({application.officialInstitutionCode}) · Assigned Reviewer:{' '}
               <strong>{application.assignedReviewer}</strong>
             </p>
@@ -458,18 +459,19 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                           <span className="text-slate-500">{item.documentCategory}</span>
                         </div>
                         {linkedDoc ? (
-                          <div className="text-xs text-slate-600 dark:text-slate-400 font-mono-tabular">
-                            Linked Record:{' '}
+                          <div className="flex items-center gap-2 flex-wrap text-xs text-stone-600 dark:text-stone-400 font-mono-tabular">
+                            <span>Linked Record:</span>
                             <button
                               type="button"
                               onClick={() => onOpenDocument(linkedDoc.id)}
-                              className="text-blue-700 dark:text-blue-400 font-semibold hover:underline cursor-pointer"
+                              className="text-[#C2410C] dark:text-amber-400 font-semibold hover:underline cursor-pointer"
                             >
                               {linkedDoc.internalCode} ({linkedDoc.name})
                             </button>
+                            <FileTypeMarker mimeType={linkedDoc.mimeType} fileName={linkedDoc.fileName} />
                           </div>
                         ) : (
-                          <div className="text-xs text-slate-400">
+                          <div className="text-xs text-stone-400">
                             No document record registered yet.
                           </div>
                         )}
@@ -481,19 +483,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <span
-                          className={`text-xs font-mono-tabular font-medium ${
-                            item.status === 'Verified'
-                              ? 'text-emerald-700 dark:text-emerald-400'
-                              : item.status === 'Flagged for Review'
-                                ? 'text-red-700 dark:text-red-400'
-                                : item.status === 'Uploaded'
-                                  ? 'text-blue-700 dark:text-blue-400'
-                                  : 'text-slate-500'
-                          }`}
-                        >
-                          {item.status}
-                        </span>
+                        <StatusBadge status={item.status} size="sm" />
 
                         {isRep && (
                           <button
@@ -503,7 +493,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                               setUploadTitle(`${item.title} — ${application.officialInstitutionCode}`);
                               setUploadCertNo(`CERT/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 8999)}`);
                             }}
-                            className="px-2.5 py-1 rounded-lg liquid-glass-subtle text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-blue-500/40 cursor-pointer"
+                            className="btn-secondary !py-1 !px-2.5 cursor-pointer"
                           >
                             {linkedDoc ? 'Update Record' : 'Register Document'}
                           </button>
@@ -600,20 +590,23 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
-                        <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                          <span className="font-mono-tabular text-blue-700 dark:text-blue-400 mr-2">
+                        <div className="flex items-center gap-2 flex-wrap text-xs font-semibold text-stone-900 dark:text-white">
+                          <span className="font-mono-tabular text-[#C2410C] dark:text-amber-400">
                             {doc.internalCode}
                           </span>
-                          {doc.name}
+                          <span>{doc.name}</span>
+                          <FileTypeMarker mimeType={doc.mimeType} fileName={doc.fileName} fileSize={doc.fileSize} />
+                          <StatusBadge status={exp.status} customLabel={exp.label} size="sm" />
+                          <StatusBadge status={doc.humanReviewStatus} size="sm" />
                         </div>
-                        <div className="text-[11px] text-slate-500 font-mono-tabular mt-0.5">
-                          Cert #{doc.certificateNumber} · {doc.category} · Expiry: {exp.label} · Human Review: {doc.humanReviewStatus}
+                        <div className="text-[11px] text-stone-500 font-mono-tabular mt-1">
+                          Cert #{doc.certificateNumber} · {doc.category}
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => onOpenDocument(doc.id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl liquid-glass-subtle text-xs font-medium text-slate-800 dark:text-slate-200 hover:border-blue-500/40 cursor-pointer shrink-0"
+                        className="btn-secondary !py-1.5 !px-3 inline-flex items-center gap-1 shrink-0"
                       >
                         <span>Inspect Document &amp; 6 Pillars</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
@@ -621,34 +614,24 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     </div>
 
                     {doc.findings.length > 0 && (
-                      <div className="space-y-1.5 pt-2 border-t border-slate-200/70 dark:border-slate-800">
+                      <div className="space-y-1.5 pt-2 border-t border-stone-200/70 dark:border-stone-800">
                         {doc.findings.map((f) => (
                           <div
                             key={f.id}
                             className="text-xs flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 liquid-glass-subtle p-2.5 rounded-xl"
                           >
                             <div>
-                              <span className="font-semibold text-slate-900 dark:text-white">
+                              <span className="font-semibold text-stone-900 dark:text-white">
                                 [{f.pillar}] {f.affectedFieldOrPage}:
                               </span>{' '}
-                              <span className="text-slate-600 dark:text-slate-400">
+                              <span className="text-stone-600 dark:text-stone-400">
                                 {f.explanation}
                               </span>
-                              <div className="text-[11px] text-slate-500 font-mono-tabular mt-0.5">
+                              <div className="text-[11px] text-stone-500 font-mono-tabular mt-0.5">
                                 Evidence: {f.evidenceComparison} · Next Action: {f.suggestedNextAction}
                               </div>
                             </div>
-                            <span
-                              className={`text-[11px] font-mono-tabular font-semibold whitespace-nowrap shrink-0 ${
-                                f.status.includes('Flagged') || f.status === 'Action Required'
-                                  ? 'text-red-700 dark:text-red-400'
-                                  : f.status.includes('Passed') || f.status === 'Reviewed'
-                                    ? 'text-emerald-700 dark:text-emerald-400'
-                                    : 'text-amber-700 dark:text-amber-400'
-                              }`}
-                            >
-                              {f.status}
-                            </span>
+                            <StatusBadge status={f.status} size="sm" />
                           </div>
                         ))}
                       </div>

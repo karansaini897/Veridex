@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   Plus,
   AlertTriangle,
@@ -18,7 +18,6 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  Cell,
 } from 'recharts';
 import {
   ApplicationCategory,
@@ -37,6 +36,12 @@ import {
   computeInstitutionChartData,
   getLocalTodayDate,
 } from '../lib/domain';
+import {
+  AnimatedMetricValue,
+  EmptyStateCard,
+  FileTypeMarker,
+  StatusBadge,
+} from './StatusPrimitives';
 
 interface InstitutionalDashboardViewProps {
   currentUser: UserAccount;
@@ -120,6 +125,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
     'University of Mumbai Academic Council NOC & Lab Readiness Annex'
   );
   const [initialCertNumber, setInitialCertNumber] = useState('UOM/NOC/2026/9941');
+  const prefersReducedMotion = useReducedMotion();
   const todayStr = getLocalTodayDate();
 
   // Strict authorization filtering
@@ -254,7 +260,14 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                     }}
                     formatter={(val) => [`${val ?? 0}% Verified`, 'Readiness']}
                   />
-                  <Bar dataKey="readinessScore" name="Verification Readiness %" fill="#046A38" radius={[0, 6, 6, 0]} barSize={22} />
+                  <Bar
+                    dataKey="readinessScore"
+                    name="Verification Readiness %"
+                    fill="#046A38"
+                    radius={[0, 6, 6, 0]}
+                    barSize={22}
+                    isAnimationActive={!prefersReducedMotion}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -266,42 +279,44 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
           className="liquid-glass rounded-2xl p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
+            <h2 className="text-base font-display font-bold text-stone-900 dark:text-white">
               My Authorized Academic &amp; Scholarship Records ({myDocs.length})
             </h2>
             <button
               type="button"
               onClick={() => onNavigate('profile')}
-              className="text-xs font-medium text-blue-700 dark:text-blue-400 hover:underline cursor-pointer"
+              className="text-xs font-semibold text-[#C2410C] dark:text-amber-400 hover:underline cursor-pointer"
             >
               Edit My Profile
             </button>
           </div>
 
-          <div className="divide-y divide-slate-200 dark:divide-slate-800">
+          <div className="divide-y divide-stone-200/80 dark:divide-stone-800">
             {myDocs.map((doc) => (
               <div
                 key={doc.id}
                 className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="font-mono-tabular font-semibold text-blue-700 dark:text-blue-400">
+                  <div className="flex items-center gap-2 text-xs flex-wrap">
+                    <span className="font-mono-tabular font-semibold text-[#C2410C] dark:text-amber-400">
                       {doc.internalCode}
                     </span>
                     <span>·</span>
-                    <span className="font-semibold text-slate-900 dark:text-white">
+                    <span className="font-semibold text-stone-900 dark:text-white">
                       {doc.name}
                     </span>
+                    <FileTypeMarker mimeType={doc.mimeType} fileName={doc.fileName} fileSize={doc.fileSize} />
+                    <StatusBadge status={doc.issuerVerificationStatus} size="sm" />
                   </div>
-                  <div className="text-xs text-slate-500 font-mono-tabular mt-1">
-                    Certificate #{doc.certificateNumber} · Issued: {doc.issueDate} · Status: {doc.issuerVerificationStatus}
+                  <div className="text-xs text-stone-500 font-mono-tabular mt-1">
+                    Certificate #{doc.certificateNumber} · Issued: {doc.issueDate}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => onOpenDocument(doc.id)}
-                  className="px-3.5 py-1.5 rounded-lg bg-slate-900 dark:bg-blue-600 text-white text-xs font-medium cursor-pointer shrink-0"
+                  className="btn-primary !py-1.5 !px-3.5 shrink-0"
                 >
                   Inspect Record
                 </button>
@@ -356,14 +371,14 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
               <button
                 type="button"
                 onClick={() => onNavigate('documents')}
-                className="px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="btn-secondary whitespace-nowrap shrink-0"
               >
                 Register Document Record
               </button>
               <button
                 type="button"
                 onClick={() => setNewAppModalOpen(true)}
-                className="px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="btn-primary flex items-center gap-1.5 whitespace-nowrap shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 <span>Start New Application</span>
@@ -399,7 +414,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             <button
               type="button"
               onClick={() => onOpenApplication(actionRequiredApps[0].id)}
-              className="px-4 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white text-xs font-medium whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-4 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
             >
               Respond &amp; Resubmit ({actionRequiredApps[0].id})
             </button>
@@ -413,35 +428,35 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
         className="grid grid-cols-2 sm:grid-cols-4 gap-4"
       >
         <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs text-slate-500">Institution Applications</div>
-          <div className="text-2xl font-display font-bold font-mono-tabular text-slate-900 dark:text-white mt-1">
-            {myApps.length}
+          <div className="text-xs font-medium text-stone-500">Institution Applications</div>
+          <div className="text-2xl font-display font-bold font-mono-tabular text-stone-900 dark:text-white mt-1">
+            <AnimatedMetricValue value={myApps.length} />
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Scoped to {currentUser.officialInstitutionCode}</div>
+          <div className="text-[11px] text-stone-500 mt-1">Scoped to {currentUser.officialInstitutionCode}</div>
         </motion.div>
 
         <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs text-slate-500">Action / Clarification Needed</div>
+          <div className="text-xs font-medium text-stone-500">Action / Clarification Needed</div>
           <div className="text-2xl font-display font-bold font-mono-tabular text-red-700 dark:text-red-400 mt-1">
-            {actionRequiredApps.length}
+            <AnimatedMetricValue value={actionRequiredApps.length} />
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Awaiting institutional response</div>
+          <div className="text-[11px] text-stone-500 mt-1">Awaiting institutional response</div>
         </motion.div>
 
         <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs text-slate-500">Authorized Repository Docs</div>
-          <div className="text-2xl font-display font-bold font-mono-tabular text-blue-700 dark:text-blue-400 mt-1">
-            {myDocs.length}
+          <div className="text-xs font-medium text-stone-500">Authorized Repository Docs</div>
+          <div className="text-2xl font-display font-bold font-mono-tabular text-[#1D4ED8] dark:text-blue-400 mt-1">
+            <AnimatedMetricValue value={myDocs.length} />
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Linked to institutional dossiers</div>
+          <div className="text-[11px] text-stone-500 mt-1">Linked to institutional dossiers</div>
         </motion.div>
 
         <motion.div variants={DASHBOARD_ITEM_VARIANTS} className="liquid-glass liquid-glass-interactive rounded-2xl p-4">
-          <div className="text-xs text-slate-500">Flagged or Expiring Docs</div>
-          <div className="text-2xl font-display font-bold font-mono-tabular text-amber-700 dark:text-amber-400 mt-1">
-            {flaggedOrExpiringDocs.length}
+          <div className="text-xs font-medium text-stone-500">Flagged or Expiring Docs</div>
+          <div className="text-2xl font-display font-bold font-mono-tabular text-[#C2410C] dark:text-amber-400 mt-1">
+            <AnimatedMetricValue value={flaggedOrExpiringDocs.length} />
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Requires renewal or check</div>
+          <div className="text-[11px] text-stone-500 mt-1">Requires renewal or check</div>
         </motion.div>
       </motion.section>
 
@@ -458,10 +473,10 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
               <BarChart3 className="w-4 h-4 shrink-0" />
               <span>Application Checklist Progress</span>
             </div>
-            <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white mt-0.5">
+            <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white mt-0.5">
               Dossier Checklist Readiness ({currentUser.officialInstitutionCode})
             </h2>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] text-stone-500 dark:text-stone-400">
               Separate side-by-side comparison of Verified, Uploaded, Flagged for Review, and Pending checklist items.
             </p>
           </div>
@@ -487,15 +502,15 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
-                <Bar dataKey="verified" name="Verified" fill="#046A38" maxBarSize={28} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="uploaded" name="Uploaded" fill="#1D4ED8" maxBarSize={28} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="flagged" name="Flagged for Review" fill="#C2410C" maxBarSize={28} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="pendingUpload" name="Pending Upload" fill="#A8A29E" maxBarSize={28} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="verified" name="Verified" fill="#046A38" maxBarSize={28} radius={[4, 4, 0, 0]} isAnimationActive={!prefersReducedMotion} />
+                <Bar dataKey="uploaded" name="Uploaded" fill="#1D4ED8" maxBarSize={28} radius={[4, 4, 0, 0]} isAnimationActive={!prefersReducedMotion} />
+                <Bar dataKey="flagged" name="Flagged for Review" fill="#C2410C" maxBarSize={28} radius={[4, 4, 0, 0]} isAnimationActive={!prefersReducedMotion} />
+                <Bar dataKey="pendingUpload" name="Pending Upload" fill="#A8A29E" maxBarSize={28} radius={[4, 4, 0, 0]} isAnimationActive={!prefersReducedMotion} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="pt-3 mt-2 border-t border-[#C2410C]/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-400 font-mono-tabular">
+          <div className="pt-3 mt-2 border-t border-[#C2410C]/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-600 dark:text-stone-400 font-mono-tabular">
             <span>Scoped Dossiers: {myApps.length}</span>
             <span>·</span>
             <span>Action Required: {actionRequiredApps.length}</span>
@@ -509,10 +524,10 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
               <PieChartIcon className="w-4 h-4 shrink-0" />
               <span>Repository Document Health &amp; Expiry Status</span>
             </div>
-            <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white mt-0.5">
+            <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white mt-0.5">
               Clean vs Attention-Needed Certificates by Category
             </h2>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] text-stone-500 dark:text-stone-400">
               Separate side-by-side comparison of valid certificates and flagged/expiring items per category.
             </p>
           </div>
@@ -544,13 +559,14 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
-                <Bar dataKey="verifiedClean" name="Valid & Consistent" fill="#046A38" barSize={10} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="verifiedClean" name="Valid & Consistent" fill="#046A38" barSize={10} radius={[0, 4, 4, 0]} isAnimationActive={!prefersReducedMotion} />
                 <Bar
                   dataKey="attentionNeeded"
                   name="Flagged / Expiring"
                   fill="#C2410C"
                   radius={[0, 4, 4, 0]}
                   barSize={10}
+                  isAnimationActive={!prefersReducedMotion}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -591,21 +607,22 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             return (
               <div
                 key={app.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4"
+                className="liquid-glass rounded-2xl p-5 space-y-4"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200/80 dark:border-stone-800 pb-4">
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono-tabular font-bold text-sm text-blue-700 dark:text-blue-400">
+                      <span className="font-mono-tabular font-bold text-sm text-[#C2410C] dark:text-amber-400">
                         {app.id}
                       </span>
                       <span aria-hidden="true">·</span>
-                      <h3 className="font-display font-bold text-base text-slate-900 dark:text-white">
+                      <h3 className="font-display font-bold text-base text-stone-900 dark:text-white">
                         {app.category}
                       </h3>
+                      <StatusBadge status={app.status} />
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono-tabular">
-                      Status: <strong className="text-slate-900 dark:text-white">{app.status}</strong> · Submitted: {app.submittedDate} · Last Updated: {app.lastUpdated}
+                    <div className="text-xs text-stone-500 dark:text-stone-400 mt-1 font-mono-tabular">
+                      Submitted: {app.submittedDate} · Last Updated: {app.lastUpdated}
                     </div>
                   </div>
 
@@ -613,7 +630,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                     <button
                       type="button"
                       onClick={() => onOpenApplication(app.id)}
-                      className="px-4 py-2 rounded-lg bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="btn-primary flex items-center gap-1.5"
                     >
                       <span>
                         {app.status === 'Draft'
@@ -631,23 +648,23 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
                   <div className="lg:col-span-8 space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      <span className="font-semibold text-stone-700 dark:text-stone-300">
                         Personalized Category Checklist ({completedChecklist}/{totalChecklist} Ready)
                       </span>
                       {flaggedItems.length > 0 && (
-                        <span className="text-red-700 dark:text-red-400 font-medium">
+                        <span className="text-red-700 dark:text-red-400 font-semibold">
                           {flaggedItems.length} item(s) flagged for attention
                         </span>
                       )}
                     </div>
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800/70 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1">
+                    <div className="divide-y divide-stone-200/70 dark:divide-stone-800/70 border border-stone-200/80 dark:border-stone-800 rounded-xl px-3 py-1 bg-[#FCF9F2]/60 dark:bg-stone-950/40">
                       {app.checklist.map((item) => (
                         <div
                           key={item.id}
                           className="py-2 flex items-center justify-between gap-3 text-xs"
                         >
                           <div className="min-w-0">
-                            <span className="text-slate-800 dark:text-slate-200 font-medium">
+                            <span className="text-stone-800 dark:text-stone-200 font-medium">
                               {item.title}
                             </span>
                             {item.notes && (
@@ -656,42 +673,30 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                               </p>
                             )}
                           </div>
-                          <span
-                            className={`text-[11px] font-mono-tabular whitespace-nowrap shrink-0 font-medium ${
-                              item.status === 'Verified'
-                                ? 'text-emerald-700 dark:text-emerald-400'
-                                : item.status === 'Flagged for Review'
-                                  ? 'text-red-700 dark:text-red-400'
-                                  : item.status === 'Uploaded'
-                                    ? 'text-blue-700 dark:text-blue-400'
-                                    : 'text-slate-400'
-                            }`}
-                          >
-                            {item.status}
-                          </span>
+                          <StatusBadge status={item.status} size="sm" />
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* Latest Status Change & Next Action */}
-                  <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 text-xs space-y-2.5">
+                  <div className="lg:col-span-4 bg-[#EFE6D5]/60 dark:bg-stone-950 border border-stone-200/80 dark:border-stone-800 rounded-xl p-3.5 text-xs space-y-2.5">
                     <div>
-                      <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      <div className="text-[11px] font-semibold text-stone-500 dark:text-stone-400">
                         Latest Timeline Event
                       </div>
-                      <div className="font-medium text-slate-900 dark:text-white mt-0.5">
+                      <div className="font-medium text-stone-900 dark:text-white mt-0.5">
                         {latestHistory?.toStatus} ({latestHistory?.timestamp})
                       </div>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                      <p className="text-[11px] text-stone-600 dark:text-stone-400 mt-0.5">
                         {latestHistory?.note}
                       </p>
                     </div>
-                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
-                      <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    <div className="pt-2 border-t border-stone-200 dark:border-stone-800">
+                      <div className="text-[11px] font-semibold text-stone-500 dark:text-stone-400">
                         Next Action Required
                       </div>
-                      <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mt-0.5">
+                      <p className="text-xs font-semibold text-[#C2410C] dark:text-amber-400 mt-0.5">
                         {app.status === 'Draft'
                           ? 'Upload remaining checklist documents and submit dossier.'
                           : app.status === 'Additional Information Required'
@@ -716,23 +721,23 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
       >
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-sm font-display font-bold text-slate-900 dark:text-white">
+            <h2 className="text-sm font-display font-bold text-stone-900 dark:text-white">
               Missing, Incomplete, Expired, or Flagged Documents ({flaggedOrExpiringDocs.length})
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-stone-500 dark:text-stone-400">
               Document verification checks requiring institutional attention or statutory certificate renewal.
             </p>
           </div>
           <button
             type="button"
             onClick={() => onNavigate('documents')}
-            className="text-xs font-medium text-blue-700 dark:text-blue-400 hover:underline cursor-pointer"
+            className="text-xs font-semibold text-[#C2410C] dark:text-amber-400 hover:underline cursor-pointer"
           >
             Open Document Repository
           </button>
         </div>
 
-        <div className="divide-y divide-slate-200 dark:divide-slate-800">
+        <div className="divide-y divide-stone-200/80 dark:divide-stone-800">
           {flaggedOrExpiringDocs.map((doc) => {
             const exp = calculateExpiryDetails(doc.expiryDate, todayStr);
             return (
@@ -741,29 +746,37 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                 className="py-3 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="font-mono-tabular font-semibold text-blue-700 dark:text-blue-400">
+                  <div className="flex items-center gap-2 text-xs flex-wrap">
+                    <span className="font-mono-tabular font-semibold text-[#C2410C] dark:text-amber-400">
                       {doc.internalCode}
                     </span>
                     <span aria-hidden="true">·</span>
-                    <span className="font-semibold text-slate-900 dark:text-white truncate">
+                    <span className="font-semibold text-stone-900 dark:text-white truncate">
                       {doc.name}
                     </span>
+                    <FileTypeMarker mimeType={doc.mimeType} fileName={doc.fileName} />
+                    <StatusBadge status={exp.status} customLabel={exp.label} size="sm" />
                   </div>
-                  <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
-                    Cert #{doc.certificateNumber} · Expiry: {exp.label} · Consistency: {doc.consistencyStatus}
+                  <div className="text-[11px] text-stone-600 dark:text-stone-400 mt-1">
+                    Cert #{doc.certificateNumber} · Consistency: {doc.consistencyStatus}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => onOpenDocument(doc.id)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium whitespace-nowrap shrink-0 cursor-pointer"
+                  className="btn-secondary !py-1.5 !px-3 whitespace-nowrap shrink-0"
                 >
                   Inspect / Replace Version
                 </button>
               </div>
             );
           })}
+          {flaggedOrExpiringDocs.length === 0 && (
+            <EmptyStateCard
+              title="All Institutional Certificates Valid"
+              description="No missing, expired, or flagged documents were detected for your institution."
+            />
+          )}
         </div>
       </motion.section>
 

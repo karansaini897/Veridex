@@ -22,6 +22,11 @@ import {
   sectionEntranceVariants,
   staggerContainerVariants,
 } from '../lib/motion';
+import {
+  EmptyStateCard,
+  FileTypeMarker,
+  StatusBadge,
+} from './StatusPrimitives';
 
 interface VerificationComplianceViewProps {
   currentUser: UserAccount;
@@ -208,109 +213,66 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                     <th className="py-2.5 px-3 text-right">Evidence</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+                <tbody className="divide-y divide-stone-200 dark:divide-stone-800 text-xs">
                   {filteredPillarDocs.map((doc) => {
                     const exp = calculateExpiryDetails(doc.expiryDate, todayStr);
                     return (
-                      <tr key={doc.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/40">
+                      <tr key={doc.id} className="hover:bg-stone-50/90 dark:hover:bg-stone-800/40">
                         <td className="py-2.5 px-3">
-                          <div className="font-mono-tabular font-semibold text-blue-700 dark:text-blue-400 text-[11px]">
-                            {doc.internalCode}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-mono-tabular font-semibold text-[#C2410C] dark:text-amber-400 text-[11px]">
+                              {doc.internalCode}
+                            </span>
+                            <FileTypeMarker mimeType={doc.mimeType} fileName={doc.fileName} />
                           </div>
-                          <div className="font-medium text-slate-900 dark:text-white max-w-[215px] truncate" title={doc.name}>
+                          <div className="font-medium text-stone-900 dark:text-white max-w-[215px] truncate mt-0.5" title={doc.name}>
                             {doc.name}
                           </div>
-                          <div className="text-[11px] text-slate-500 truncate max-w-[215px]">
+                          <div className="text-[11px] text-stone-500 truncate max-w-[215px]">
                             {doc.institutionName}
                           </div>
                         </td>
                         <td className="py-2.5 px-2 whitespace-nowrap text-[11px]">
-                          <span
-                            className={
+                          <StatusBadge
+                            status={doc.completenessStatus}
+                            customLabel={
                               doc.completenessStatus.includes('Missing')
-                                ? 'text-red-700 dark:text-red-400 font-semibold'
-                                : doc.completenessStatus === 'Pending Review'
-                                  ? 'text-blue-700 dark:text-blue-400'
-                                  : 'text-emerald-700 dark:text-emerald-400'
+                                ? 'Missing Pages'
+                                : doc.completenessStatus
                             }
-                          >
-                            {doc.completenessStatus.includes('Missing')
-                              ? 'Missing Pages'
-                              : doc.completenessStatus}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-2 font-mono-tabular whitespace-nowrap text-[11px]">
-                          <span
-                            className={
-                              exp.status === 'Expired'
-                                ? 'text-red-700 dark:text-red-400 font-semibold'
-                                : exp.status === 'Expiring Soon'
-                                  ? 'text-amber-700 dark:text-amber-400 font-semibold'
-                                  : 'text-slate-600 dark:text-slate-400'
-                            }
-                          >
-                            {exp.label}
-                          </span>
+                            size="sm"
+                          />
                         </td>
                         <td className="py-2.5 px-2 whitespace-nowrap text-[11px]">
-                          <span
-                            className={
-                              doc.consistencyStatus.includes('Mismatch')
-                                ? 'text-amber-700 dark:text-amber-400 font-semibold'
-                                : doc.consistencyStatus === 'Pending Check'
-                                  ? 'text-blue-700 dark:text-blue-400'
-                                  : 'text-emerald-700 dark:text-emerald-400'
-                            }
-                          >
-                            {doc.consistencyStatus}
-                          </span>
+                          <StatusBadge status={exp.status} customLabel={exp.label} size="sm" />
                         </td>
                         <td className="py-2.5 px-2 whitespace-nowrap text-[11px]">
-                          <span
-                            className={
+                          <StatusBadge status={doc.consistencyStatus} size="sm" />
+                        </td>
+                        <td className="py-2.5 px-2 whitespace-nowrap text-[11px]">
+                          <StatusBadge
+                            status={doc.anomalyStatus}
+                            customLabel={
                               doc.anomalyStatus.includes('Suspected')
-                                ? 'text-red-700 dark:text-red-400 font-semibold'
-                                : 'text-slate-600 dark:text-slate-400'
+                                ? 'Suspected Alteration'
+                                : doc.anomalyStatus === 'Not Screened'
+                                  ? 'Not Screened'
+                                  : 'None Detected'
                             }
-                          >
-                            {doc.anomalyStatus.includes('Suspected')
-                              ? 'Suspected Alteration'
-                              : doc.anomalyStatus === 'Not Screened'
-                                ? 'Not Screened'
-                                : 'None Detected'}
-                          </span>
+                            size="sm"
+                          />
                         </td>
                         <td className="py-2.5 px-2 whitespace-nowrap text-[11px]">
-                          <span
-                            className={
-                              doc.issuerVerificationStatus === 'Failed'
-                                ? 'text-red-700 dark:text-red-400 font-semibold'
-                                : doc.issuerVerificationStatus === 'Verified'
-                                  ? 'text-emerald-700 dark:text-emerald-400'
-                                  : 'text-slate-500'
-                            }
-                          >
-                            {doc.issuerVerificationStatus}
-                          </span>
+                          <StatusBadge status={doc.issuerVerificationStatus} size="sm" />
                         </td>
-                        <td className="py-2.5 px-2 whitespace-nowrap font-medium text-[11px]">
-                          <span
-                            className={
-                              doc.humanReviewStatus === 'Action Required'
-                                ? 'text-red-700 dark:text-red-400'
-                                : doc.humanReviewStatus === 'Reviewed'
-                                  ? 'text-emerald-700 dark:text-emerald-400'
-                                  : 'text-blue-700 dark:text-blue-400'
-                            }
-                          >
-                            {doc.humanReviewStatus}
-                          </span>
+                        <td className="py-2.5 px-2 whitespace-nowrap text-[11px]">
+                          <StatusBadge status={doc.humanReviewStatus} size="sm" />
                         </td>
                         <td className="py-2.5 px-3 text-right whitespace-nowrap">
                           <button
                             type="button"
                             onClick={() => onOpenDocument(doc.id)}
-                            className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-blue-600 hover:text-white text-[11px] font-medium cursor-pointer"
+                            className="px-2.5 py-1 rounded-md bg-[#EFE6D5] dark:bg-stone-800 hover:bg-[#C2410C] hover:text-white text-[11px] font-semibold cursor-pointer"
                           >
                             Findings ({doc.findings.length})
                           </button>
@@ -318,6 +280,18 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                       </tr>
                     );
                   })}
+                  {filteredPillarDocs.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="p-6">
+                        <EmptyStateCard
+                          title="No Matching Pillar Records"
+                          description="No authorized documents match the selected verification pillar filter."
+                          actionLabel={pillarFilter !== 'all' ? 'Show All Documents' : undefined}
+                          onAction={pillarFilter !== 'all' ? () => setPillarFilter('all') : undefined}
+                        />
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -501,20 +475,12 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">
-                  <span
-                    className={`text-xs font-semibold ${
-                      rule.active
-                        ? 'text-emerald-700 dark:text-emerald-400'
-                        : 'text-slate-400'
-                    }`}
-                  >
-                    {rule.active ? 'Active Rule' : 'Paused'}
-                  </span>
+                  <StatusBadge status={rule.active ? 'Active Rule' : 'Paused'} size="sm" />
                   {isAdmin && (
                     <button
                       type="button"
                       onClick={() => onToggleRuleActive(rule.id)}
-                      className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                      className="btn-secondary !py-1.5 !px-3 cursor-pointer"
                     >
                       {rule.active ? 'Disable Rule' : 'Enable Rule'}
                     </button>
