@@ -292,7 +292,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 {isActive && (
                   <motion.div
                     layoutId="veridex-active-nav"
-                    transition={{ type: 'spring', stiffness: 360, damping: 34, mass: 0.7 }}
+                    transition={{ type: 'spring', stiffness: 430, damping: 30, mass: 0.6 }}
                     className="absolute inset-0 rounded-xl bg-[#046A38]/10 border border-[#C2410C]/50 shadow-xs"
                   />
                 )}
@@ -323,7 +323,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: SMOOTH_EASE }}
+            transition={{ duration: 0.15, ease: SMOOTH_EASE }}
             className="fixed inset-0 z-50 lg:hidden flex"
           >
             <div
@@ -334,7 +334,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               initial={{ x: -260 }}
               animate={{ x: 0 }}
               exit={{ x: -260 }}
-              transition={{ duration: 0.26, ease: SMOOTH_EASE }}
+              transition={{ duration: 0.19, ease: SMOOTH_EASE }}
               className="relative w-64 max-w-xs liquid-glass-elevated h-full flex flex-col z-10"
             >
               <div className="h-16 px-4 flex items-center justify-between border-b border-[#C2410C]/35">
@@ -478,7 +478,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     initial={{ opacity: 0, y: 6, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                    transition={{ duration: 0.18, ease: SMOOTH_EASE }}
+                    transition={{ duration: 0.14, ease: SMOOTH_EASE }}
                     className="absolute right-0 mt-2 w-[min(22rem,calc(100vw-1.5rem))] sm:w-96 liquid-glass-floating rounded-2xl p-3 z-50"
                   >
                     <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-[#C2410C]/30">
@@ -592,7 +592,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     initial={{ opacity: 0, y: 6, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                    transition={{ duration: 0.18, ease: SMOOTH_EASE }}
+                    transition={{ duration: 0.14, ease: SMOOTH_EASE }}
                     className="absolute right-0 mt-2 w-60 liquid-glass-floating rounded-2xl p-2 z-50"
                   >
                     <div className="px-3 py-2 border-b border-[#C2410C]/30">

@@ -304,7 +304,7 @@ export const AnimatedMetricValue: React.FC<AnimatedMetricValueProps> = ({
 
     hasAnimatedRef.current = true;
     let animationFrameId: number;
-    const durationMs = 380;
+    const durationMs = 260;
     const startTime = performance.now();
     const startVal = 0;
 

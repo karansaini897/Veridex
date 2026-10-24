@@ -8,23 +8,23 @@ export const SMOOTH_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export const SPRING_CARD: Transition = {
   type: 'spring',
-  stiffness: 380,
-  damping: 32,
-  mass: 0.75,
+  stiffness: 440,
+  damping: 30,
+  mass: 0.65,
 };
 
 export const SPRING_MODAL: Transition = {
   type: 'spring',
-  stiffness: 360,
-  damping: 30,
-  mass: 0.78,
+  stiffness: 420,
+  damping: 29,
+  mass: 0.68,
 };
 
 export const SPRING_DRAWER: Transition = {
   type: 'spring',
-  stiffness: 350,
-  damping: 32,
-  mass: 0.82,
+  stiffness: 410,
+  damping: 30,
+  mass: 0.7,
 };
 
 /**
@@ -35,8 +35,8 @@ export const staggerContainerVariants: Variants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.045,
-      delayChildren: 0.02,
+      staggerChildren: 0.032,
+      delayChildren: 0.01,
     },
   },
 };
@@ -47,15 +47,15 @@ export const staggerContainerVariants: Variants = {
 export const cardEntranceVariants: Variants = {
   hidden: {
     opacity: 0,
-    y: 12,
-    scale: 0.985,
+    y: 10,
+    scale: 0.988,
   },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
     transition: {
-      duration: 0.32,
+      duration: 0.24,
       ease: SMOOTH_EASE,
     },
   },
@@ -67,13 +67,13 @@ export const cardEntranceVariants: Variants = {
 export const sectionEntranceVariants: Variants = {
   hidden: {
     opacity: 0,
-    y: 14,
+    y: 12,
   },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.34,
+      duration: 0.25,
       ease: SMOOTH_EASE,
     },
   },
@@ -86,11 +86,11 @@ export const modalBackdropVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { duration: 0.2, ease: SMOOTH_EASE },
+    transition: { duration: 0.15, ease: SMOOTH_EASE },
   },
   exit: {
     opacity: 0,
-    transition: { duration: 0.16, ease: SMOOTH_EASE },
+    transition: { duration: 0.12, ease: SMOOTH_EASE },
   },
 };
 
@@ -101,7 +101,7 @@ export const modalWindowVariants: Variants = {
   hidden: {
     opacity: 0,
     scale: 0.96,
-    y: 14,
+    y: 12,
   },
   visible: {
     opacity: 1,
@@ -112,8 +112,8 @@ export const modalWindowVariants: Variants = {
   exit: {
     opacity: 0,
     scale: 0.97,
-    y: 8,
-    transition: { duration: 0.16, ease: SMOOTH_EASE },
+    y: 6,
+    transition: { duration: 0.12, ease: SMOOTH_EASE },
   },
 };
 
@@ -123,7 +123,7 @@ export const modalWindowVariants: Variants = {
 export const slideOverDrawerVariants: Variants = {
   hidden: {
     opacity: 0,
-    x: 42,
+    x: 36,
   },
   visible: {
     opacity: 1,
@@ -132,8 +132,8 @@ export const slideOverDrawerVariants: Variants = {
   },
   exit: {
     opacity: 0,
-    x: 32,
-    transition: { duration: 0.18, ease: SMOOTH_EASE },
+    x: 28,
+    transition: { duration: 0.14, ease: SMOOTH_EASE },
   },
 };
 
@@ -143,19 +143,19 @@ export const slideOverDrawerVariants: Variants = {
 export const inlinePanelVariants: Variants = {
   hidden: {
     opacity: 0,
-    y: -8,
+    y: -6,
     scale: 0.99,
   },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { duration: 0.24, ease: SMOOTH_EASE },
+    transition: { duration: 0.18, ease: SMOOTH_EASE },
   },
   exit: {
     opacity: 0,
-    y: -6,
+    y: -4,
     scale: 0.99,
-    transition: { duration: 0.16, ease: SMOOTH_EASE },
+    transition: { duration: 0.12, ease: SMOOTH_EASE },
   },
 };

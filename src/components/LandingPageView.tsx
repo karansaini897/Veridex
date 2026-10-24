@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   ShieldCheck,
   FileCheck2,
@@ -105,18 +105,16 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 }) => {
   const prefersReducedMotion = useReducedMotion();
   const [activeJourneyStep, setActiveJourneyStep] = useState<number>(0);
-  const [journeyPausedByUser, setJourneyPausedByUser] = useState<boolean>(false);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState<0 | 1 | 2>(1);
   const [boardFilter, setBoardFilter] = useState<'all' | 'validation' | 'governance'>('all');
 
-  // Restrained sequential focus transition across the 4-step hero journey (disabled when reduced motion is preferred or user manually selects a step)
+  // Advance to the next step in the 4-step End-to-End Institutional Compliance Journey every 5 seconds (5000ms)
   useEffect(() => {
-    if (prefersReducedMotion || journeyPausedByUser) return;
-    const interval = window.setInterval(() => {
+    const timer = window.setTimeout(() => {
       setActiveJourneyStep((prev) => (prev + 1) % HERO_JOURNEY_STAGES.length);
-    }, 4500);
-    return () => window.clearInterval(interval);
-  }, [prefersReducedMotion, journeyPausedByUser]);
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [activeJourneyStep]);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -256,9 +254,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
            ========================================================= */}
         <section className="pt-12 sm:pt-16 pb-20 px-4 sm:px-6 max-w-7xl mx-auto">
           <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: SMOOTH_EASE }}
+            transition={{ duration: 0.32, ease: SMOOTH_EASE }}
             className="text-center max-w-3xl mx-auto space-y-5"
           >
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-md bg-[#FCF9F2] border border-[#C2410C]/40 shadow-2xs">
@@ -304,9 +302,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-5 items-end">
               {/* LEFT FLOATING WING CARD: Validation Architecture Coverage */}
               <motion.div
-                initial={prefersReducedMotion ? false : { opacity: 0, x: -24, rotate: -2 }}
+                initial={prefersReducedMotion ? false : { opacity: 0, x: -20, rotate: -2 }}
                 animate={{ opacity: 1, x: 0, rotate: -2 }}
-                transition={{ duration: 0.55, delay: 0.08, ease: SMOOTH_EASE }}
+                transition={{ duration: 0.38, delay: 0.04, ease: SMOOTH_EASE }}
                 className="hidden lg:block lg:col-span-3 -mr-6 mb-6 z-10 rounded-2xl bg-[#FCF9F2]/95 backdrop-blur-md border-2 border-[#C2410C]/55 p-5 shadow-[0_18px_45px_rgba(124,45,18,0.14)]"
               >
                 <div className="flex items-center justify-between text-xs font-medium text-stone-700 mb-4">
@@ -373,9 +371,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               {/* CENTER MAIN PRODUCT BOARD MOCKUP */}
               <motion.div
-                initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.04, ease: SMOOTH_EASE }}
+                transition={{ duration: 0.35, delay: 0.02, ease: SMOOTH_EASE }}
                 className="lg:col-span-6 z-20 rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/65 shadow-[0_24px_60px_rgba(124,45,18,0.18)] overflow-hidden"
               >
                 {/* Board Window Top Toolbar */}
@@ -526,9 +524,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               {/* RIGHT FLOATING WING CARD: Verification Signal & Access Control */}
               <motion.div
-                initial={prefersReducedMotion ? false : { opacity: 0, x: 24, rotate: 2 }}
+                initial={prefersReducedMotion ? false : { opacity: 0, x: 20, rotate: 2 }}
                 animate={{ opacity: 1, x: 0, rotate: 2 }}
-                transition={{ duration: 0.55, delay: 0.12, ease: SMOOTH_EASE }}
+                transition={{ duration: 0.38, delay: 0.06, ease: SMOOTH_EASE }}
                 className="hidden lg:block lg:col-span-3 -ml-6 mb-6 z-10 rounded-2xl bg-[#FCF9F2]/95 backdrop-blur-md border-2 border-[#C2410C]/55 p-5 shadow-[0_18px_45px_rgba(124,45,18,0.14)] space-y-3.5"
               >
                 <div className="flex items-center justify-between">
@@ -577,9 +575,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
           {/* Compact 4-Step Visual Compliance Journey Focal Point (Positioned Below the Validation Trio) */}
           <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.14, ease: SMOOTH_EASE }}
+            transition={{ duration: 0.36, delay: 0.08, ease: SMOOTH_EASE }}
             className="mt-8 sm:mt-10 max-w-6xl 2xl:max-w-7xl mx-auto rounded-2xl bg-[#FCF9F2] border-2 border-[#C2410C]/60 shadow-[0_18px_45px_rgba(124,45,18,0.12)] overflow-hidden"
             aria-label="Interactive Dossier-to-Decision Compliance Journey"
           >
@@ -591,7 +589,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 </span>
               </div>
               <span className="text-[11px] font-mono-tabular text-stone-600">
-                Select any stage to inspect workflow details
+                Auto-advances every 5s · Select any stage to inspect workflow details
               </span>
             </div>
 
@@ -605,10 +603,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     type="button"
                     onClick={() => {
                       setActiveJourneyStep(idx);
-                      setJourneyPausedByUser(true);
                     }}
                     aria-pressed={isActive}
-                    className={`p-3.5 sm:p-4 text-left transition-colors cursor-pointer relative ${
+                    className={`p-3.5 sm:p-4 text-left transition-colors duration-150 cursor-pointer relative overflow-hidden ${
                       isActive
                         ? 'bg-[#FCF9F2] text-stone-900'
                         : 'hover:bg-[#F3E9D7]/60 text-stone-600'
@@ -616,9 +613,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   >
                     {isActive && (
                       <div
-                        className="h-1 w-full bg-gradient-to-r from-[#C2410C] to-[#046A38] absolute top-0 left-0 right-0"
+                        className="h-1 w-full bg-[#C2410C]/20 absolute top-0 left-0 right-0 overflow-hidden"
                         aria-hidden="true"
-                      />
+                      >
+                        <motion.div
+                          key={`progress-${activeJourneyStep}`}
+                          initial={{ scaleX: prefersReducedMotion ? 1 : 0 }}
+                          animate={{ scaleX: 1 }}
+                          transition={{ duration: prefersReducedMotion ? 0 : 5, ease: 'linear' }}
+                          className="h-full w-full origin-left bg-gradient-to-r from-[#C2410C] to-[#046A38]"
+                        />
+                      </div>
                     )}
                     <div className="flex items-center justify-between gap-2 text-[11px] font-mono-tabular">
                       <span
@@ -646,44 +651,53 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </div>
 
             {/* Active Journey Stage Detail Panel */}
-            <div className="p-4 sm:p-6 bg-[#FCF9F2] grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
-              <div className="lg:col-span-7 space-y-2.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-mono-tabular font-bold text-[#C2410C]">
-                    Stage {currentStage.stepNumber} of 04
-                  </span>
-                  <span aria-hidden="true" className="text-stone-400">·</span>
-                  <span className="text-xs font-semibold text-stone-700">
-                    {currentStage.actor}
-                  </span>
-                  <StatusBadge status={currentStage.statusBadge} />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStage.stepNumber}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={prefersReducedMotion ? undefined : { opacity: 0, y: -4 }}
+                transition={{ duration: 0.2, ease: SMOOTH_EASE }}
+                className="p-4 sm:p-6 bg-[#FCF9F2] grid grid-cols-1 lg:grid-cols-12 gap-5 items-center"
+              >
+                <div className="lg:col-span-7 space-y-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-mono-tabular font-bold text-[#C2410C]">
+                      Stage {currentStage.stepNumber} of 04
+                    </span>
+                    <span aria-hidden="true" className="text-stone-400">·</span>
+                    <span className="text-xs font-semibold text-stone-700">
+                      {currentStage.actor}
+                    </span>
+                    <StatusBadge status={currentStage.statusBadge} />
+                  </div>
+                  <h2 className="text-base sm:text-lg font-display font-bold text-stone-900">
+                    {currentStage.title}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
+                    {currentStage.summary}
+                  </p>
                 </div>
-                <h2 className="text-base sm:text-lg font-display font-bold text-stone-900">
-                  {currentStage.title}
-                </h2>
-                <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
-                  {currentStage.summary}
-                </p>
-              </div>
 
-              <div className="lg:col-span-5 rounded-xl bg-[#F4EDE1] border border-[#C2410C]/40 p-4 space-y-2.5">
-                <div className="flex items-center justify-between gap-2 border-b border-[#C2410C]/20 pb-2">
-                  <span className="text-[11px] font-mono-tabular font-bold text-[#046A38] flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                    <span>{currentStage.recordCode}</span>
-                  </span>
-                  <span className="text-[10px] font-mono-tabular px-2 py-0.5 rounded bg-[#FCF9F2] border border-[#C2410C]/30 text-stone-700">
-                    Structured Record
-                  </span>
+                <div className="lg:col-span-5 rounded-xl bg-[#F4EDE1] border border-[#C2410C]/40 p-4 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2 border-b border-[#C2410C]/20 pb-2">
+                    <span className="text-[11px] font-mono-tabular font-bold text-[#046A38] flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                      <span>{currentStage.recordCode}</span>
+                    </span>
+                    <span className="text-[10px] font-mono-tabular px-2 py-0.5 rounded bg-[#FCF9F2] border border-[#C2410C]/30 text-stone-700">
+                      Structured Record
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-800 leading-relaxed font-medium">
+                    {currentStage.evidenceDetail}
+                  </p>
+                  <div className="pt-1.5 border-t border-[#C2410C]/20 flex items-center justify-between gap-2 text-[11px] text-[#C2410C] font-semibold">
+                    <span>Next: {currentStage.nextActionLabel}</span>
+                  </div>
                 </div>
-                <p className="text-xs text-stone-800 leading-relaxed font-medium">
-                  {currentStage.evidenceDetail}
-                </p>
-                <div className="pt-1.5 border-t border-[#C2410C]/20 flex items-center justify-between gap-2 text-[11px] text-[#C2410C] font-semibold">
-                  <span>Next: {currentStage.nextActionLabel}</span>
-                </div>
-              </div>
-            </div>
+              </motion.div>
+            </AnimatePresence>
           </motion.div>
         </section>
 
