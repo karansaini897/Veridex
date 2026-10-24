@@ -1,5 +1,5 @@
 import { ApplicationRecord, DocumentRecord, Role, UserAccount } from '../types/portal';
-import { calculateExpiryDetails, REFERENCE_DATE } from './domain';
+import { calculateExpiryDetails, getLocalTodayDate } from './domain';
 
 export interface ChatbotPresetPrompt {
   id: string;
@@ -24,15 +24,16 @@ export interface PortalChatContext {
 }
 
 /**
- * Generates role-specific chatbot prompts, questions, and detailed data-driven answers
+ * Generates role-specific chatbot prompts, questions, and data-driven answers
  * so that Admin, Institutional Representative, Faculty, Student, and Public interfaces
- * each have a tailored set of prompts and responses.
+ * each have a tailored set of prompts and responses grounded in current workspace state.
  */
 export function getRoleChatbotConfig(
   role: Role | 'public',
   context: PortalChatContext
 ): RoleChatbotConfig {
   const { currentUser, applications, documents } = context;
+  const todayDate = getLocalTodayDate();
 
   if (role === 'admin') {
     const pendingApps = applications.filter(
@@ -46,7 +47,7 @@ export function getRoleChatbotConfig(
       (a) => a.status === 'Additional Information Required'
     );
     const expiringDocs = documents.filter((d) => {
-      const exp = calculateExpiryDetails(d.expiryDate, REFERENCE_DATE);
+      const exp = calculateExpiryDetails(d.expiryDate, todayDate);
       return exp.status === 'Expired' || exp.status === 'Expiring Soon';
     });
     const flaggedDocs = documents.filter(
@@ -58,49 +59,49 @@ export function getRoleChatbotConfig(
 
     return {
       roleKey: 'admin',
-      interfaceTitle: 'AICTE Admin Compliance Assistant',
+      interfaceTitle: 'Admin Compliance Assistant',
       roleBadge: 'Admin / Regional Officer Mode',
-      welcomeMessage: `Namaste ${currentUser?.fullName || 'Officer'}. I am your VERIDEX Admin Compliance Assistant. I can summarize pending institutional dossiers, explain verification flags, or guide you through deficiency notices and account provisioning.`,
+      welcomeMessage: `Namaste ${currentUser?.fullName || 'Officer'}. I am your VERIDEX Admin Compliance Assistant. I can summarize pending institutional dossiers, explain review flags, or guide you through deficiency notices and account provisioning.`,
       placeholder: 'Ask about pending dossiers, consistency flags, expiry alerts, or RBAC...',
       prompts: [
         {
           id: 'adm-1',
           category: 'Queue Triage',
           question: 'Which institutional applications have flagged consistency or expiry issues right now?',
-          answer: `Currently, there are ${applications.length} total institutional applications in the registry (${pendingApps.length} in the active review queue and ${infoReqApps.length} awaiting additional information).\n\n• Flagged Dossiers Requiring Officer Attention:\n1. APP-2026-0101 (Vidyapeeth Institute of Technology, Pune — Extension of Approval): Municipal Fire & Life Safety Certificate (INF-FAC-VIT-01) expired 20 days ago on 2026-10-03.\n2. APP-2026-0102 (Vidyapeeth Institute of Technology, Pune — Increase in Intake B.Tech CSE): Declared intake (180 seats) vs University NOC approved intake (120 seats) mismatch flagged on APR-REG-VIT-02.\n3. APP-2026-0104 (Deccan Institute of Engineering & Research, Hyderabad — Faculty Cadre Ratio): Missing Annexure-B experience page and duplicate seal anomaly indicator flagged.\n\nUse "Review Dossier" in the Applications Registry to inspect the side-by-side evidence comparison before recording a decision.`,
+          answer: `Currently, there are ${applications.length} total institutional applications in the registry (${pendingApps.length} in the active review queue and ${infoReqApps.length} awaiting additional information as of ${todayDate}).\n\n• Flagged Dossiers Requiring Officer Attention:\n1. APP-2026-0104 (Vivekanand Education Society's Institute of Technology (VESIT), Mumbai — Extension of Approval): Municipal Fire & Life Safety Certificate (INF-FAC-VES-01) is expired and Ph.D. degree record (FAC-QUA-KUL-01) has a middle-initial variance.\n2. APP-2026-0103 (Eastern Metropolitan Technical Campus, Kolkata — Extension of Approval): WBFES Fire Safety Certificate (INF-FAC-EMT-01) carries an integrity review flag requiring manual inspection.\n3. APP-2026-0105 (Kaveri College of Engineering & Research, Bengaluru — Increase in Intake): BBMP Occupancy Certificate (INF-FAC-KAV-02) is missing Page 3 Annexure-B.\n\nUse "Review Dossier" in the Applications Registry to inspect the side-by-side evidence comparison before recording a human decision.`,
         },
         {
           id: 'adm-2',
           category: 'Decision Protocol',
           question: "How do I issue an 'Additional Information Required' deficiency notice vs recording a final decision?",
-          answer: `As an authorized Regional Reviewer (${currentUser?.permissionLevel || 'Level 2/3'}), follow this statutory workflow:\n\n1. Open any application from the Admin Dashboard by clicking "Review Dossier".\n2. Inspect the Checklist & 6-Pillar Verification Findings tab.\n3. To request clarification or a renewed certificate: Select "Request Additional Information / Clarification", enter your specific officer note (e.g., requesting a renewed Fire Safety NOC or intake reconciliation), and submit. This transitions the application to "Additional Information Required" and alerts the institution's Nodal Officer.\n4. To record a final determination: Select "Record Final Compliance Decision" and choose one of the three statutory outcomes ("Compliance Verified — Recommended", "Conditional Compliance — Inspection Required", or "Deficiency Recorded — Deferred"). Every action is permanently recorded in the immutable Audit Trail.`,
+          answer: `As an authorized Regional Reviewer (${currentUser?.permissionLevel || 'Level 2/3'}), follow this workflow:\n\n1. Open any application from the Admin Dashboard by clicking "Review Dossier".\n2. Inspect the Checklist & 6-Pillar Verification Findings tab.\n3. To request clarification or a renewed certificate: Enter your reviewer note, select "Request Correction / Info", and confirm. This transitions the application to "Additional Information Required" and notifies the institution's Nodal Officer.\n4. To record a human determination: Select one of the compliance outcomes ("Compliance Verified — Recommended", "Conditional Compliance — Inspection Required", or "Deficiency Recorded — Deferred"), enter a mandatory decision note, and confirm. Every action is appended to the application history and audit trail.`,
         },
         {
           id: 'adm-3',
           category: 'Verification Pillars',
-          question: 'Why does Issuer Verification show "Unavailable" on certain certificates, and how should I treat anomaly flags?',
-          answer: `Under VERIDEX Responsible Verification Governance:\n\n• Issuer Verification ("Unavailable" vs "Verified"): When a state municipal board or university registry does not expose a live cryptographic webhook in this portal environment, Issuer Verification is explicitly marked "Unavailable" rather than fabricated. Officers must verify the physical/digital seal and reference number manually.\n• Anomaly & Consistency Signals (${flaggedDocs.length} currently flagged): Automated flags—such as intake discrepancies or suspected duplicate stamps—are decision-support review signals, NEVER automatic proof of fraud or automatic rejection. Human officer review and sign-off are mandatory before any adverse compliance determination.`,
+          question: 'Why does Issuer Verification show "Unavailable" or "Not Checked" on certain records, and how should I treat review flags?',
+          answer: `Under VERIDEX Responsible Verification Governance:\n\n• Issuer Verification ("Unavailable" / "Not Checked"): When an external municipal board or university registry integration is not connected in this portal environment, Issuer Verification is explicitly marked "Unavailable" or "Not Checked" rather than fabricated. Reviewers inspect the certificate number and metadata manually.\n• Review Signals (${flaggedDocs.length} currently flagged): Automated flags—such as name variances, missing pages, or layout anomalies—are decision-support review signals, NEVER automatic proof of fraud or automatic rejection. Human reviewer sign-off is required for every compliance decision.`,
         },
         {
           id: 'adm-4',
           category: 'Expiry Risk Summary',
           question: 'Summarize current certificate expiry risks across all registered institutions.',
-          answer: `Across ${documents.length} repository documents, ${expiringDocs.length} certificate(s) are currently Expired or Expiring Soon (within the 45-day statutory threshold relative to ${REFERENCE_DATE}):\n\n• Expired (< 0 days remaining): Municipal Fire & Life Safety Certificate (INF-FAC-VIT-01, expired 2026-10-03) and National Research Lab Safety Clearance (INF-FAC-DIE-01).\n• Expiring Soon (≤ 45 days): University Affiliation Continuation Order and Campus Occupancy renewals.\n\nClick "Expiry Alerts" in the top right of your Admin Dashboard to open the Expiry Calendar and filter by Expired or 30/45-day windows.`,
+          answer: `Across ${documents.length} repository documents, ${expiringDocs.length} certificate(s) are currently Expired or Expiring Soon (within the 45-day threshold relative to ${todayDate}):\n\n• Expired (< 0 days remaining): Municipal Fire & Life Safety Certificate (INF-FAC-VES-01), MPCB Consent (INF-FAC-VES-04), and EMTC Joint FDR (FIN-TRU-EMT-01).\n• Expiring Soon (≤ 45 days): Faculty Cadre Roster (FAC-REC-VES-01), Central Library Consortium License (INF-FAC-VES-03), Delhi Fire NOC (INF-FAC-ISA-01), and AMC Fire NOC (INF-FAC-SAR-01).\n\nClick "Expiry Alerts" on your Admin Dashboard to open the Expiry Calendar and filter by Expired or 30/45-day windows.`,
         },
         {
           id: 'adm-5',
           category: 'RBAC & Provisioning',
           question: 'How do I provision a new Nodal Officer, Faculty, or Student account with phone uniqueness validation?',
-          answer: `Navigate to "Accounts & Access" in the left sidebar:\n\n1. Click "Provision New Account" and select the target role (Admin, Institutional Representative, Faculty, or Student).\n2. Enter a globally unique Username and 10-digit Indian mobile number.\n3. VERIDEX automatically normalizes phone numbers to canonical +91XXXXXXXXXX format (stripping spaces, hyphens, or leading zeros) and blocks duplicate usernames or phone numbers across all roles.\n4. For Institutional Representatives, Faculty, and Students, bind the account to its authorized Institution Code so strict Role-Based Data Isolation is enforced.`,
+          answer: `Navigate to "Reports & Accounts" in the left sidebar:\n\n1. Open the "Account Creation & Access Management" tab and select the target role (Admin, Institutional Representative, Faculty, or Student).\n2. Enter a globally unique Username and 10-digit Indian mobile number.\n3. VERIDEX normalizes phone numbers to canonical +91XXXXXXXXXX format and blocks duplicate usernames or phone numbers across all roles.\n4. For Institutional Representatives, Faculty, and Students, bind the account to its Institution Code so role-based data scoping is applied across views.`,
         },
       ],
     };
   }
 
   if (role === 'institutional_rep') {
-    const instCode = currentUser?.officialInstitutionCode || 'INST-PUNE-104';
+    const instCode = currentUser?.officialInstitutionCode || 'INST-VESIT-104';
     const instName =
-      currentUser?.institutionName || 'Vidyapeeth Institute of Technology, Pune';
+      currentUser?.institutionName || "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai";
     const myApps = applications.filter(
       (a) => a.institutionId === currentUser?.institutionId
     );
@@ -115,54 +116,54 @@ export function getRoleChatbotConfig(
       roleKey: 'institutional_rep',
       interfaceTitle: 'Institutional Nodal Officer Assistant',
       roleBadge: `Institute Mode · ${instCode}`,
-      welcomeMessage: `Namaste ${currentUser?.fullName || 'Nodal Officer'}. I am scoped to ${instName} (${instCode}). Ask me about resolving AICTE deficiency notices, category checklists, or replacing expired institutional certificates.`,
+      welcomeMessage: `Namaste ${currentUser?.fullName || 'Nodal Officer'}. I am scoped to ${instName} (${instCode}). Ask me about resolving reviewer correction requests, category checklists, or registering renewed institutional document records.`,
       placeholder: 'Ask about your institution dossiers, checklist items, or resubmission...',
       prompts: [
         {
           id: 'inst-1',
           category: 'Deficiency Resolution',
-          question: "How do I respond to an AICTE 'Additional Information Required' notice and resubmit our dossier?",
-          answer: `For ${instName} (${instCode}), you currently have ${actionReq.length} application(s) marked "Additional Information Required"${actionReq.length > 0 ? ` (${actionReq.map((a) => a.id).join(', ')})` : ''}:\n\n1. Click the red "Respond & Resubmit" button on the urgent banner or application card.\n2. Review the AICTE Reviewer's deficiency note in the Review Notes & Timeline tab.\n3. If a renewed certificate is needed, upload the new version in the Document Repository or attach it directly to the flagged checklist item.\n4. Enter your institutional clarification response in the Resubmission box and click "Submit Clarification & Resubmit Dossier". The status will immediately update to "Under Manual Review" and notify the regional reviewer.`,
+          question: "How do I respond to an 'Additional Information Required' notice and resubmit our dossier?",
+          answer: `For ${instName} (${instCode}), you currently have ${actionReq.length} application(s) marked "Additional Information Required"${actionReq.length > 0 ? ` (${actionReq.map((a) => a.id).join(', ')})` : ''}:\n\n1. Click the "Respond & Resubmit" button on the alert banner or application row.\n2. Review the Reviewer's correction request in the Review Notes & History panel.\n3. If a renewed certificate is needed, register the updated document metadata in the Document Repository or directly against the flagged checklist item.\n4. Enter your institutional clarification response in the Resubmission box and confirm "Submit Response & Resubmit Application". The status transitions to "Under Manual Review" and notifies the assigned reviewer.`,
         },
         {
           id: 'inst-2',
           category: 'Flagged Certificates',
-          question: 'Why were our Fire Safety Certificate and B.Tech CSE Intake NOC flagged during automated checks?',
-          answer: `In your institutional repository (${myDocs.length} authorized documents), two key review signals require Nodal Officer action:\n\n1. INF-FAC-VIT-01 (Municipal Fire & Life Safety Certificate): The recorded expiry date (2026-10-03) has lapsed by 20 days relative to the current compliance cycle (${REFERENCE_DATE}). Upload the renewed PMC Fire Brigade certificate as Version 2.\n2. APR-REG-VIT-02 (University Intake Enhancement NOC): Automated OCR cross-checking detected that the application requests 180 seats for B.Tech CSE, whereas the uploaded SPPU NOC specifies 120 seats. Submit either the revised 180-seat university addendum or a formal intake reconciliation note.`,
+          question: 'Why were our Fire Safety Certificate and Faculty Ph.D. Record flagged in APP-2026-0104?',
+          answer: `In your institutional repository (${myDocs.length} records scoped to ${instCode}), two review signals on APP-2026-0104 require Nodal Officer attention:\n\n1. INF-FAC-VES-01 (Municipal Fire & Life Safety Certificate): The recorded expiry date has lapsed relative to today's date (${todayDate}). Register the renewed Municipal Fire Brigade certificate metadata as a new version.\n2. FAC-QUA-KUL-01 (Ph.D. Degree — Dr. Shravani Salunkhe): Consistency check noted a middle-initial variance ("Shravani M. Salunkhe" vs "Shravani Salunkhe" on the roster). Attach a name-equivalence clarification note when resubmitting.`,
         },
         {
           id: 'inst-3',
           category: 'Category Checklists',
           question: "What mandatory documents are required when starting a 'New Course Approval' or 'Extension of Approval' application?",
-          answer: `When you click "Start New Application" on your Institutional Dashboard, VERIDEX generates a tailored statutory checklist:\n\n• Extension of Approval (EoA): (1) University Continuation of Affiliation Letter, (2) Municipal Fire & Life Safety Renewal Certificate, (3) Principal & Senior Faculty Ph.D. Qualification Dossiers, (4) Audited Financial Statement & Corpus Fund Utilization, and (5) Updated Faculty Cadre Roster.\n• New Course Approval (AI & Data Science): (1) Affiliating University NOC, (2) High-Performance Computing Lab Readiness Proof, (3) Core AI/ML Faculty Ph.D. Degrees, (4) Faculty Experience Certificates, and (5) Governing Body Seed Budget Resolution.`,
+          answer: `When you click "Start New Application" on your Institutional Dashboard, VERIDEX generates a category-specific checklist:\n\n• Extension of Approval (EoA): (1) University Continuation of Affiliation Letter, (2) Municipal Fire & Life Safety Renewal Certificate, (3) Principal & Senior Faculty Ph.D. Qualification Dossiers, (4) Audited Financial Statement & Corpus Fund Utilization, and (5) Updated Faculty Cadre Roster.\n• New Course Approval (AI & Data Science): (1) Affiliating University NOC, (2) High-Performance Computing Lab Readiness Proof, (3) Core AI/ML Faculty Ph.D. Degrees, (4) Faculty Experience Certificates, and (5) Governing Body Seed Budget Resolution.`,
         },
         {
           id: 'inst-4',
-          category: 'Document Versioning',
-          question: 'How does document versioning work when replacing an expired or incomplete certificate?',
-          answer: `VERIDEX preserves a complete, auditable version history for every institutional record:\n\n1. Open the Document Repository and select the flagged or expired record (e.g., INF-FAC-VIT-01).\n2. Click "Upload New Version" in the document inspector.\n3. Provide the updated file, new expiry date, and a brief change note (e.g., "Uploaded renewed 2026–2027 Municipal Fire Safety NOC").\n4. The internal document code remains stable so all linked application checklists automatically reference the latest version while retaining v1 in the version log.`,
+          category: 'Document Registration & Versioning',
+          question: 'How does document metadata registration and versioning work when replacing an expired certificate?',
+          answer: `VERIDEX tracks structured document metadata and version history in the browser workspace:\n\n1. Open the Document Repository and select the expired or flagged record (e.g., INF-FAC-VES-01), or click "Register Document Record".\n2. Select a local file to capture its filename, MIME type, and file size, verify the keyword-suggested category, and enter the Certificate Number, Issue Date, and Expiry Date.\n3. Newly registered records begin with "Pending Review" / "Pending Check" status until a reviewer inspects them.\n4. The internal document code remains stable across versions while retaining previous version entries in the history log.`,
         },
         {
           id: 'inst-5',
           category: 'Dossier Summary',
           question: "Summarize our institution's current application statuses and checklist completion progress.",
-          answer: `Summary for ${instName} (${instCode}):\n\n• Total Institutional Applications: ${myApps.length}\n${myApps
+          answer: `Summary for ${instName} (${instCode}) as of ${todayDate}:\n\n• Total Institutional Applications: ${myApps.length}\n${myApps
             .map((a) => {
               const ready = a.checklist.filter(
                 (c) => c.status === 'Verified' || c.status === 'Uploaded'
               ).length;
-              return `  - ${a.id} (${a.category}): Status "${a.status}" · Checklist ${ready}/${a.checklist.length} ready`;
+              return `  - ${a.id} (${a.category}): Status "${a.status}" · Checklist ${ready}/${a.checklist.length} recorded`;
             })
-            .join('\n')}\n• Authorized Repository Documents: ${myDocs.length} total records scoped strictly to ${instCode}. Check the Institutional Analytics charts on your dashboard for a visual breakdown.`,
+            .join('\n')}\n• Authorized Repository Documents: ${myDocs.length} total records scoped to ${instCode}.`,
         },
       ],
     };
   }
 
   if (role === 'faculty') {
-    const instCode = currentUser?.officialInstitutionCode || 'INST-PUNE-104';
+    const instCode = currentUser?.officialInstitutionCode || 'INST-VESIT-104';
     const instName =
-      currentUser?.institutionName || 'Vidyapeeth Institute of Technology, Pune';
+      currentUser?.institutionName || "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai";
     const facDocs = documents.filter(
       (d) =>
         d.institutionId === currentUser?.institutionId &&
@@ -184,32 +185,32 @@ export function getRoleChatbotConfig(
         {
           id: 'fac-1',
           category: 'Internal Document Codes',
-          question: 'How are faculty qualification and experience internal codes (e.g., FAC-QUA-SAL-01) generated?',
-          answer: `VERIDEX assigns every uploaded record a deterministic, human-readable Internal Document Code based on Category Prefix + Surname/Entity 3-letter code + Sequential 2-digit index:\n\n• Qualifications: FAC-QUA-<SUR>-01 (e.g., FAC-QUA-SAL-01 for Dr. Shravani Salunkhe's Ph.D. Degree)\n• Experience Certificates: FAC-EXP-<SUR>-01\n• Faculty Appointment Records: FAC-REC-<SUR>-01\n• Infrastructure & Labs: INF-FAC-<INS>-01\n\nIf multiple faculty members share a similar surname or have multiple degrees, the numeric suffix increments automatically (-01, -02, -03) to prevent collisions.`,
+          question: 'How are faculty qualification and experience internal codes (e.g., FAC-QUA-KUL-01) generated?',
+          answer: `VERIDEX assigns every registered record a deterministic, human-readable Internal Document Code based on Category Prefix + Surname/Entity 3-letter code + Sequential 2-digit index:\n\n• Qualifications: FAC-QUA-<SUR>-01\n• Experience Certificates: FAC-EXP-<SUR>-01\n• Faculty Appointment Records: FAC-REC-<SUR>-01\n• Infrastructure & Labs: INF-FAC-<INS>-01\n\nIf multiple faculty members share a similar surname or have multiple degrees, the numeric suffix increments automatically (-01, -02, -03) to prevent collisions.`,
         },
         {
           id: 'fac-2',
           category: 'Faculty & Lab Flags',
           question: 'Which faculty or laboratory records in my institution currently have verification flags?',
-          answer: `Within your authorized faculty and departmental scope at ${instName} (${facDocs.length} accessible records):\n\n• Verified Faculty Dossiers: Your Ph.D. Computer Engineering Convocation Certificate (FAC-QUA-SAL-01) and Prior Teaching Experience Certificate passed completeness and consistency checks.\n• Flagged Institutional Items Requiring Coordination: Municipal Fire & Life Safety Certificate (INF-FAC-VIT-01) is expired, and the B.Tech CSE Intake Enhancement NOC (APR-REG-VIT-02) has an intake count discrepancy (180 vs 120 seats).\n\nYou can inspect these in the "Verification & Compliance" or "Document Repository" views.`,
+          answer: `Within your authorized faculty and departmental scope at ${instName} (${facDocs.length} accessible records):\n\n• Flagged Qualification Record: Ph.D. Degree & Notification — Dr. Shravani Salunkhe (FAC-QUA-KUL-01) has a middle-initial consistency flag ("Shravani M. Salunkhe" vs "Shravani Salunkhe").\n• Flagged Institutional Infrastructure: Municipal Fire & Life Safety Certificate (INF-FAC-VES-01) is expired and awaiting renewal registration by the Nodal Officer.\n\nYou can inspect these in the "Verification & Compliance" or "Document Repository" views.`,
         },
         {
           id: 'fac-3',
           category: 'Lab Evidence Submission',
-          question: 'How do I submit computing lab carpet area and photographic evidence for EVC inspection?',
-          answer: `To log laboratory or instructional facility readiness evidence:\n\n1. Open the "Verification & Compliance" workspace from the left sidebar.\n2. Scroll to the "Infrastructure & Laboratory Visual Evidence Advisory" panel.\n3. Enter the Facility Title (e.g., "AI & High-Performance Computing Lab — Block C"), Declared Carpet Area in sq.m (statutory norm ≥ 66 sq.m per lab), and Reference Certificate Number.\n4. Click "Log Infrastructure Evidence". VERIDEX creates an INF-FAC record with an EVC inspection advisory note.`,
+          question: 'How do I record computing lab carpet area and photographic evidence for EVC inspection?',
+          answer: `To log laboratory or instructional facility readiness metadata:\n\n1. Open the "Verification & Compliance" workspace from the left sidebar.\n2. Scroll to the "Infrastructure & Laboratory Visual Evidence Advisory" panel.\n3. Enter the Facility Title (e.g., "AI & High-Performance Computing Lab — Room A-304"), Declared Carpet Area in sq.m (norm ≥ 66 sq.m per 30 seats), and Reference Certificate Number.\n4. Click "Log Infrastructure Evidence". VERIDEX creates an INF-FAC record with an EVC physical inspection advisory note.`,
         },
         {
           id: 'fac-4',
           category: 'Role Permissions',
           question: "Why am I restricted from modifying institutional trust deeds or viewing students' private records?",
-          answer: `VERIDEX enforces strict Role-Based Access Control (RBAC) and Data Isolation:\n\n• As a Faculty account (${currentUser?.employeeId || 'EMP-VIT-2019-042'}), you are authorized to view your institution's compliance applications, faculty qualifications, experience certificates, approvals, and infrastructure records.\n• Confidential Financial & Trust Deeds and individual Student scholarship/marksheet records are isolated to their respective authorized roles.\n• Submitting new institutional applications or recording AICTE regulatory decisions is restricted to Nodal Officers and AICTE Admins respectively.`,
+          answer: `VERIDEX applies role-based data scoping in the portal interface:\n\n• As a Faculty account (${currentUser?.employeeId || 'VESIT-FAC-2019-084'}), you can view your institution's compliance applications, faculty qualifications, experience certificates, approvals, and infrastructure records.\n• Financial & Trust Deeds and individual Student scholarship/marksheet records are scoped to their respective authorized roles.\n• Submitting institutional applications or recording compliance decisions is restricted to Nodal Officers and Reviewers respectively.`,
         },
         {
           id: 'fac-5',
           category: 'Consistency Checks',
           question: "What causes a 'Mismatch Flagged' finding on a Faculty Qualification or Experience record?",
-          answer: `Automated OCR Consistency Checks compare extracted fields on the uploaded PDF/image against the declared faculty roster:\n\n• Name or Spelling Discrepancy: e.g., middle initial or surname variation without an accompanying gazette/affidavit note.\n• Overlapping Service Dates: Prior experience relieving date overlapping with the joining date on the appointment order.\n• Degree Specialization Mismatch: Declared department cadre vs convocation discipline.\n\nWhen flagged, attach a clarification note or supporting annexure for the Nodal Officer and AICTE Reviewer.`,
+          answer: `Consistency checks compare recorded certificate metadata against the institutional faculty roster:\n\n• Name or Spelling Discrepancy: e.g., middle initial or surname variation without an accompanying gazette/affidavit note.\n• Overlapping Service Dates: Prior experience relieving date overlapping with the joining date on the appointment order.\n• Degree Specialization Mismatch: Declared department cadre vs convocation discipline.\n\nWhen flagged, coordinate with your Nodal Officer to attach a clarification note or supporting annexure.`,
         },
       ],
     };
@@ -227,14 +228,14 @@ export function getRoleChatbotConfig(
       roleKey: 'student',
       interfaceTitle: 'Student Verified Records Assistant',
       roleBadge: `Student Mode · ${currentUser?.rollNumber || 'PRN Verified'}`,
-      welcomeMessage: `Hi ${currentUser?.fullName || 'Scholar'}! I am your VERIDEX Student Records Assistant. I can help you check the verification status of your academic and scholarship documents, explain data privacy rules, or guide you on profile updates.`,
-      placeholder: 'Ask about your verified marksheets, GATE scholarship, or profile...',
+      welcomeMessage: `Hi ${currentUser?.fullName || 'Scholar'}! I am your VERIDEX Student Records Assistant. I can help you check the review status of your academic and scholarship documents, explain data privacy scoping, or guide you on profile updates.`,
+      placeholder: 'Ask about your verified marksheets, scholarship record, or profile...',
       prompts: [
         {
           id: 'stu-1',
           category: 'My Verified Records',
           question: 'What is the current verification status of my academic and scholarship records?',
-          answer: `You currently have ${myStudentDocs.length} authorized record(s) linked to your student profile (${currentUser?.fullName}, Roll/PRN: ${currentUser?.rollNumber || 'PRN-2023-CSE-089'}):\n\n${
+          answer: `You currently have ${myStudentDocs.length} authorized record(s) linked to your student profile (${currentUser?.fullName}, Roll/PRN: ${currentUser?.rollNumber || 'VESIT23CE042'}):\n\n${
             myStudentDocs.length > 0
               ? myStudentDocs
                   .map(
@@ -243,31 +244,31 @@ export function getRoleChatbotConfig(
                   )
                   .join('\n')
               : '• No pending discrepancies found on your student records.'
-          }\n\nClick "Inspect Record" on your dashboard to view the extracted summary fields and verification certificate details.`,
+          }\n\nClick any record on your dashboard to view the recorded summary fields and certificate details.`,
         },
         {
           id: 'stu-2',
           category: 'Data Privacy & Isolation',
           question: 'Why can I only view my own academic records and not institutional applications or other students?',
-          answer: `VERIDEX enforces strict Student Data Isolation to protect your personal academic and financial privacy:\n\n• Your student account is cryptographically and logically scoped to records where you are the designated scholar (${currentUser?.fullName} / ${currentUser?.id}).\n• You cannot see other students' marksheets, faculty service files, or institutional regulatory applications—and other students cannot view your records either.`,
+          answer: `VERIDEX scopes the Student workspace to protect personal academic privacy:\n\n• Your student view only displays records where you are the designated scholar (${currentUser?.fullName} / ${currentUser?.id}).\n• Institutional regulatory applications, faculty service files, and other students' records are hidden from student accounts.`,
         },
         {
           id: 'stu-3',
           category: 'Profile & Contact Update',
           question: 'How do I update my mobile phone number or email address in my student profile?',
-          answer: `To update your contact information:\n\n1. Click "My Profile" in the left navigation sidebar (or "Edit My Profile" on your dashboard).\n2. Update your Phone Number, Email Address, Date of Birth (which automatically recalculates your verified age), or Gender.\n3. Note: VERIDEX validates that your phone number (+91XXXXXXXXXX) and username are globally unique across the portal. Core institutional identifiers (Role, Institution Code, and Roll/PRN) are locked and managed by your institution's Nodal Officer.`,
+          answer: `To update your contact information:\n\n1. Click "Profile & Settings" in the left navigation sidebar.\n2. Update your Phone Number, Email Address, Date of Birth (which recalculates your age relative to ${todayDate}), or Gender.\n3. VERIDEX validates that your phone number (+91XXXXXXXXXX) and username are unique across the portal. Core institutional identifiers (Role, Institution Code, and Roll/PRN) are read-only and managed by your institution's Nodal Officer.`,
         },
         {
           id: 'stu-4',
-          category: 'Issuer Verification Meaning',
-          question: "What does 'Issuer Verification: Verified' mean on my uploaded scholarship or merit record?",
-          answer: `When a record shows "Issuer Verification: Verified" and "Human Review: Reviewed":\n\n1. Completeness Passed: All mandatory pages, signatures, and roll number/PRN fields were detected.\n2. Consistency Passed: Your name (${currentUser?.fullName}), Roll Number (${currentUser?.rollNumber}), and institution (${currentUser?.institutionName}) match official enrollment records.\n3. Officer Sign-Off: An authorized compliance reviewer has confirmed the record for statutory scholarship or enrollment reporting.`,
+          category: 'Review Status Meaning',
+          question: "What does 'Human Review: Reviewed' mean on my scholarship or enrollment record?",
+          answer: `When a record shows "Completeness: Complete", "Consistency: Consistent", and "Human Review: Reviewed":\n\n1. Completeness: All required pages and roll number/PRN fields were recorded.\n2. Consistency: Your name (${currentUser?.fullName}), Roll Number (${currentUser?.rollNumber}), and institution (${currentUser?.institutionName}) match enrollment records.\n3. Reviewer Sign-Off: An authorized compliance reviewer has inspected and confirmed the record.`,
         },
         {
           id: 'stu-5',
           category: 'Correction Request',
           question: 'Who should I contact if my Roll Number, PRN, or semester details need official correction?',
-          answer: `Because Roll Number (${currentUser?.rollNumber}), Course (${currentUser?.course}), and Institutional Affiliation (${currentUser?.institutionName}) are statutory identity fields, they are read-only for students.\n\nIf you spot a typographical error in your PRN or marksheet annexure, please contact your institution's Verified Nodal Officer (Dr. Aashay Khadkikar for VIT Pune, or Prof. Gauri Sardal for NCE Bengaluru) to upload a revised version in the institutional repository.`,
+          answer: `Because Roll Number (${currentUser?.rollNumber}), Course (${currentUser?.course}), and Institutional Affiliation (${currentUser?.institutionName}) are institutional identity fields, they are read-only for students.\n\nIf you spot a typographical error in your PRN or marksheet annexure, please contact your institution's Verified Nodal Officer (Dr. Aashay Khadkikar for VESIT Mumbai) to register a revised version in the institutional repository.`,
         },
       ],
     };

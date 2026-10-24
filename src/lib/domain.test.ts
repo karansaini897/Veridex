@@ -11,6 +11,9 @@ import {
   computeDashboardMetrics,
   computeAdminChartData,
   computeInstitutionChartData,
+  getLocalTodayDate,
+  addDaysToLocalDate,
+  sanitizeUserForStorage,
 } from './domain';
 import { getRoleChatbotConfig, generateFallbackRoleResponse } from './chatbotData';
 import { ApplicationRecord, DocumentRecord, UserAccount } from '../types/portal';
@@ -36,12 +39,12 @@ test('validateAccountUniqueness detects duplicate username and normalized phone 
       username: 'karan.saini',
       phone: '+91 98110 44210',
       normalizedPhone: '+919811044210',
-      email: 'karan.saini@veridex-aicte-demo.org.in',
+      email: 'karan.saini@veridex-aicte.example.org.in',
       dob: '1992-03-14',
       status: 'Active',
       role: 'admin',
-      password: 'demo',
-      isDemoAccount: true,
+      password: 'karan.saini',
+      isSystemAccount: true,
       createdAt: '2026-01-10',
     },
     {
@@ -50,12 +53,12 @@ test('validateAccountUniqueness detects duplicate username and normalized phone 
       username: 'shreya.kaulgud',
       phone: '+91 98201 11200',
       normalizedPhone: '+919820111200',
-      email: 'shreya.kaulgud23@vitpune-demo.edu.in',
+      email: 'shreya.kaulgud23@vesit.example.edu.in',
       dob: '2004-08-19',
       status: 'Active',
       role: 'student',
-      password: 'demo',
-      isDemoAccount: true,
+      password: 'shreya.kaulgud',
+      isSystemAccount: true,
       createdAt: '2026-02-01',
     },
   ];
@@ -78,25 +81,56 @@ test('validateAccountUniqueness detects duplicate username and normalized phone 
 
   // Valid unique candidate
   const uniqueCandidate = validateAccountUniqueness(
-    { username: 'fac.joshi', phone: '+91 97654 32109' },
+    { username: 'nandini.deshpande', phone: '+91 97654 32109' },
     existingUsers
   );
   assert.equal(uniqueCandidate.valid, true);
   assert.equal(uniqueCandidate.normalizedPhone, '+919765432109');
 });
 
-test('calculateExpiryDetails computes Valid, Expiring Soon, and Expired accurately', () => {
-  const expired = calculateExpiryDetails('2026-10-03', '2026-10-23');
-  assert.equal(expired.status, 'Expired');
-  assert.equal(expired.daysRemaining, -20);
+test('calculateExpiryDetails handles expiry today, within 45 days, beyond 45 days, and already expired relative to local today', () => {
+  const today = getLocalTodayDate();
 
-  const soon = calculateExpiryDetails('2026-11-12', '2026-10-23');
-  assert.equal(soon.status, 'Expiring Soon');
-  assert.equal(soon.daysRemaining, 20);
+  // Expiry today (0 days remaining -> Expiring Soon)
+  const expiringToday = calculateExpiryDetails(today, today);
+  assert.equal(expiringToday.daysRemaining, 0);
+  assert.equal(expiringToday.status, 'Expiring Soon');
+  assert.equal(expiringToday.label, 'Expires today');
 
-  const valid = calculateExpiryDetails('2027-06-30', '2026-10-23');
-  assert.equal(valid.status, 'Valid');
-  assert.ok((valid.daysRemaining ?? 0) > 200);
+  // Expiry within 45 days (exactly 45 days -> Expiring Soon)
+  const expiringIn45 = calculateExpiryDetails(addDaysToLocalDate(today, 45), today);
+  assert.equal(expiringIn45.daysRemaining, 45);
+  assert.equal(expiringIn45.status, 'Expiring Soon');
+
+  // Expiry just beyond 45 days (46 days -> Valid)
+  const validBeyond45 = calculateExpiryDetails(addDaysToLocalDate(today, 46), today);
+  assert.equal(validBeyond45.daysRemaining, 46);
+  assert.equal(validBeyond45.status, 'Valid');
+
+  // Already expired (-1 day -> Expired)
+  const expiredYesterday = calculateExpiryDetails(addDaysToLocalDate(today, -1), today);
+  assert.equal(expiredYesterday.daysRemaining, -1);
+  assert.equal(expiredYesterday.status, 'Expired');
+  assert.equal(expiredYesterday.label, 'Expired 1d ago');
+});
+
+test('sanitizeUserForStorage removes plaintext password before localStorage persistence', () => {
+  const user: UserAccount = {
+    id: 'USR-1',
+    fullName: 'Dr. Aashay Khadkikar',
+    username: 'aashay.khadkikar',
+    phone: '+91 98220 33445',
+    normalizedPhone: '+919822033445',
+    email: 'aashay.khadkikar@vesit.example.edu.in',
+    dob: '1984-06-10',
+    status: 'Active',
+    role: 'institutional_rep',
+    password: 'aashay.khadkikar',
+    createdAt: '2026-01-01',
+  };
+  const sanitized = sanitizeUserForStorage(user);
+  assert.equal(sanitized.password, undefined);
+  assert.equal('password' in sanitized, false);
 });
 
 test('generateInternalDocumentCode produces sequential unique codes for same person/category', () => {
@@ -105,44 +139,44 @@ test('generateInternalDocumentCode produces sequential unique codes for same per
   assert.equal(nextCode, 'FAC-QUA-KHA-03');
 });
 
-test('RBAC data isolation restricts institutional reps and students to authorized records', () => {
-  const repPune: UserAccount = {
-    id: 'u-rep-pune',
+test('RBAC data isolation restricts institutional reps and students to authorized VESIT records', () => {
+  const repVesit: UserAccount = {
+    id: 'u-rep-vesit',
     fullName: 'Dr. Aashay Khadkikar',
     username: 'aashay.khadkikar',
     phone: '+919822033445',
     normalizedPhone: '+919822033445',
-    email: 'aashay.khadkikar@vitpune-demo.edu.in',
+    email: 'aashay.khadkikar@vesit.example.edu.in',
     dob: '1984-06-10',
     status: 'Active',
     role: 'institutional_rep',
-    institutionId: 'INST-PUNE-104',
-    password: 'demo',
-    isDemoAccount: true,
+    institutionId: 'INST-VESIT-104',
+    password: 'aashay.khadkikar',
+    isSystemAccount: true,
     createdAt: '2026-01-01',
   };
 
-  const appPune = { id: 'APP-1', institutionId: 'INST-PUNE-104' } as ApplicationRecord;
+  const appVesit = { id: 'APP-1', institutionId: 'INST-VESIT-104' } as ApplicationRecord;
   const appBlr = { id: 'APP-2', institutionId: 'INST-BLR-209' } as ApplicationRecord;
 
-  assert.equal(canUserAccessApplication(repPune, appPune), true);
-  assert.equal(canUserAccessApplication(repPune, appBlr), false);
+  assert.equal(canUserAccessApplication(repVesit, appVesit), true);
+  assert.equal(canUserAccessApplication(repVesit, appBlr), false);
 
   const studentUser: UserAccount = {
-    ...repPune,
+    ...repVesit,
     id: 'u-stu-1',
     role: 'student',
     fullName: 'Shreya Kaulgud',
   };
   const ownDoc = {
     id: 'DOC-1',
-    institutionId: 'INST-PUNE-104',
+    institutionId: 'INST-VESIT-104',
     personUserId: 'u-stu-1',
     personName: 'Shreya Kaulgud',
   } as DocumentRecord;
   const otherDoc = {
     id: 'DOC-2',
-    institutionId: 'INST-PUNE-104',
+    institutionId: 'INST-VESIT-104',
     personUserId: 'u-fac-1',
     personName: 'Dr. Shravani Salunkhe',
   } as DocumentRecord;
@@ -152,6 +186,7 @@ test('RBAC data isolation restricts institutional reps and students to authorize
 });
 
 test('computeDashboardMetrics aggregates counts accurately from records', () => {
+  const today = getLocalTodayDate();
   const apps = [
     { status: 'Submitted' },
     { status: 'Additional Information Required' },
@@ -161,16 +196,16 @@ test('computeDashboardMetrics aggregates counts accurately from records', () => 
     {
       issuerVerificationStatus: 'Verified',
       humanReviewStatus: 'Reviewed',
-      expiryDate: '2027-08-01',
+      expiryDate: addDaysToLocalDate(today, 180),
     },
     {
       issuerVerificationStatus: 'Pending',
       humanReviewStatus: 'Pending',
-      expiryDate: '2026-10-01',
+      expiryDate: addDaysToLocalDate(today, -10),
     },
   ] as DocumentRecord[];
 
-  const metrics = computeDashboardMetrics(apps, docs, '2026-10-23');
+  const metrics = computeDashboardMetrics(apps, docs, today);
   assert.equal(metrics.totalApplications, 3);
   assert.equal(metrics.pendingReview, 1);
   assert.equal(metrics.requiringAdditionalInfo, 1);
@@ -179,6 +214,7 @@ test('computeDashboardMetrics aggregates counts accurately from records', () => 
 });
 
 test('computeAdminChartData and computeInstitutionChartData generate valid Recharts series', () => {
+  const today = getLocalTodayDate();
   const apps = [
     {
       id: 'APP-2026-0101',
@@ -208,7 +244,7 @@ test('computeAdminChartData and computeInstitutionChartData generate valid Recha
       consistencyStatus: 'Consistent',
       completenessStatus: 'Complete',
       anomalyStatus: 'No Anomaly Detected',
-      expiryDate: '2027-08-01',
+      expiryDate: addDaysToLocalDate(today, 200),
     },
     {
       category: 'Infrastructure',
@@ -217,16 +253,16 @@ test('computeAdminChartData and computeInstitutionChartData generate valid Recha
       consistencyStatus: 'Mismatch Flagged',
       completenessStatus: 'Complete',
       anomalyStatus: 'No Anomaly Detected',
-      expiryDate: '2026-10-01',
+      expiryDate: addDaysToLocalDate(today, -5),
     },
   ] as unknown as DocumentRecord[];
 
-  const adminCharts = computeAdminChartData(apps, docs, '2026-10-23');
+  const adminCharts = computeAdminChartData(apps, docs, today);
   assert.equal(adminCharts.statusDistribution.length, 7);
   assert.equal(adminCharts.processingTrends.length, 6);
   assert.equal(adminCharts.processingTrends[5].uploaded, 2);
 
-  const instCharts = computeInstitutionChartData(apps, docs, '2026-10-23');
+  const instCharts = computeInstitutionChartData(apps, docs, today);
   assert.equal(instCharts.dossierReadiness.length, 2);
   assert.equal(instCharts.dossierReadiness[0].completionPct, 50);
   assert.equal(instCharts.dossierReadiness[1].completionPct, 100);
@@ -261,5 +297,14 @@ test('getRoleChatbotConfig provides distinct prompts, questions, and answers for
 
   const fallbackReply = generateFallbackRoleResponse('student', 'How do I check my GATE scholarship status?', ctx);
   assert.ok(fallbackReply.length > 30);
+});
+
+test('every registered account in SEED_USERS has both username and password formatted as firstname.lastname', async () => {
+  const { SEED_USERS } = await import('../data/seedData');
+  assert.ok(SEED_USERS.length >= 6);
+  for (const user of SEED_USERS) {
+    assert.match(user.username, /^[a-z]+\.[a-z]+$/);
+    assert.equal(user.password, user.username);
+  }
 });
 

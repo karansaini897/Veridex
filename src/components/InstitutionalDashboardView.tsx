@@ -35,7 +35,7 @@ import {
   canUserAccessApplication,
   canUserAccessDocument,
   computeInstitutionChartData,
-  REFERENCE_DATE,
+  getLocalTodayDate,
 } from '../lib/domain';
 
 interface InstitutionalDashboardViewProps {
@@ -49,8 +49,8 @@ interface InstitutionalDashboardViewProps {
   onCreateApplication: (params: {
     category: ApplicationCategory;
     submitImmediately: boolean;
-    demoDocumentTitle?: string;
-    demoCertNumber?: string;
+    initialDocumentTitle?: string;
+    initialCertNumber?: string;
   }) => void;
   onNavigate: (view: MainView) => void;
 }
@@ -115,11 +115,12 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
   const [selectedCategory, setSelectedCategory] = useState<ApplicationCategory>(
     'New Course Approval (AI & Data Science)'
   );
-  const [includeSampleDoc, setIncludeSampleDoc] = useState(true);
-  const [sampleDocTitle, setSampleDocTitle] = useState(
-    'SPPU Statutory NOC & Lab Readiness Annex'
+  const [includeInitialDoc, setIncludeInitialDoc] = useState(true);
+  const [initialDocTitle, setInitialDocTitle] = useState(
+    'University of Mumbai Academic Council NOC & Lab Readiness Annex'
   );
-  const [sampleCertNumber, setSampleCertNumber] = useState('SPPU/NOC/2026/9941');
+  const [initialCertNumber, setInitialCertNumber] = useState('UOM/NOC/2026/9941');
+  const todayStr = getLocalTodayDate();
 
   // Strict authorization filtering
   const myApps = useMemo(
@@ -139,7 +140,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
 
   const flaggedOrExpiringDocs = useMemo(() => {
     return myDocs.filter((d) => {
-      const exp = calculateExpiryDetails(d.expiryDate, REFERENCE_DATE);
+      const exp = calculateExpiryDetails(d.expiryDate, todayStr);
       return (
         exp.status === 'Expired' ||
         exp.status === 'Expiring Soon' ||
@@ -148,7 +149,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
         d.anomalyStatus === 'Suspected Alteration / Duplicate'
       );
     });
-  }, [myDocs]);
+  }, [myDocs, todayStr]);
 
   const previewChecklist = useMemo(
     () => buildCategoryChecklist(selectedCategory),
@@ -156,8 +157,8 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
   );
 
   const instChartData = useMemo(
-    () => computeInstitutionChartData(myApps, myDocs, REFERENCE_DATE),
-    [myApps, myDocs]
+    () => computeInstitutionChartData(myApps, myDocs, todayStr),
+    [myApps, myDocs, todayStr]
   );
 
   const studentChartData = useMemo(() => {
@@ -251,7 +252,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                       borderRadius: '12px',
                       fontSize: '12px',
                     }}
-                    formatter={(val: number) => [`${val}% Verified`, 'Readiness']}
+                    formatter={(val) => [`${val ?? 0}% Verified`, 'Readiness']}
                   />
                   <Bar dataKey="readinessScore" name="Verification Readiness %" fill="#046A38" radius={[0, 6, 6, 0]} barSize={22} />
                 </BarChart>
@@ -357,7 +358,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                 onClick={() => onNavigate('documents')}
                 className="px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
-                Upload to Repository
+                Register Document Record
               </button>
               <button
                 type="button"
@@ -733,7 +734,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
 
         <div className="divide-y divide-slate-200 dark:divide-slate-800">
           {flaggedOrExpiringDocs.map((doc) => {
-            const exp = calculateExpiryDetails(doc.expiryDate, REFERENCE_DATE);
+            const exp = calculateExpiryDetails(doc.expiryDate, todayStr);
             return (
               <div
                 key={doc.id}
@@ -846,49 +847,49 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                 </ul>
               </div>
 
-              {/* Option to attach primary supporting document right now */}
+              {/* Option to register primary supporting document metadata right now */}
               <div className="p-4 rounded-lg border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 space-y-3">
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={includeSampleDoc}
-                    onChange={(e) => setIncludeSampleDoc(e.target.checked)}
+                    checked={includeInitialDoc}
+                    onChange={(e) => setIncludeInitialDoc(e.target.checked)}
                     className="rounded border-slate-300"
                   />
                   <span>
-                    Attach &amp; Validate First Checklist Document Upon Creation
+                    Register First Checklist Document Record Upon Creation
                   </span>
                 </label>
 
-                {includeSampleDoc && (
+                {includeInitialDoc && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
                       <label
-                        htmlFor="demo-doc-title"
+                        htmlFor="initial-doc-title"
                         className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1"
                       >
                         Supporting Document Title
                       </label>
                       <input
-                        id="demo-doc-title"
+                        id="initial-doc-title"
                         type="text"
-                        value={sampleDocTitle}
-                        onChange={(e) => setSampleDocTitle(e.target.value)}
+                        value={initialDocTitle}
+                        onChange={(e) => setInitialDocTitle(e.target.value)}
                         className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                       />
                     </div>
                     <div>
                       <label
-                        htmlFor="demo-cert-num"
+                        htmlFor="initial-cert-num"
                         className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1"
                       >
                         Certificate Reference Number
                       </label>
                       <input
-                        id="demo-cert-num"
+                        id="initial-cert-num"
                         type="text"
-                        value={sampleCertNumber}
-                        onChange={(e) => setSampleCertNumber(e.target.value)}
+                        value={initialCertNumber}
+                        onChange={(e) => setInitialCertNumber(e.target.value)}
                         className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono-tabular"
                       />
                     </div>
@@ -911,8 +912,8 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                   onCreateApplication({
                     category: selectedCategory,
                     submitImmediately: false,
-                    demoDocumentTitle: includeSampleDoc ? sampleDocTitle : undefined,
-                    demoCertNumber: includeSampleDoc ? sampleCertNumber : undefined,
+                    initialDocumentTitle: includeInitialDoc ? initialDocTitle : undefined,
+                    initialCertNumber: includeInitialDoc ? initialCertNumber : undefined,
                   });
                   setNewAppModalOpen(false);
                 }}
@@ -926,8 +927,8 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                   onCreateApplication({
                     category: selectedCategory,
                     submitImmediately: true,
-                    demoDocumentTitle: includeSampleDoc ? sampleDocTitle : undefined,
-                    demoCertNumber: includeSampleDoc ? sampleCertNumber : undefined,
+                    initialDocumentTitle: includeInitialDoc ? initialDocTitle : undefined,
+                    initialCertNumber: includeInitialDoc ? initialCertNumber : undefined,
                   });
                   setNewAppModalOpen(false);
                 }}

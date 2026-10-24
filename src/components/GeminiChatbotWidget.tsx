@@ -35,6 +35,7 @@ interface ChatMessage {
   text: string;
   timestamp: string;
   categoryTag?: string;
+  sourceMode?: 'gemini' | 'fallback';
 }
 
 export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
@@ -71,6 +72,7 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
         text: roleConfig.welcomeMessage,
         timestamp: 'Just now',
         categoryTag: roleConfig.roleBadge,
+        sourceMode: 'fallback',
       },
     ]);
     setShowPromptsPanel(true);
@@ -101,6 +103,7 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
       text: preset.answer,
       timestamp: nowTime,
       categoryTag: preset.category,
+      sourceMode: 'fallback',
     };
 
     setShowPromptsPanel(false);
@@ -130,16 +133,16 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
     setIsLoading(true);
 
     try {
-      // Check if user's typed question matches one of the curated role prompts first or call /api/gemini/chat
       const contextSummary = roleConfig.prompts
         .map((p) => `Q: ${p.question}\nA: ${p.answer}`)
-        .join('\n\n');
+        .join('\n\n')
+        .slice(0, 3800);
 
       const response = await fetch('/api/gemini/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: trimmed,
+          message: trimmed.slice(0, 1500),
           role: activeRole,
           userName: currentUser?.fullName,
           institutionName: currentUser?.institutionName,
@@ -149,7 +152,7 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
 
       if (response.ok) {
         const data = await response.json();
-        if (data?.reply) {
+        if (data?.reply && data?.mode === 'gemini') {
           setMessages((prev) => [
             ...prev,
             {
@@ -158,6 +161,7 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
               text: data.reply,
               timestamp: nowTime,
               categoryTag: 'Gemini Assistant',
+              sourceMode: 'gemini',
             },
           ]);
           setIsLoading(false);
@@ -183,6 +187,7 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
         text: fallbackAnswer,
         timestamp: nowTime,
         categoryTag: roleConfig.roleBadge,
+        sourceMode: 'fallback',
       },
     ]);
     setIsLoading(false);
@@ -196,6 +201,7 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
         text: roleConfig.welcomeMessage,
         timestamp: 'Just now',
         categoryTag: roleConfig.roleBadge,
+        sourceMode: 'fallback',
       },
     ]);
     setShowPromptsPanel(true);
@@ -303,10 +309,17 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
                         : 'bg-[#F4EDE1] dark:bg-stone-800 text-stone-900 dark:text-stone-100 border border-[#C2410C]/35 rounded-tl-xs'
                     }`}
                   >
-                    {msg.categoryTag && msg.sender === 'assistant' && (
-                      <div className="text-[10px] font-mono-tabular font-bold text-[#046A38] dark:text-emerald-400 mb-1 flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3 shrink-0" />
-                        <span>{msg.categoryTag}</span>
+                    {msg.sender === 'assistant' && (
+                      <div className="text-[10px] font-mono-tabular font-bold text-[#046A38] dark:text-emerald-400 mb-1 flex flex-wrap items-center justify-between gap-1.5">
+                        <span className="flex items-center gap-1">
+                          <ShieldCheck className="w-3 h-3 shrink-0" />
+                          <span>{msg.categoryTag || roleConfig.roleBadge}</span>
+                        </span>
+                        <span className="text-[9px] font-mono-tabular px-1.5 py-0.5 rounded bg-[#EFE6D5] dark:bg-stone-900 text-stone-700 dark:text-stone-300 border border-[#C2410C]/30">
+                          {msg.sourceMode === 'gemini'
+                            ? 'Gemini Assistant'
+                            : 'Local Compliance Guide (Fallback)'}
+                        </span>
                       </div>
                     )}
                     <div className="whitespace-pre-line">{msg.text}</div>
@@ -326,7 +339,7 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
               {isLoading && (
                 <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400 pl-2">
                   <Sparkles className="w-3.5 h-3.5 text-[#046A38] animate-spin" />
-                  <span>Gemini is analyzing your {activeRole.replace('_', ' ')} query...</span>
+                  <span>Analyzing your {activeRole.replace('_', ' ')} query...</span>
                 </div>
               )}
 
@@ -395,6 +408,7 @@ export const GeminiChatbotWidget: React.FC<GeminiChatbotWidgetProps> = ({
             >
               <input
                 type="text"
+                maxLength={1500}
                 aria-label="Ask Gemini compliance assistant a question"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}

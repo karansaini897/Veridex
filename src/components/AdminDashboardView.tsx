@@ -38,7 +38,7 @@ import {
   calculateExpiryDetails,
   computeAdminChartData,
   computeDashboardMetrics,
-  REFERENCE_DATE,
+  getLocalTodayDate,
 } from '../lib/domain';
 
 interface AdminDashboardViewProps {
@@ -116,14 +116,16 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [visibleLimit, setVisibleLimit] = useState(8);
   const [trendMode, setTrendMode] = useState<'timeline' | 'categories'>('timeline');
 
+  const todayStr = getLocalTodayDate();
+
   const metrics = useMemo(
-    () => computeDashboardMetrics(applications, documents, REFERENCE_DATE),
-    [applications, documents]
+    () => computeDashboardMetrics(applications, documents, todayStr),
+    [applications, documents, todayStr]
   );
 
   const chartData = useMemo(
-    () => computeAdminChartData(applications, documents, REFERENCE_DATE),
-    [applications, documents]
+    () => computeAdminChartData(applications, documents, todayStr),
+    [applications, documents, todayStr]
   );
 
   const filteredApplications = useMemo(() => {
@@ -164,11 +166,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     return documents
       .map((doc) => ({
         doc,
-        expiry: calculateExpiryDetails(doc.expiryDate, REFERENCE_DATE),
+        expiry: calculateExpiryDetails(doc.expiryDate, todayStr),
       }))
       .filter((item) => item.expiry.status === 'Expired' || item.expiry.status === 'Expiring Soon')
       .sort((a, b) => (a.expiry.daysRemaining ?? 999) - (b.expiry.daysRemaining ?? 999));
-  }, [documents]);
+  }, [documents, todayStr]);
 
   const verificationBreakdown = useMemo(() => {
     const total = documents.length;
@@ -419,7 +421,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                       fontSize: '12px',
                       color: '#1C1917',
                     }}
-                    formatter={(value: number) => [`${value} Dossier(s)`, 'Count']}
+                    formatter={(value) => [`${value ?? 0} Dossier(s)`, 'Count']}
                   />
                   <Bar dataKey="count" name="Applications" radius={[0, 6, 6, 0]} barSize={18}>
                     {chartData.statusDistribution.map((entry) => (

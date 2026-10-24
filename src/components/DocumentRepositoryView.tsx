@@ -16,11 +16,15 @@ import {
   UserAccount,
 } from '../types/portal';
 import {
+  addDaysToLocalDate,
   calculateExpiryDetails,
   canUserAccessDocument,
   canUserPerformAdminAction,
+  createRecordId,
+  formatTimestampForDisplay,
   generateInternalDocumentCode,
-  REFERENCE_DATE,
+  getCurrentIsoTimestamp,
+  getLocalTodayDate,
   suggestDocumentCategory,
 } from '../lib/domain';
 import {
@@ -86,16 +90,18 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
   const [institutionFilter, setInstitutionFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'uploadDate' | 'name' | 'internalCode' | 'expiryDate'>('uploadDate');
 
-  // Upload New Document Modal State
+  const todayStr = getLocalTodayDate();
+
+  // Register New Document Record Modal State
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [docTitle, setDocTitle] = useState('');
   const [personName, setPersonName] = useState(currentUser.fullName);
   const [certNumber, setCertNumber] = useState('');
-  const [issuingAuthority, setIssuingAuthority] = useState('Savitribai Phule Pune University');
-  const [issueDate, setIssueDate] = useState('2026-08-15');
-  const [expiryDate, setExpiryDate] = useState('2027-08-14');
+  const [issuingAuthority, setIssuingAuthority] = useState('University of Mumbai');
+  const [issueDate, setIssueDate] = useState(() => addDaysToLocalDate(todayStr, -45));
+  const [expiryDate, setExpiryDate] = useState(() => addDaysToLocalDate(todayStr, 320));
   const [relatedAppId, setRelatedAppId] = useState('');
-  const [fileName, setFileName] = useState('SPPU_Qualification_Dossier_2026.pdf');
+  const [fileName, setFileName] = useState('UOM_Qualification_Dossier_2026.pdf');
   const [mimeType, setMimeType] = useState<'application/pdf' | 'image/jpeg' | 'image/png'>('application/pdf');
   const [fileSize, setFileSize] = useState('1.42 MB');
   const [overrideCategory, setOverrideCategory] = useState<DocumentCategory | ''>('');
@@ -104,9 +110,9 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
   // Replace Version State inside Detail Drawer
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [replaceFileName, setReplaceFileName] = useState('Renewed_Certificate_v2.pdf');
-  const [replaceExpiry, setReplaceExpiry] = useState('2027-10-31');
+  const [replaceExpiry, setReplaceExpiry] = useState(() => addDaysToLocalDate(todayStr, 365));
   const [replaceNote, setReplaceNote] = useState(
-    'Uploaded renewed certificate to resolve expiry/completeness flag.'
+    'Registered renewed certificate record to resolve expiry/completeness flag.'
   );
 
   const authorizedDocs = useMemo(
@@ -124,7 +130,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
           return false;
         }
         if (validityFilter !== 'All') {
-          const exp = calculateExpiryDetails(doc.expiryDate, REFERENCE_DATE);
+          const exp = calculateExpiryDetails(doc.expiryDate, todayStr);
           if (exp.status !== validityFilter) return false;
         }
         if (!q) return true;
@@ -156,6 +162,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
     verificationFilter,
     validityFilter,
     sortBy,
+    todayStr,
   ]);
 
   const aiSuggestion = useMemo(
@@ -222,8 +229,9 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
       return;
     }
 
-    const instId = currentUser.institutionId || 'INST-PUNE-104';
+    const instId = currentUser.institutionId || 'INST-VESIT-104';
     const instObj = institutions.find((i) => i.id === instId);
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
 
     onUploadDocument({
       internalCode: previewInternalCode,
@@ -233,7 +241,9 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
       suggestedFolder: aiSuggestion.folder,
       categoryConfirmed: true,
       institutionId: instId,
-      institutionName: instObj?.name || 'Vidyapeeth Institute of Technology, Pune',
+      institutionName:
+        instObj?.name ||
+        "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai",
       relatedApplicationId: relatedAppId || undefined,
       personName: personName.trim() || currentUser.fullName,
       personUserId: currentUser.id,
@@ -241,30 +251,32 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
       issuingAuthority: issuingAuthority.trim() || 'Authorized Issuing Body',
       issueDate,
       expiryDate: expiryDate || undefined,
-      uploadDate: REFERENCE_DATE,
+      uploadDate: todayStr,
       fileName: fileName.trim(),
       fileSize,
       mimeType,
-      completenessStatus: 'Complete',
-      consistencyStatus: 'Consistent',
-      anomalyStatus: 'No Anomaly Detected',
-      issuerVerificationStatus: 'Verified',
+      completenessStatus: 'Pending Review',
+      consistencyStatus: 'Pending Check',
+      anomalyStatus: 'Not Screened',
+      issuerVerificationStatus: 'Unavailable',
       humanReviewStatus: 'Pending',
       extractedSummary: {
         'Document Title': docTitle.trim(),
         'Holder / Signatory': personName.trim() || currentUser.fullName,
         'Certificate Number': certNumber.trim(),
         'Classification Folder': aiSuggestion.folder,
+        'Selected File Attributes': `${fileName.trim()} (${mimeType}, ${fileSize})`,
       },
       findings: [
         {
-          id: `F-NEW-${Date.now()}`,
+          id: createRecordId('F-NEW'),
           pillar: 'Completeness',
-          status: 'Passed',
-          affectedFieldOrPage: 'Page 1 (Automated Intake Check)',
-          explanation: 'Automated OCR confirmed mandatory metadata fields and seal presence.',
-          evidenceComparison: `Extracted Cert #${certNumber.trim()} matches form input.`,
-          suggestedNextAction: 'Queued for regional reviewer sign-off.',
+          status: 'Advisory',
+          affectedFieldOrPage: 'Registered Metadata Record',
+          explanation:
+            'Document details, certificate reference, and file attributes registered; awaiting reviewing officer inspection.',
+          evidenceComparison: `Registered Cert #${certNumber.trim()} (${fileName.trim()}, ${fileSize}).`,
+          suggestedNextAction: 'Queued for regional reviewer inspection and human sign-off.',
         },
       ],
       versions: [
@@ -273,9 +285,9 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
           fileName: fileName.trim(),
           fileSize,
           mimeType,
-          uploadedAt: `${REFERENCE_DATE} 14:25`,
+          uploadedAt: nowDisplay,
           uploadedBy: currentUser.fullName,
-          changeNote: 'Initial upload with AI-assisted classification confirmation.',
+          changeNote: 'Initial metadata registration with keyword-based category confirmation.',
         },
       ],
     });
@@ -308,7 +320,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
             className="px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Upload className="w-4 h-4" />
-            <span>Upload &amp; Classify Document</span>
+            <span>Register Document Record</span>
           </button>
         )}
       </div>
@@ -428,7 +440,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
               {filteredDocs.map((doc) => {
-                const exp = calculateExpiryDetails(doc.expiryDate, REFERENCE_DATE);
+                const exp = calculateExpiryDetails(doc.expiryDate, todayStr);
                 const hasIssue =
                   exp.status === 'Expired' ||
                   doc.completenessStatus.includes('Missing') ||
@@ -746,7 +758,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                   <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                     <div className="text-[11px] text-slate-500">2. Expiry Status</div>
                     <div className="font-semibold text-slate-900 dark:text-white mt-0.5 font-mono-tabular">
-                      {calculateExpiryDetails(selectedDocument.expiryDate, REFERENCE_DATE).label}
+                      {calculateExpiryDetails(selectedDocument.expiryDate, todayStr).label}
                     </div>
                   </div>
                   <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800">
@@ -896,10 +908,10 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                   id="upload-doc-modal-title"
                   className="text-lg font-display font-bold text-slate-900 dark:text-white"
                 >
-                  Upload Institutional Document to Repository
+                  Register Institutional Document Record in Repository
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Supports PDF, JPEG, and PNG (max 15 MB) with AI-assisted category suggestion.
+                  Records document metadata, selected file attributes (PDF, JPEG, PNG up to 15 MB), and keyword-based category suggestion.
                 </p>
               </div>
               <button
@@ -1043,11 +1055,11 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                 </div>
               </div>
 
-              {/* Automated Document Classification Box */}
+              {/* Keyword-Based Document Classification & Confirmation Box */}
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
-                    Automated Document Classification &amp; Indexing
+                    Keyword-Based Document Classification &amp; Indexing
                   </span>
                   <span className="text-xs font-mono-tabular font-semibold text-slate-900 dark:text-white">
                     Generated Internal Code: {previewInternalCode}
@@ -1056,6 +1068,9 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                 <div className="text-xs text-slate-600 dark:text-slate-400">
                   Suggested Category: <strong>{aiSuggestion.category}</strong> · Suggested Folder:{' '}
                   <span className="font-mono-tabular">{aiSuggestion.folder}</span> ({aiSuggestion.rationale})
+                </div>
+                <div className="text-[11px] font-mono-tabular text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-800">
+                  Selected File Metadata: <strong>{fileName}</strong> · Type: <strong>{mimeType}</strong> · Size: <strong>{fileSize}</strong> · Initial Status: <strong>Pending Review</strong>
                 </div>
                 <div>
                   <label
@@ -1096,7 +1111,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                   type="submit"
                   className="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium cursor-pointer"
                 >
-                  Confirm Classification &amp; Upload
+                  Confirm &amp; Register Document Record
                 </button>
               </div>
             </form>

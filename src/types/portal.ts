@@ -14,8 +14,9 @@ export interface UserAccount {
   avatarUrl?: string;
   status: AccountStatus;
   role: Role;
-  password: string;
-  isDemoAccount: boolean;
+  password?: string;
+  isSystemAccount?: boolean;
+  isDemoAccount?: boolean;
   createdAt: string;
 
   // Institutional affiliation (for institutional_rep, faculty, student)
@@ -149,7 +150,8 @@ export interface VerificationFinding {
     | 'Pending'
     | 'Unavailable'
     | 'Reviewed'
-    | 'Action Required';
+    | 'Action Required'
+    | 'Advisory';
   affectedFieldOrPage: string;
   explanation: string;
   evidenceComparison: string;
@@ -189,9 +191,9 @@ export interface DocumentRecord {
   fileName: string;
   fileSize: string;
   mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
-  completenessStatus: 'Complete' | 'Missing Pages/Fields';
-  consistencyStatus: 'Consistent' | 'Mismatch Flagged';
-  anomalyStatus: 'No Anomaly Detected' | 'Suspected Alteration / Duplicate';
+  completenessStatus: 'Complete' | 'Missing Pages/Fields' | 'Pending Review';
+  consistencyStatus: 'Consistent' | 'Mismatch Flagged' | 'Pending Check';
+  anomalyStatus: 'No Anomaly Detected' | 'Suspected Alteration / Duplicate' | 'Not Screened';
   issuerVerificationStatus:
     | 'Verified'
     | 'Failed'

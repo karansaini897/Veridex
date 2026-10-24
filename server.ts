@@ -12,21 +12,38 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({ limit: '32kb' }));
 
   app.post('/api/gemini/chat', async (req, res) => {
     try {
       const { message, role, userName, institutionName, contextSummary } = req.body || {};
-      if (!message || typeof message !== 'string') {
-        res.status(400).json({ error: 'Message is required.' });
+      if (!message || typeof message !== 'string' || message.trim().length === 0) {
+        res.status(400).json({ error: 'A non-empty message string is required.' });
         return;
       }
+      if (message.length > 1500) {
+        res.status(400).json({ error: 'Message exceeds maximum allowed length (1500 characters).' });
+        return;
+      }
+
+      const safeRole =
+        typeof role === 'string' &&
+        ['admin', 'institutional_rep', 'faculty', 'student', 'public'].includes(role)
+          ? role
+          : 'public';
+      const safeUserName =
+        typeof userName === 'string' ? userName.slice(0, 120) : '';
+      const safeInstitutionName =
+        typeof institutionName === 'string' ? institutionName.slice(0, 200) : '';
+      const safeContext =
+        typeof contextSummary === 'string' ? contextSummary.slice(0, 4000) : '';
 
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
         res.status(503).json({
-          error: 'GEMINI_API_KEY not configured on server',
+          error: 'Gemini service is not configured on this server; using local compliance guide.',
           useFallback: true,
+          mode: 'fallback',
         });
         return;
       }
@@ -41,15 +58,16 @@ async function startServer() {
       });
 
       const systemInstruction = [
-        'You are the VERIDEX Gemini Compliance Assistant (हर दावे की जाँच, हर सच की पहचान), an official AI guide embedded inside the VERIDEX institutional application validation, document authentication, and regulatory compliance verification portal.',
-        `Active User Role Interface: ${role || 'public'}`,
-        userName ? `Authenticated User: ${userName}` : 'Visitor (Unauthenticated)',
-        institutionName ? `Affiliated Institution: ${institutionName}` : '',
-        contextSummary ? `Live Portal Context:\n${contextSummary}` : '',
+        'You are the VERIDEX Compliance Assistant (हर दावे की जाँच, हर सच की पहचान), an informational guide embedded inside the VERIDEX institutional compliance and document review portal.',
+        `Active User Role Interface: ${safeRole}`,
+        safeUserName ? `Authenticated User: ${safeUserName}` : 'Visitor (Unauthenticated)',
+        safeInstitutionName ? `Affiliated Institution: ${safeInstitutionName}` : '',
+        safeContext ? `Current Workspace Context:\n${safeContext}` : '',
         'Guidelines:',
         '- Tailor your answer strictly to the permissions and responsibilities of the active role (admin, institutional_rep, faculty, student, or public).',
-        '- Respect Role-Based Data Isolation: students only access their own records; faculty access faculty/lab records; institutional representatives access their own institution; admins oversee all institutions.',
-        '- Emphasize Responsible Verification: automated OCR mismatches, expiry alerts, and anomaly indicators are review signals for human officers, never automatic rejection or proof of fraud.',
+        '- Respect Role-Based Data Scoping: students only view their own records; faculty view faculty/departmental records; institutional representatives manage their own institution dossiers; admins review across institutions.',
+        '- Describe capabilities accurately: document registration in the browser records metadata, certificate numbers, and dates; automated review flags are advisory signals for human reviewers, never proof of fraud or live external issuer verification.',
+        '- Never claim to be a regulatory authority or claim that an external government/university issuer verified a document live.',
         '- Keep answers concise, structured with bullet points where helpful, and grounded in the portal workflow.',
       ]
         .filter(Boolean)
@@ -57,23 +75,30 @@ async function startServer() {
 
       const response = await ai.models.generateContent({
         model: 'gemini-3.8-flash',
-        contents: message,
+        contents: message.trim(),
         config: {
           systemInstruction,
-          temperature: 0.35,
+          temperature: 0.3,
         },
       });
 
       const text = response.text;
       if (!text) {
-        res.status(502).json({ error: 'Empty response from Gemini model', useFallback: true });
+        res.status(502).json({
+          error: 'Empty response from language model; using local compliance guide.',
+          useFallback: true,
+          mode: 'fallback',
+        });
         return;
       }
 
-      res.json({ reply: text, source: 'gemini' });
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : 'Gemini request failed';
-      res.status(500).json({ error: errMsg, useFallback: true });
+      res.json({ reply: text, source: 'gemini', mode: 'gemini' });
+    } catch {
+      res.status(500).json({
+        error: 'Assistant service temporarily unavailable; using local compliance guide.',
+        useFallback: true,
+        mode: 'fallback',
+      });
     }
   });
 

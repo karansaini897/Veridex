@@ -254,7 +254,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-[#C2410C]/30 text-xs text-stone-700 dark:text-stone-300 space-y-2">
+          <div className="mt-5 pt-4 border-t border-[#C2410C]/30 text-xs text-stone-700 dark:text-stone-300 space-y-2">
             <div className="flex items-start gap-2">
               <ShieldCheck className="w-4 h-4 text-[#046A38] shrink-0 mt-0.5" />
               <p>
@@ -310,7 +310,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 <span>6-Pillar Document Authentication &amp; Officer Sign-Off</span>
               </div>
               <p className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed">
-                Every uploaded certificate undergoes structured evaluation across Completeness, Statutory Expiry, Cross-Document Consistency, Integrity Screening, Issuing-Authority Verification, and Mandatory Human Officer Review.
+                Every registered certificate undergoes structured evaluation across Completeness, Statutory Expiry, Cross-Document Consistency, Integrity Screening, Issuing-Authority Verification, and Mandatory Human Officer Review.
               </p>
             </div>
           </div>

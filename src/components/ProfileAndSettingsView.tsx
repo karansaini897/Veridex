@@ -14,7 +14,7 @@ import {
 import { UserAccount } from '../types/portal';
 import {
   calculateAgeFromDob,
-  REFERENCE_DATE,
+  getLocalTodayDate,
   validateAccountUniqueness,
 } from '../lib/domain';
 import {
@@ -29,7 +29,7 @@ interface ProfileAndSettingsViewProps {
   onUpdateProfile: (updated: Partial<UserAccount>) => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
-  onResetDemoData: () => void;
+  onResetRegistryData: () => void;
 }
 
 export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
@@ -39,7 +39,7 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
   onUpdateProfile,
   darkMode,
   onToggleDarkMode,
-  onResetDemoData,
+  onResetRegistryData,
 }) => {
   const [fullName, setFullName] = useState(currentUser.fullName);
   const [username, setUsername] = useState(currentUser.username);
@@ -73,7 +73,8 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
     return currentUser.fullName.slice(0, 2).toUpperCase();
   }, [currentUser.fullName]);
 
-  const calculatedAge = useMemo(() => calculateAgeFromDob(dob, REFERENCE_DATE), [dob]);
+  const todayStr = getLocalTodayDate();
+  const calculatedAge = useMemo(() => calculateAgeFromDob(dob, todayStr), [dob, todayStr]);
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProfileError(null);
@@ -252,7 +253,7 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
               </p>
               <button
                 type="button"
-                onClick={onResetDemoData}
+                onClick={onResetRegistryData}
                 className="px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 text-white text-xs font-medium flex items-center gap-2 cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />

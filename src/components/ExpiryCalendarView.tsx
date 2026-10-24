@@ -4,7 +4,8 @@ import { DocumentRecord, ExpiryStatus, UserAccount } from '../types/portal';
 import {
   calculateExpiryDetails,
   canUserAccessDocument,
-  REFERENCE_DATE,
+  getLocalTodayDate,
+  parseLocalDate,
 } from '../lib/domain';
 import {
   cardEntranceVariants,
@@ -25,19 +26,22 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
   onOpenDocument,
   onOpenApplication,
 }) => {
+  const todayStr = getLocalTodayDate();
+  const currentYearMonth = todayStr.slice(0, 7);
+
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [statusFilter, setStatusFilter] = useState<'All' | ExpiryStatus>('All');
-  const [calendarMonth, setCalendarMonth] = useState<'2026-10' | '2026-11' | '2027-04' | '2027-06'>('2026-10');
+  const [calendarMonth, setCalendarMonth] = useState<string>(currentYearMonth);
 
   const authorizedDocsWithExpiry = useMemo(() => {
     return documents
       .filter((d) => canUserAccessDocument(currentUser, d) && Boolean(d.expiryDate))
       .map((doc) => ({
         doc,
-        expiry: calculateExpiryDetails(doc.expiryDate, REFERENCE_DATE),
+        expiry: calculateExpiryDetails(doc.expiryDate, todayStr),
       }))
       .sort((a, b) => (a.expiry.daysRemaining ?? 9999) - (b.expiry.daysRemaining ?? 9999));
-  }, [documents, currentUser]);
+  }, [documents, currentUser, todayStr]);
 
   const filteredItems = useMemo(() => {
     if (statusFilter === 'All') return authorizedDocsWithExpiry;
@@ -51,6 +55,49 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
       valid: authorizedDocsWithExpiry.filter((i) => i.expiry.status === 'Valid').length,
     };
   }, [authorizedDocsWithExpiry]);
+
+  // Dynamically build month tabs from current local month and any months containing expiring documents
+  const monthTabs = useMemo(() => {
+    const baseDate = parseLocalDate(todayStr) ?? new Date();
+    const candidateMonths = new Set<string>();
+    [0, 1, 6, 8].forEach((offset) => {
+      const dt = new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
+      const ym = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+      candidateMonths.add(ym);
+    });
+    authorizedDocsWithExpiry.forEach(({ doc }) => {
+      if (doc.expiryDate) {
+        candidateMonths.add(doc.expiryDate.slice(0, 7));
+      }
+    });
+
+    const sortedMonths = Array.from(candidateMonths).sort().slice(0, 5);
+    const monthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    return sortedMonths.map((ym) => {
+      const [yr, mo] = ym.split('-').map(Number);
+      const expCount = authorizedDocsWithExpiry.filter((item) =>
+        item.doc.expiryDate?.startsWith(ym)
+      ).length;
+      const monthLabel = `${monthNames[(mo || 1) - 1]} ${yr}${
+        expCount > 0 ? ` (${expCount} Expir${expCount === 1 ? 'y' : 'ies'})` : ''
+      }`;
+      return { id: ym, label: monthLabel };
+    });
+  }, [todayStr, authorizedDocsWithExpiry]);
 
   // Build calendar days for the selected YYYY-MM
   const calendarDays = useMemo(() => {
@@ -76,7 +123,7 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
           <p className="text-xs font-medium text-blue-700 dark:text-blue-400">
-            Statutory Validity &amp; Renewal Tracking (Reference Date: {REFERENCE_DATE})
+            Statutory Validity &amp; Renewal Tracking (Current Date: {todayStr})
           </p>
           <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
             Certificate Expiry Calendar &amp; Reminders
@@ -125,7 +172,7 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
             {counts.expired}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">
-            Immediate renewal upload required
+            Immediate renewal registration required
           </div>
         </motion.div>
 
@@ -270,19 +317,12 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
                 Monthly Certificate Expiry Grid
               </h2>
               <p className="text-xs text-slate-500">
-                Select a key compliance month to inspect exact certificate expiration dates.
+                Select a compliance month to inspect exact certificate expiration dates.
               </p>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              {(
-                [
-                  { id: '2026-10', label: 'October 2026 (3 Expiries)' },
-                  { id: '2026-11', label: 'November 2026 (5 Expiries)' },
-                  { id: '2027-04', label: 'April 2027' },
-                  { id: '2027-06', label: 'June 2027' },
-                ] as const
-              ).map((m) => (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {monthTabs.map((m) => (
                 <button
                   key={m.id}
                   type="button"
@@ -316,7 +356,7 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
                 className={`min-h-24 p-2 rounded-lg border text-xs flex flex-col justify-between ${
                   cell.day === null
                     ? 'border-transparent bg-slate-50/40 dark:bg-slate-950/20'
-                    : cell.dateStr === REFERENCE_DATE
+                    : cell.dateStr === todayStr
                       ? 'border-blue-500 bg-blue-50/30 dark:bg-blue-950/30'
                       : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
                 }`}
@@ -327,7 +367,7 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
                       <span className="font-semibold text-slate-700 dark:text-slate-300">
                         {cell.day}
                       </span>
-                      {cell.dateStr === REFERENCE_DATE && (
+                      {cell.dateStr === todayStr && (
                         <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold">
                           TODAY
                         </span>

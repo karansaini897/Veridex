@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X,
@@ -6,6 +6,8 @@ import {
   MessageSquare,
   History,
   ArrowUpRight,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   ApplicationRecord,
@@ -13,9 +15,10 @@ import {
   UserAccount,
 } from '../types/portal';
 import {
+  addDaysToLocalDate,
   calculateExpiryDetails,
   canUserPerformAdminAction,
-  REFERENCE_DATE,
+  getLocalTodayDate,
 } from '../lib/domain';
 import {
   inlinePanelVariants,
@@ -61,16 +64,25 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   onResubmitApplication,
   onAdminAction,
 }) => {
+  const todayStr = getLocalTodayDate();
   const [uploadingChecklistId, setUploadingChecklistId] = useState<string | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCertNo, setUploadCertNo] = useState('');
-  const [uploadExpiry, setUploadExpiry] = useState('2027-09-30');
+  const [uploadExpiry, setUploadExpiry] = useState(() => addDaysToLocalDate(todayStr, 365));
 
+  // Draft submission state & incomplete checklist override note
+  const [draftSubmitConfirmOpen, setDraftSubmitConfirmOpen] = useState(false);
+  const [draftSubmissionNote, setDraftSubmissionNote] = useState('');
+  const [draftSubmitError, setDraftSubmitError] = useState<string | null>(null);
+
+  // Resubmission state
   const [resubmitNote, setResubmitNote] = useState(
-    'Uploaded renewed Municipal Fire & Life Safety Certificate (valid through Oct 2027) and attached notarized name-equivalence affidavit for Dr. Siddharth Kulkarni.'
+    'Registered renewed Municipal Fire & Life Safety Certificate and attached notarized name-equivalence affidavit for Dr. Siddharth Kulkarni.'
   );
   const [attachRenewedCert, setAttachRenewedCert] = useState(true);
+  const [resubmitConfirmOpen, setResubmitConfirmOpen] = useState(false);
 
+  // Admin review & decision state
   const [adminNote, setAdminNote] = useState('');
   const [selectedDecision, setSelectedDecision] = useState<
     NonNullable<ApplicationRecord['decisionOutcome']>
@@ -89,6 +101,21 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       d.relatedApplicationId === application.id
   );
 
+  const missingRequiredItems = useMemo(
+    () => application.checklist.filter((c) => c.required && c.status === 'Pending Upload'),
+    [application.checklist]
+  );
+
+  const completedRequiredCount = useMemo(
+    () => application.checklist.filter((c) => c.required && c.status !== 'Pending Upload').length,
+    [application.checklist]
+  );
+
+  const totalRequiredCount = useMemo(
+    () => application.checklist.filter((c) => c.required).length,
+    [application.checklist]
+  );
+
   const handleChecklistUploadSubmit = (e: React.FormEvent, checklistItemId: string) => {
     e.preventDefault();
     if (!uploadTitle.trim() || !uploadCertNo.trim()) return;
@@ -103,7 +130,27 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
     setUploadTitle('');
     setUploadCertNo('');
     setFeedbackBanner(
-      'Supporting document uploaded and automated completeness, expiry, and consistency checks executed.'
+      'Supporting document metadata registered and linked to checklist item; awaiting reviewing officer verification.'
+    );
+  };
+
+  const handleConfirmDraftSubmit = () => {
+    setDraftSubmitError(null);
+    if (missingRequiredItems.length > 0 && !draftSubmissionNote.trim()) {
+      setDraftSubmitError(
+        `Please enter a submission explanation note because ${missingRequiredItems.length} mandatory checklist item(s) are still pending registration.`
+      );
+      return;
+    }
+
+    const finalNote =
+      draftSubmissionNote.trim() ||
+      'Submitted institutional dossier after completing category checklist requirements.';
+    onSubmitDraftApplication(application.id, finalNote);
+    setDraftSubmitConfirmOpen(false);
+    setDraftSubmissionNote('');
+    setFeedbackBanner(
+      'Application dossier submitted. Status updated to "Submitted" and queued for regional officer review.'
     );
   };
 
@@ -160,7 +207,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Statutory Review Protocol Notice */}
           <div className="p-3.5 rounded-xl liquid-glass-subtle text-xs text-slate-700 dark:text-slate-300">
-            <strong>Statutory Verification Protocol:</strong> Automated OCR extraction, completeness checks, expiry tracking, and document integrity screening assist the reviewing officer. All compliance determinations require authorized human officer sign-off.
+            <strong>Statutory Verification Protocol:</strong> Automated completeness checks, expiry tracking, and cross-document consistency signals assist the reviewing officer. Potential discrepancies are review prompts, not automatic proof of fraud. All compliance determinations require authorized human officer sign-off.
           </div>
 
           <AnimatePresence>
@@ -201,29 +248,92 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-display font-bold text-slate-900 dark:text-white">
-                    Ready to Submit Application Dossier?
+                    Submit Draft Application Dossier ({completedRequiredCount}/{totalRequiredCount} Mandatory Items Registered)
                   </h3>
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                    Submitting runs automated validation checks on all linked documents and places the dossier into the Regional Officer review queue.
+                    {missingRequiredItems.length === 0
+                      ? 'All mandatory checklist items have registered document records. You can submit this dossier for regional review.'
+                      : `${missingRequiredItems.length} mandatory checklist item(s) are still pending registration: ${missingRequiredItems.map((m) => m.title).join(', ')}.`}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => {
-                    onSubmitDraftApplication(
-                      application.id,
-                      'Submitted institutional dossier after completing category checklist and pre-submission checks.'
-                    );
-                    setFeedbackBanner(
-                      'Application submitted! Status updated to "Submitted" and queued for regional review.'
-                    );
+                    setDraftSubmitError(null);
+                    setDraftSubmitConfirmOpen((prev) => !prev);
                   }}
                   className="px-4 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Submit Application Now</span>
+                  <span>Review &amp; Submit Dossier...</span>
                 </button>
               </div>
+
+              {draftSubmitConfirmOpen && (
+                <div className="p-4 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-blue-300 dark:border-blue-800 space-y-3">
+                  {missingRequiredItems.length > 0 ? (
+                    <div className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Incomplete Mandatory Checklist:</strong> {missingRequiredItems.length} required item(s) do not have a linked document record yet. Register the missing documents below, or provide an official explanation note to submit with a deficiency declaration.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 text-xs text-emerald-800 dark:text-emerald-300">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>
+                        All {totalRequiredCount} mandatory checklist items are linked. Confirm submission to place this dossier into the Regional Reviewer queue.
+                      </span>
+                    </div>
+                  )}
+
+                  {draftSubmitError && (
+                    <div role="alert" className="text-xs font-medium text-red-700 dark:text-red-400">
+                      {draftSubmitError}
+                    </div>
+                  )}
+
+                  <div>
+                    <label
+                      htmlFor="draft-submission-note"
+                      className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
+                    >
+                      {missingRequiredItems.length > 0
+                        ? 'Mandatory Explanation for Incomplete Checklist Submission *'
+                        : 'Submission Note (Optional)'}
+                    </label>
+                    <input
+                      id="draft-submission-note"
+                      type="text"
+                      value={draftSubmissionNote}
+                      onChange={(e) => setDraftSubmissionNote(e.target.value)}
+                      placeholder={
+                        missingRequiredItems.length > 0
+                          ? 'Explain why remaining checklist documents are pending...'
+                          : 'e.g. Completed pre-submission checklist verification.'
+                      }
+                      className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDraftSubmitConfirmOpen(false)}
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmDraftSubmit}
+                      className="px-4 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold cursor-pointer"
+                    >
+                      Confirm Submission
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
@@ -234,7 +344,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   Respond to Review Request &amp; Resubmit Application
                 </h3>
                 <p className="text-xs text-red-800/90 dark:text-red-300/90 mt-0.5">
-                  Provide the requested clarification or renewed document below to transition this application back to <strong>Under Manual Review</strong>.
+                  Provide the requested clarification or renewed document record below to transition this application back to <strong>Under Manual Review</strong>.
                 </p>
               </div>
 
@@ -263,30 +373,58 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     className="rounded border-slate-300"
                   />
                   <span>
-                    Also upload renewed Fire &amp; Life Safety Certificate (v2) &amp; Name Affidavit to clear checklist flags
+                    Also register renewed Fire &amp; Life Safety Certificate (v2) &amp; Name Affidavit to update flagged checklist items
                   </span>
                 </label>
 
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!resubmitNote.trim()) return;
-                      onResubmitApplication({
-                        appId: application.id,
-                        responseNote: resubmitNote.trim(),
-                        attachRenewedCertificate: attachRenewedCert,
-                      });
-                      setFeedbackBanner(
-                        'Clarification and renewed certificate submitted! Application status updated to "Under Manual Review".'
-                      );
-                    }}
-                    className="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Submit Clarification &amp; Resubmit Dossier</span>
-                  </button>
-                </div>
+                {!resubmitConfirmOpen ? (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!resubmitNote.trim()) return;
+                        setResubmitConfirmOpen(true);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Submit Clarification &amp; Resubmit Dossier</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-red-300 dark:border-red-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span className="text-xs text-slate-800 dark:text-slate-200 font-medium">
+                      Confirm resubmission of {application.id} to Regional Reviewer queue?
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setResubmitConfirmOpen(false)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!resubmitNote.trim()) return;
+                          onResubmitApplication({
+                            appId: application.id,
+                            responseNote: resubmitNote.trim(),
+                            attachRenewedCertificate: attachRenewedCert,
+                          });
+                          setResubmitConfirmOpen(false);
+                          setFeedbackBanner(
+                            'Clarification and renewed certificate record submitted. Application status updated to "Under Manual Review".'
+                          );
+                        }}
+                        className="px-4 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold cursor-pointer"
+                      >
+                        Confirm Resubmission
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           )}
@@ -299,7 +437,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               </h3>
               <span className="text-xs text-slate-500">
                 {application.checklist.filter((c) => c.status !== 'Pending Upload').length} /{' '}
-                {application.checklist.length} Attached
+                {application.checklist.length} Registered
               </span>
             </div>
 
@@ -332,7 +470,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                           </div>
                         ) : (
                           <div className="text-xs text-slate-400">
-                            No document attached yet.
+                            No document record registered yet.
                           </div>
                         )}
                         {item.notes && (
@@ -367,7 +505,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                             }}
                             className="px-2.5 py-1 rounded-lg liquid-glass-subtle text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-blue-500/40 cursor-pointer"
                           >
-                            {linkedDoc ? 'Replace Document' : 'Upload Document'}
+                            {linkedDoc ? 'Update Record' : 'Register Document'}
                           </button>
                         )}
                       </div>
@@ -384,7 +522,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                           className="p-3.5 rounded-xl liquid-glass-subtle space-y-3"
                         >
                           <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                            Upload &amp; Validate Document for "{item.title}"
+                            Register Supporting Document Metadata for "{item.title}"
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
@@ -435,7 +573,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                               type="submit"
                               className="px-3 py-1 rounded-lg bg-blue-700 text-white text-xs font-medium cursor-pointer"
                             >
-                              Attach &amp; Run Checks
+                              Register &amp; Link Record
                             </button>
                           </div>
                         </motion.form>
@@ -454,7 +592,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             </h3>
             <div className="space-y-3">
               {linkedDocs.map((doc) => {
-                const exp = calculateExpiryDetails(doc.expiryDate, REFERENCE_DATE);
+                const exp = calculateExpiryDetails(doc.expiryDate, todayStr);
                 return (
                   <div
                     key={doc.id}
@@ -556,7 +694,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   onClick={() => {
                     const noteText =
                       adminNote.trim() ||
-                      'Reviewed linked checklist items and simulated verification findings.';
+                      'Reviewed linked checklist items and verification findings.';
                     onAdminAction({
                       appId: application.id,
                       actionType: 'Review Note',
@@ -575,7 +713,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   onClick={() => {
                     const noteText =
                       adminNote.trim() ||
-                      'Please upload renewed statutory validity certificate and address flagged consistency items before final evaluation.';
+                      'Please register renewed statutory validity certificate and address flagged consistency items before final evaluation.';
                     onAdminAction({
                       appId: application.id,
                       actionType: 'Correction Request',

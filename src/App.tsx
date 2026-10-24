@@ -26,12 +26,16 @@ import {
   SEED_USERS,
 } from './data/seedData';
 import {
+  addDaysToLocalDate,
   buildCategoryChecklist,
   canUserAccessApplication,
-  canUserAccessDocument,
   canUserPerformAdminAction,
+  createRecordId,
+  formatTimestampForDisplay,
   generateInternalDocumentCode,
-  REFERENCE_DATE,
+  getCurrentIsoTimestamp,
+  getLocalTodayDate,
+  sanitizeUserForStorage,
 } from './lib/domain';
 import { LoginView } from './components/LoginView';
 import { LandingPageView } from './components/LandingPageView';
@@ -47,14 +51,14 @@ import { ProfileAndSettingsView } from './components/ProfileAndSettingsView';
 import { GeminiChatbotWidget } from './components/GeminiChatbotWidget';
 
 const STORAGE_KEYS = {
-  theme: 'veridex_portal_theme_v4',
-  currentUserId: 'veridex_portal_current_user_v4',
-  users: 'veridex_portal_users_v4',
-  applications: 'veridex_portal_apps_v4',
-  documents: 'veridex_portal_docs_v4',
-  rules: 'veridex_portal_rules_v4',
-  notifications: 'veridex_portal_notifs_v4',
-  audit: 'veridex_portal_audit_v4',
+  theme: 'veridex_portal_theme_v6',
+  currentUserId: 'veridex_portal_current_user_v6',
+  users: 'veridex_portal_users_v6',
+  applications: 'veridex_portal_apps_v6',
+  documents: 'veridex_portal_docs_v6',
+  rules: 'veridex_portal_rules_v6',
+  notifications: 'veridex_portal_notifs_v6',
+  audit: 'veridex_portal_audit_v6',
 };
 
 function loadFromStorage<T>(key: string, fallback: T): T {
@@ -65,6 +69,17 @@ function loadFromStorage<T>(key: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function loadUsersFromStorage(): UserAccount[] {
+  const stored = loadFromStorage<UserAccount[]>(STORAGE_KEYS.users, SEED_USERS);
+  return stored.map((u) => {
+    const seedMatch = SEED_USERS.find((s) => s.id === u.id || s.username === u.username);
+    return {
+      ...u,
+      password: u.password ?? seedMatch?.password ?? u.username,
+    };
+  });
 }
 
 export default function App() {
@@ -92,9 +107,7 @@ export default function App() {
     }
   }, [darkMode]);
 
-  const [users, setUsers] = useState<UserAccount[]>(() =>
-    loadFromStorage(STORAGE_KEYS.users, SEED_USERS)
-  );
+  const [users, setUsers] = useState<UserAccount[]>(loadUsersFromStorage);
   const [applications, setApplications] = useState<ApplicationRecord[]>(() =>
     loadFromStorage(STORAGE_KEYS.applications, SEED_APPLICATIONS)
   );
@@ -111,13 +124,9 @@ export default function App() {
     loadFromStorage(STORAGE_KEYS.audit, SEED_AUDIT_EVENTS)
   );
 
-  // Check ?autostart=1 or saved user session
+  // Restore saved session if present; never silently auto-login unauthenticated visitors
   const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
     try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('autostart') === '1') {
-        return 'USR-ADM-01';
-      }
       return window.localStorage.getItem(STORAGE_KEYS.currentUserId);
     } catch {
       return null;
@@ -129,10 +138,11 @@ export default function App() {
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
 
-  // Sync state to localStorage
+  // Sync state to localStorage (omitting plaintext passwords from persisted user records)
   useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(users));
+      const sanitizedUsers = users.map(sanitizeUserForStorage);
+      window.localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(sanitizedUsers));
       window.localStorage.setItem(STORAGE_KEYS.applications, JSON.stringify(applications));
       window.localStorage.setItem(STORAGE_KEYS.documents, JSON.stringify(documents));
       window.localStorage.setItem(STORAGE_KEYS.rules, JSON.stringify(complianceRules));
@@ -158,8 +168,8 @@ export default function App() {
     details: string
   ) => {
     const newEvent: AuditEvent = {
-      id: `AUD-${Date.now()}`,
-      timestamp: `${REFERENCE_DATE} 14:30`,
+      id: createRecordId('AUD'),
+      timestamp: formatTimestampForDisplay(getCurrentIsoTimestamp()),
       actorName: actor.fullName,
       actorUsername: actor.username,
       actorRole: actor.role,
@@ -201,7 +211,7 @@ export default function App() {
     setSelectedDocumentId(null);
   };
 
-  const handleResetDemoData = () => {
+  const handleResetRegistryData = () => {
     setUsers(SEED_USERS);
     setApplications(SEED_APPLICATIONS);
     setDocuments(SEED_DOCUMENTS);
@@ -234,19 +244,21 @@ export default function App() {
   const handleCreateApplication = (params: {
     category: ApplicationCategory;
     submitImmediately: boolean;
-    demoDocumentTitle?: string;
-    demoCertNumber?: string;
+    initialDocumentTitle?: string;
+    initialCertNumber?: string;
   }) => {
     if (!currentUser || !currentUser.institutionId) return;
 
+    const todayStr = getLocalTodayDate();
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
     const newAppNumber = 112 + applications.length;
     const newAppId = `APP-2026-0${newAppNumber}`;
     const checklist = buildCategoryChecklist(params.category);
     const createdDocIds: string[] = [];
 
-    if (params.demoDocumentTitle && params.demoCertNumber) {
+    if (params.initialDocumentTitle && params.initialCertNumber) {
       const firstItem = checklist[0];
-      const newDocId = `DOC-${Date.now()}`;
+      const newDocId = createRecordId('DOC');
       const internalCode = generateInternalDocumentCode(
         firstItem.documentCategory,
         currentUser.fullName,
@@ -256,44 +268,47 @@ export default function App() {
       const newDoc: DocumentRecord = {
         id: newDocId,
         internalCode,
-        name: params.demoDocumentTitle,
+        name: params.initialDocumentTitle,
         category: firstItem.documentCategory,
         suggestedAiCategory: firstItem.documentCategory,
         suggestedFolder: `/Repository/${firstItem.documentCategory.replace(/\s+/g, '-')}`,
         categoryConfirmed: true,
         institutionId: currentUser.institutionId,
-        institutionName: currentUser.institutionName || 'Vidyapeeth Institute of Technology, Pune',
+        institutionName:
+          currentUser.institutionName ||
+          "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai",
         relatedApplicationId: newAppId,
         personName: currentUser.fullName,
         personUserId: currentUser.id,
-        certificateNumber: params.demoCertNumber,
-        issuingAuthority: 'Affiliating University & Statutory Board',
-        issueDate: '2026-09-01',
-        expiryDate: '2027-08-31',
-        uploadDate: REFERENCE_DATE,
+        certificateNumber: params.initialCertNumber,
+        issuingAuthority: 'University of Mumbai & Statutory Board',
+        issueDate: addDaysToLocalDate(todayStr, -30),
+        expiryDate: addDaysToLocalDate(todayStr, 335),
+        uploadDate: todayStr,
         fileName: `${internalCode}_Dossier.pdf`,
         fileSize: '1.68 MB',
         mimeType: 'application/pdf',
-        completenessStatus: 'Complete',
-        consistencyStatus: 'Consistent',
-        anomalyStatus: 'No Anomaly Detected',
-        issuerVerificationStatus: 'Verified',
+        completenessStatus: 'Pending Review',
+        consistencyStatus: 'Pending Check',
+        anomalyStatus: 'Not Screened',
+        issuerVerificationStatus: 'Unavailable',
         humanReviewStatus: 'Pending',
         extractedSummary: {
-          'Document Title': params.demoDocumentTitle,
-          'Certificate Number': params.demoCertNumber,
+          'Document Title': params.initialDocumentTitle,
+          'Certificate Number': params.initialCertNumber,
           'Application Category': params.category,
-          'Automated Extraction': 'All required fields extracted and matched',
+          'Intake Status': 'Metadata registered; awaiting officer review',
         },
         findings: [
           {
-            id: `F-${Date.now()}-1`,
+            id: createRecordId('F'),
             pillar: 'Completeness',
-            status: 'Passed',
-            affectedFieldOrPage: 'Pages 1–3',
-            explanation: 'Automated extraction verified all statutory clauses and signatures.',
-            evidenceComparison: `Cert #${params.demoCertNumber} matches application checklist.`,
-            suggestedNextAction: 'Ready for regional officer human review.',
+            status: 'Advisory',
+            affectedFieldOrPage: 'Registered Metadata Record',
+            explanation:
+              'Document metadata registered during dossier creation; awaiting reviewing officer inspection.',
+            evidenceComparison: `Cert #${params.initialCertNumber} linked to checklist item "${firstItem.title}".`,
+            suggestedNextAction: 'Await regional officer human review.',
           },
         ],
         versions: [
@@ -302,9 +317,9 @@ export default function App() {
             fileName: `${internalCode}_Dossier.pdf`,
             fileSize: '1.68 MB',
             mimeType: 'application/pdf',
-            uploadedAt: `${REFERENCE_DATE} 14:22`,
+            uploadedAt: nowDisplay,
             uploadedBy: currentUser.fullName,
-            changeNote: 'Uploaded during application creation.',
+            changeNote: 'Registered during application dossier creation.',
           },
         ],
       };
@@ -314,7 +329,7 @@ export default function App() {
       checklist[0] = {
         ...firstItem,
         linkedDocumentId: newDocId,
-        status: 'Verified',
+        status: 'Uploaded',
       };
     }
 
@@ -322,11 +337,13 @@ export default function App() {
     const newApp: ApplicationRecord = {
       id: newAppId,
       institutionId: currentUser.institutionId,
-      institutionName: currentUser.institutionName || 'Vidyapeeth Institute of Technology, Pune',
+      institutionName:
+        currentUser.institutionName ||
+        "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai",
       officialInstitutionCode: currentUser.officialInstitutionCode || currentUser.institutionId,
       category: params.category,
-      submittedDate: params.submitImmediately ? REFERENCE_DATE : '—',
-      lastUpdated: REFERENCE_DATE,
+      submittedDate: params.submitImmediately ? todayStr : '—',
+      lastUpdated: todayStr,
       status: initialStatus,
       assignedReviewer: 'Karan Saini',
       checklist,
@@ -334,12 +351,12 @@ export default function App() {
       reviewNotes: [],
       statusHistory: [
         {
-          id: `SH-${Date.now()}-1`,
+          id: createRecordId('SH'),
           fromStatus: 'Created',
           toStatus: initialStatus,
           changedBy: currentUser.fullName,
           changedByRole: currentUser.role,
-          timestamp: `${REFERENCE_DATE} 14:22`,
+          timestamp: nowDisplay,
           note: params.submitImmediately
             ? `Created and submitted ${params.category} dossier.`
             : `Initialized draft for ${params.category}.`,
@@ -352,11 +369,11 @@ export default function App() {
     if (params.submitImmediately) {
       setNotifications((prev) => [
         {
-          id: `NOTIF-${Date.now()}`,
+          id: createRecordId('NOTIF'),
           recipientRole: 'admin',
           title: `New Application Submitted: ${newAppId}`,
           message: `${newApp.institutionName} submitted ${newApp.category} for compliance review.`,
-          createdAt: `${REFERENCE_DATE} 14:22`,
+          createdAt: nowDisplay,
           read: false,
           type: 'status_change',
           targetView: 'applications',
@@ -377,7 +394,7 @@ export default function App() {
     setSelectedApplicationId(newAppId);
   };
 
-  // Attach / Upload Demo Document to Checklist Item
+  // Register Supporting Document Metadata on a Checklist Item
   const handleAttachChecklistDocument = (params: {
     appId: string;
     checklistItemId: string;
@@ -389,9 +406,11 @@ export default function App() {
     const targetApp = applications.find((a) => a.id === params.appId);
     if (!targetApp) return;
 
+    const todayStr = getLocalTodayDate();
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
     const item = targetApp.checklist.find((c) => c.id === params.checklistItemId);
     const docCat = item?.documentCategory || 'Approvals';
-    const newDocId = `DOC-${Date.now()}`;
+    const newDocId = createRecordId('DOC');
     const internalCode = generateInternalDocumentCode(
       docCat,
       currentUser.fullName,
@@ -413,42 +432,44 @@ export default function App() {
       personUserId: currentUser.id,
       certificateNumber: params.certNumber,
       issuingAuthority: 'Competent Statutory Authority',
-      issueDate: REFERENCE_DATE,
+      issueDate: todayStr,
       expiryDate: params.expiryDate,
-      uploadDate: REFERENCE_DATE,
-      fileName: `${internalCode}_Verified.pdf`,
+      uploadDate: todayStr,
+      fileName: `${internalCode}_Record.pdf`,
       fileSize: '1.54 MB',
       mimeType: 'application/pdf',
-      completenessStatus: 'Complete',
-      consistencyStatus: 'Consistent',
-      anomalyStatus: 'No Anomaly Detected',
-      issuerVerificationStatus: 'Verified',
+      completenessStatus: 'Pending Review',
+      consistencyStatus: 'Pending Check',
+      anomalyStatus: 'Not Screened',
+      issuerVerificationStatus: 'Unavailable',
       humanReviewStatus: 'Pending',
       extractedSummary: {
         'Document Title': params.docTitle,
         'Certificate Number': params.certNumber,
         'Linked Application': targetApp.id,
+        'Intake Status': 'Metadata registered; awaiting human review',
       },
       findings: [
         {
-          id: `F-${Date.now()}`,
+          id: createRecordId('F'),
           pillar: 'Completeness',
-          status: 'Passed',
-          affectedFieldOrPage: 'Pages 1–2',
-          explanation: 'Automated extraction verified required fields and validity dates.',
-          evidenceComparison: `Cert #${params.certNumber} verified against checklist requirement.`,
+          status: 'Advisory',
+          affectedFieldOrPage: 'Checklist Metadata Record',
+          explanation:
+            'Document details and validity dates recorded against checklist requirement; awaiting reviewing officer verification.',
+          evidenceComparison: `Cert #${params.certNumber} linked to checklist requirement "${item?.title}".`,
           suggestedNextAction: 'Await human reviewer confirmation.',
         },
       ],
       versions: [
         {
           versionNumber: 1,
-          fileName: `${internalCode}_Verified.pdf`,
+          fileName: `${internalCode}_Record.pdf`,
           fileSize: '1.54 MB',
           mimeType: 'application/pdf',
-          uploadedAt: `${REFERENCE_DATE} 14:25`,
+          uploadedAt: nowDisplay,
           uploadedBy: currentUser.fullName,
-          changeNote: `Uploaded for checklist item "${item?.title}".`,
+          changeNote: `Registered for checklist item "${item?.title}".`,
         },
       ],
     };
@@ -459,14 +480,14 @@ export default function App() {
         if (app.id !== params.appId) return app;
         return {
           ...app,
-          lastUpdated: REFERENCE_DATE,
+          lastUpdated: todayStr,
           documentIds: [...app.documentIds, newDocId],
           checklist: app.checklist.map((c) =>
             c.id === params.checklistItemId
               ? {
                   ...c,
                   linkedDocumentId: newDocId,
-                  status: 'Verified',
+                  status: 'Uploaded',
                   notes: undefined,
                 }
               : c
@@ -477,33 +498,36 @@ export default function App() {
 
     appendAudit(
       currentUser,
-      'Checklist Document Uploaded',
+      'Checklist Document Registered',
       'Document',
       newDocId,
-      `Uploaded ${internalCode} (${params.docTitle}) to ${params.appId}.`
+      `Registered ${internalCode} (${params.docTitle}) for ${params.appId}.`
     );
   };
 
   // Submit Draft Application
   const handleSubmitDraftApplication = (appId: string, submissionNote: string) => {
     if (!currentUser) return;
+    const todayStr = getLocalTodayDate();
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+
     setApplications((prev) =>
       prev.map((app) => {
         if (app.id !== appId) return app;
         return {
           ...app,
           status: 'Submitted',
-          submittedDate: REFERENCE_DATE,
-          lastUpdated: REFERENCE_DATE,
+          submittedDate: todayStr,
+          lastUpdated: todayStr,
           statusHistory: [
             ...app.statusHistory,
             {
-              id: `SH-${Date.now()}`,
+              id: createRecordId('SH'),
               fromStatus: app.status,
               toStatus: 'Submitted',
               changedBy: currentUser.fullName,
               changedByRole: currentUser.role,
-              timestamp: `${REFERENCE_DATE} 14:26`,
+              timestamp: nowDisplay,
               note: submissionNote,
             },
           ],
@@ -513,11 +537,11 @@ export default function App() {
 
     setNotifications((prev) => [
       {
-        id: `NOTIF-${Date.now()}`,
+        id: createRecordId('NOTIF'),
         recipientRole: 'admin',
         title: `Application Submitted for Review (${appId})`,
         message: `${currentUser.institutionName || currentUser.fullName} submitted ${appId}.`,
-        createdAt: `${REFERENCE_DATE} 14:26`,
+        createdAt: nowDisplay,
         read: false,
         type: 'status_change',
         targetView: 'applications',
@@ -542,6 +566,9 @@ export default function App() {
     attachRenewedCertificate: boolean;
   }) => {
     if (!currentUser) return;
+    const todayStr = getLocalTodayDate();
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+    const renewedExpiry = addDaysToLocalDate(todayStr, 365);
 
     if (params.attachRenewedCertificate) {
       // Update any expired/flagged documents linked to this application (e.g. DOC-1002 & DOC-1005)
@@ -556,8 +583,8 @@ export default function App() {
 
           return {
             ...doc,
-            expiryDate: doc.expiryDate ? '2027-10-04' : undefined,
-            consistencyStatus: 'Consistent',
+            expiryDate: doc.expiryDate ? renewedExpiry : undefined,
+            consistencyStatus: 'Pending Check',
             humanReviewStatus: 'Pending',
             versions: [
               ...doc.versions,
@@ -566,7 +593,7 @@ export default function App() {
                 fileName: `Renewed_${doc.fileName}`,
                 fileSize: '2.18 MB',
                 mimeType: doc.mimeType,
-                uploadedAt: `${REFERENCE_DATE} 14:28`,
+                uploadedAt: nowDisplay,
                 uploadedBy: currentUser.fullName,
                 changeNote: params.responseNote,
               },
@@ -582,14 +609,14 @@ export default function App() {
         return {
           ...app,
           status: 'Under Manual Review',
-          lastUpdated: REFERENCE_DATE,
+          lastUpdated: todayStr,
           checklist: params.attachRenewedCertificate
             ? app.checklist.map((c) =>
                 c.status === 'Flagged for Review'
                   ? {
                       ...c,
                       status: 'Uploaded',
-                      notes: 'Renewed document & clarification uploaded by institution.',
+                      notes: 'Renewed document & clarification registered by institution.',
                     }
                   : c
               )
@@ -597,11 +624,11 @@ export default function App() {
           reviewNotes: [
             ...app.reviewNotes,
             {
-              id: `RN-${Date.now()}`,
+              id: createRecordId('RN'),
               authorId: currentUser.id,
               authorName: currentUser.fullName,
               authorRole: currentUser.role,
-              timestamp: `${REFERENCE_DATE} 14:28`,
+              timestamp: nowDisplay,
               actionType: 'Resubmission Response',
               note: params.responseNote,
             },
@@ -609,12 +636,12 @@ export default function App() {
           statusHistory: [
             ...app.statusHistory,
             {
-              id: `SH-${Date.now()}`,
+              id: createRecordId('SH'),
               fromStatus: app.status,
               toStatus: 'Under Manual Review',
               changedBy: currentUser.fullName,
               changedByRole: currentUser.role,
-              timestamp: `${REFERENCE_DATE} 14:28`,
+              timestamp: nowDisplay,
               note: `Institutional resubmission: ${params.responseNote}`,
             },
           ],
@@ -624,11 +651,11 @@ export default function App() {
 
     setNotifications((prev) => [
       {
-        id: `NOTIF-${Date.now()}`,
+        id: createRecordId('NOTIF'),
         recipientRole: 'admin',
         title: `Application Resubmitted: ${params.appId}`,
         message: `${currentUser.fullName} responded to the review request and resubmitted ${params.appId} for manual review.`,
-        createdAt: `${REFERENCE_DATE} 14:28`,
+        createdAt: nowDisplay,
         read: false,
         type: 'status_change',
         targetView: 'applications',
@@ -658,6 +685,9 @@ export default function App() {
     const targetApp = applications.find((a) => a.id === params.appId);
     if (!targetApp) return;
 
+    const todayStr = getLocalTodayDate();
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+
     let nextStatus = targetApp.status;
     if (params.actionType === 'Correction Request') {
       nextStatus = 'Additional Information Required';
@@ -673,7 +703,7 @@ export default function App() {
         return {
           ...app,
           status: nextStatus,
-          lastUpdated: REFERENCE_DATE,
+          lastUpdated: todayStr,
           decisionOutcome:
             params.actionType === 'Authorized Decision'
               ? params.decisionOutcome
@@ -681,11 +711,11 @@ export default function App() {
           reviewNotes: [
             ...app.reviewNotes,
             {
-              id: `RN-${Date.now()}`,
+              id: createRecordId('RN'),
               authorId: currentUser.id,
               authorName: currentUser.fullName,
               authorRole: currentUser.role,
-              timestamp: `${REFERENCE_DATE} 14:30`,
+              timestamp: nowDisplay,
               actionType:
                 params.actionType === 'Under Manual Review'
                   ? 'Review Note'
@@ -698,12 +728,12 @@ export default function App() {
               ? [
                   ...app.statusHistory,
                   {
-                    id: `SH-${Date.now()}`,
+                    id: createRecordId('SH'),
                     fromStatus: app.status,
                     toStatus: nextStatus,
                     changedBy: currentUser.fullName,
                     changedByRole: currentUser.role,
-                    timestamp: `${REFERENCE_DATE} 14:30`,
+                    timestamp: nowDisplay,
                     note: params.note,
                   },
                 ]
@@ -715,7 +745,7 @@ export default function App() {
     if (params.actionType === 'Correction Request' || params.actionType === 'Authorized Decision') {
       setNotifications((prev) => [
         {
-          id: `NOTIF-${Date.now()}`,
+          id: createRecordId('NOTIF'),
           recipientRole: 'institutional_rep',
           institutionId: targetApp.institutionId,
           title:
@@ -723,7 +753,7 @@ export default function App() {
               ? `Action Required: Clarification Requested on ${targetApp.id}`
               : `Compliance Decision Recorded on ${targetApp.id}`,
           message: params.note,
-          createdAt: `${REFERENCE_DATE} 14:30`,
+          createdAt: nowDisplay,
           read: false,
           type: params.actionType === 'Correction Request' ? 'review_request' : 'status_change',
           targetView: 'applications',
@@ -742,12 +772,13 @@ export default function App() {
     );
   };
 
-  // Document Repository Upload
+  // Document Repository Registration
   const handleUploadDocument = (
     newDocData: Omit<DocumentRecord, 'id' | 'internalCode'> & { internalCode: string }
   ) => {
     if (!currentUser) return;
-    const newDocId = `DOC-${Date.now()}`;
+    const todayStr = getLocalTodayDate();
+    const newDocId = createRecordId('DOC');
     const fullDoc: DocumentRecord = {
       ...newDocData,
       id: newDocId,
@@ -758,7 +789,7 @@ export default function App() {
       setApplications((prev) =>
         prev.map((a) =>
           a.id === fullDoc.relatedApplicationId
-            ? { ...a, documentIds: [...a.documentIds, newDocId], lastUpdated: REFERENCE_DATE }
+            ? { ...a, documentIds: [...a.documentIds, newDocId], lastUpdated: todayStr }
             : a
         )
       );
@@ -766,10 +797,10 @@ export default function App() {
 
     appendAudit(
       currentUser,
-      'Document Uploaded to Repository',
+      'Document Record Registered in Repository',
       'Document',
       newDocId,
-      `Uploaded ${fullDoc.internalCode} (${fullDoc.name}).`
+      `Registered ${fullDoc.internalCode} (${fullDoc.name}).`
     );
   };
 
@@ -783,6 +814,9 @@ export default function App() {
     changeNote: string;
   }) => {
     if (!currentUser) return;
+    const todayStr = getLocalTodayDate();
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+
     setDocuments((prev) =>
       prev.map((doc) => {
         if (doc.id !== params.docId) return doc;
@@ -793,8 +827,8 @@ export default function App() {
           fileSize: params.fileSize,
           mimeType: params.mimeType,
           expiryDate: params.newExpiryDate || doc.expiryDate,
-          uploadDate: REFERENCE_DATE,
-          completenessStatus: 'Complete',
+          uploadDate: todayStr,
+          completenessStatus: 'Pending Review',
           humanReviewStatus: 'Pending',
           versions: [
             ...doc.versions,
@@ -803,7 +837,7 @@ export default function App() {
               fileName: params.fileName,
               fileSize: params.fileSize,
               mimeType: params.mimeType,
-              uploadedAt: `${REFERENCE_DATE} 14:32`,
+              uploadedAt: nowDisplay,
               uploadedBy: currentUser.fullName,
               changeNote: params.changeNote,
             },
@@ -817,7 +851,7 @@ export default function App() {
       'Document Version Replaced',
       'Document',
       params.docId,
-      `Uploaded new version (${params.fileName}): ${params.changeNote}`
+      `Registered new version (${params.fileName}): ${params.changeNote}`
     );
   };
 
@@ -895,21 +929,21 @@ export default function App() {
       onMarkAllNotificationsRead={() =>
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
       }
-      onSwitchDemoUser={(demoUser) => {
-        setCurrentUserId(demoUser.id);
+      onSwitchActiveAccount={(targetUser) => {
+        setCurrentUserId(targetUser.id);
         setActiveView('dashboard');
         setSelectedApplicationId(null);
         setSelectedDocumentId(null);
         appendAudit(
-          demoUser,
-          'Switched Active Demo Persona',
+          targetUser,
+          'Switched Active Account Session',
           'Account',
-          demoUser.id,
-          `Switched active demonstration role to ${demoUser.fullName} (${demoUser.role}).`
+          targetUser.id,
+          `Switched active role session to ${targetUser.fullName} (${targetUser.role}).`
         );
       }}
       onLogout={handleLogout}
-      onResetDemoData={handleResetDemoData}
+      onResetRegistryData={handleResetRegistryData}
       darkMode={darkMode}
       onToggleDarkMode={() => setDarkMode((prev) => !prev)}
     >
@@ -1011,7 +1045,7 @@ export default function App() {
             if (!canUserPerformAdminAction(currentUser)) return;
             const ruleObj: ComplianceRule = {
               ...newRule,
-              id: `RULE-${Date.now()}`,
+              id: createRecordId('RULE'),
             };
             setComplianceRules((prev) => [ruleObj, ...prev]);
             appendAudit(
@@ -1023,6 +1057,8 @@ export default function App() {
             );
           }}
           onAddInfrastructureEvidence={({ facilityTitle, carpetAreaSqm, certNumber }) => {
+            const todayStr = getLocalTodayDate();
+            const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
             const internalCode = generateInternalDocumentCode(
               'Infrastructure',
               currentUser.institutionName || currentUser.fullName,
@@ -1035,22 +1071,23 @@ export default function App() {
               suggestedAiCategory: 'Infrastructure',
               suggestedFolder: '/Repository/Campus/Safety-And-Infrastructure',
               categoryConfirmed: true,
-              institutionId: currentUser.institutionId || 'INST-PUNE-104',
+              institutionId: currentUser.institutionId || 'INST-VESIT-104',
               institutionName:
-                currentUser.institutionName || 'Vidyapeeth Institute of Technology, Pune',
+                currentUser.institutionName ||
+                "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai",
               personName: currentUser.fullName,
               personUserId: currentUser.id,
               certificateNumber: certNumber,
               issuingAuthority: 'Institutional Estate & Technical Cell',
-              issueDate: REFERENCE_DATE,
-              expiryDate: '2027-10-23',
-              uploadDate: REFERENCE_DATE,
+              issueDate: todayStr,
+              expiryDate: addDaysToLocalDate(todayStr, 365),
+              uploadDate: todayStr,
               fileName: `${internalCode}_Facility_Evidence.png`,
               fileSize: '3.10 MB',
               mimeType: 'image/png',
-              completenessStatus: 'Complete',
-              consistencyStatus: 'Consistent',
-              anomalyStatus: 'No Anomaly Detected',
+              completenessStatus: 'Pending Review',
+              consistencyStatus: 'Pending Check',
+              anomalyStatus: 'Not Screened',
               issuerVerificationStatus: 'Not Checked',
               humanReviewStatus: 'Pending',
               isInfrastructureEvidence: true,
@@ -1063,11 +1100,11 @@ export default function App() {
               },
               findings: [
                 {
-                  id: `F-INF-${Date.now()}`,
+                  id: createRecordId('F-INF'),
                   pillar: 'Completeness',
-                  status: 'Passed',
+                  status: 'Advisory',
                   affectedFieldOrPage: 'Photographic Evidence Pack',
-                  explanation: 'Advisory layout check completed; queued for physical inspection.',
+                  explanation: 'Advisory layout check recorded; queued for physical EVC inspection.',
                   evidenceComparison: `${carpetAreaSqm} sq.m >= 66 sq.m minimum norm`,
                   suggestedNextAction: 'Include in EVC visit schedule.',
                 },
@@ -1078,9 +1115,9 @@ export default function App() {
                   fileName: `${internalCode}_Facility_Evidence.png`,
                   fileSize: '3.10 MB',
                   mimeType: 'image/png',
-                  uploadedAt: `${REFERENCE_DATE} 14:35`,
+                  uploadedAt: nowDisplay,
                   uploadedBy: currentUser.fullName,
-                  changeNote: 'Attached infrastructure photographic evidence.',
+                  changeNote: 'Registered infrastructure photographic evidence metadata.',
                 },
               ],
             });
@@ -1112,8 +1149,8 @@ export default function App() {
           onCreateAccount={(newUserData) => {
             const created: UserAccount = {
               ...newUserData,
-              id: `USR-${Date.now()}`,
-              createdAt: REFERENCE_DATE,
+              id: createRecordId('USR'),
+              createdAt: getLocalTodayDate(),
             };
             setUsers((prev) => [created, ...prev]);
             appendAudit(
@@ -1163,7 +1200,7 @@ export default function App() {
           }}
           darkMode={darkMode}
           onToggleDarkMode={() => setDarkMode((prev) => !prev)}
-          onResetDemoData={handleResetDemoData}
+          onResetRegistryData={handleResetRegistryData}
         />
       )}
 

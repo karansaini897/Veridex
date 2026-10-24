@@ -21,7 +21,7 @@ import {
   canUserAccessApplication,
   canUserAccessDocument,
   canUserPerformAdminAction,
-  REFERENCE_DATE,
+  getLocalTodayDate,
   validateAccountUniqueness,
 } from '../lib/domain';
 import {
@@ -60,6 +60,8 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
   // Reports Filters
   const [auditActorFilter, setAuditActorFilter] = useState<'all' | Role>('all');
 
+  const todayStr = getLocalTodayDate();
+
   // Admin Account Creation State
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
@@ -69,8 +71,19 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
   const [gender, setGender] = useState<UserAccount['gender']>('Prefer not to say');
   const [accountStatus, setAccountStatus] = useState<AccountStatus>('Active');
   const [assignedRole, setAssignedRole] = useState<Role>('institutional_rep');
-  const [password, setPassword] = useState('VeridexAuth#2026');
-  const [institutionId, setInstitutionId] = useState('INST-PUNE-104');
+  const [institutionId, setInstitutionId] = useState('INST-VESIT-104');
+
+  const deriveFirstnameLastname = (rawName: string): string => {
+    const cleaned = rawName
+      .replace(/\b(dr|prof|mr|mrs|ms|shri|smt)\.?\s+/gi, '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z\s]/g, '');
+    const parts = cleaned.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0];
+    return `${parts[0]}.${parts[parts.length - 1]}`;
+  };
 
   // Role-specific fields
   const [designation, setDesignation] = useState('Deputy Registrar — Academic Compliance');
@@ -80,18 +93,18 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
   const [permissionLevel, setPermissionLevel] = useState<NonNullable<UserAccount['permissionLevel']>>(
     'Regional Reviewer (Level 2)'
   );
-  const [employeeId, setEmployeeId] = useState('VIT-FAC-2026-112');
+  const [employeeId, setEmployeeId] = useState('VESIT-FAC-2026-112');
   const [department, setDepartment] = useState('Department of Computer Engineering');
   const [joiningDate, setJoiningDate] = useState('2022-07-01');
-  const [rollNumber, setRollNumber] = useState('VIT24CE088');
-  const [course, setCourse] = useState('B.Tech — Computer Engineering');
+  const [rollNumber, setRollNumber] = useState('VESIT24CE088');
+  const [course, setCourse] = useState('B.E. — Computer Engineering');
   const [yearSemester, setYearSemester] = useState('Third Year / Semester V');
 
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ username?: string; phone?: string }>({});
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
 
-  const calculatedAge = useMemo(() => calculateAgeFromDob(dob, REFERENCE_DATE), [dob]);
+  const calculatedAge = useMemo(() => calculateAgeFromDob(dob, todayStr), [dob, todayStr]);
 
   const authorizedApps = useMemo(
     () => applications.filter((a) => canUserAccessApplication(currentUser, a)),
@@ -104,11 +117,21 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
   );
 
   const filteredAuditEvents = useMemo(() => {
+    const authAppIds = new Set(authorizedApps.map((a) => a.id));
+    const authDocIds = new Set(authorizedDocs.map((d) => d.id));
     return auditEvents.filter((ev) => {
       if (auditActorFilter !== 'all' && ev.actorRole !== auditActorFilter) return false;
+      if (currentUser.role !== 'admin') {
+        const isOwnActor = ev.actorUsername === currentUser.username;
+        const isAuthorizedTarget =
+          authAppIds.has(ev.targetId) ||
+          authDocIds.has(ev.targetId) ||
+          ev.targetId === currentUser.id;
+        return isOwnActor || isAuthorizedTarget;
+      }
       return true;
     });
-  }, [auditEvents, auditActorFilter]);
+  }, [auditEvents, auditActorFilter, currentUser, authorizedApps, authorizedDocs]);
 
   const handleExportCsv = () => {
     const headers = [
@@ -134,7 +157,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `VERIDEX_Compliance_Summary_${REFERENCE_DATE}.csv`;
+    link.download = `VERIDEX_Compliance_Summary_${todayStr}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -154,12 +177,14 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
       setFormError('Full name is required.');
       return;
     }
-    if (!password || password.length < 6) {
-      setFormError('Initial password must be at least 6 characters.');
+
+    const canonicalUsername = (username.trim() || deriveFirstnameLastname(fullName)).toLowerCase();
+    if (!canonicalUsername) {
+      setFormError('Username in firstname.lastname format is required.');
       return;
     }
 
-    const uniqueness = validateAccountUniqueness({ username, phone }, users);
+    const uniqueness = validateAccountUniqueness({ username: canonicalUsername, phone }, users);
     if (!uniqueness.valid) {
       setFieldErrors(uniqueness.errors);
       setFormError(
@@ -174,16 +199,16 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
 
     onCreateAccount({
       fullName: fullName.trim(),
-      username: username.trim(),
+      username: canonicalUsername,
       phone: phone.trim(),
       normalizedPhone: uniqueness.normalizedPhone,
-      email: email.trim() || `${username.trim()}@institution.edu.in`,
+      email: email.trim() || `${canonicalUsername}@vesit.example.edu.in`,
       dob,
       gender,
       status: accountStatus,
       role: assignedRole,
-      password,
-      isDemoAccount: false,
+      password: canonicalUsername,
+      isSystemAccount: false,
       institutionId: assignedRole === 'admin' ? undefined : selectedInst?.id,
       institutionName: assignedRole === 'admin' ? undefined : selectedInst?.name,
       officialInstitutionCode: assignedRole === 'admin' ? undefined : selectedInst?.code,
@@ -200,7 +225,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
     });
 
     setCreateSuccess(
-      `Provisioned ${assignedRole} account "${username.trim()}" (Normalized Phone: ${uniqueness.normalizedPhone}).`
+      `Provisioned ${assignedRole} account "${canonicalUsername}" (Normalized Phone: ${uniqueness.normalizedPhone}).`
     );
     setFullName('');
     setUsername('');
@@ -311,7 +336,11 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
                     type="text"
                     required
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFullName(val);
+                      setUsername(deriveFirstnameLastname(val));
+                    }}
                     placeholder="e.g. Dr. Nandini Deshpande"
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
                   />
@@ -327,7 +356,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="e.g. rep.deshpande"
+                    placeholder="e.g. nandini.deshpande"
                     className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-950 font-mono-tabular ${
                       fieldErrors.username
                         ? 'border-red-500'
@@ -532,7 +561,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
 
             <div className="divide-y divide-slate-200 dark:divide-slate-800">
               {users.map((u) => {
-                const age = calculateAgeFromDob(u.dob, REFERENCE_DATE);
+                const age = calculateAgeFromDob(u.dob, todayStr);
                 return (
                   <div key={u.id} className="py-3.5 first:pt-0 last:pb-0 flex items-start justify-between gap-3 text-xs">
                     <div className="space-y-0.5 min-w-0">
@@ -657,6 +686,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
                 'Pending',
                 'Failed',
                 'Not Checked',
+                'Unavailable',
               ] as const
             ).map((st) => {
               const count = authorizedDocs.filter((d) => d.issuerVerificationStatus === st).length;
@@ -683,7 +713,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
           <div className="divide-y divide-slate-200/60 dark:divide-slate-800 text-xs">
             {(['Expired', 'Expiring Soon', 'Valid', 'No Expiry'] as const).map((st) => {
               const count = authorizedDocs.filter(
-                (d) => calculateExpiryDetails(d.expiryDate, REFERENCE_DATE).status === st
+                (d) => calculateExpiryDetails(d.expiryDate, todayStr).status === st
               ).length;
               return (
                 <div key={st} className="py-2 flex items-center justify-between">

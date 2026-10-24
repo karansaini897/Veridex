@@ -9,7 +9,111 @@ import {
   UserAccount,
 } from '../types/portal';
 
-export const REFERENCE_DATE = '2026-10-23';
+let idSequenceCounter = 100;
+
+/**
+ * Returns the current local calendar date formatted as YYYY-MM-DD.
+ * Uses local year/month/day components to avoid UTC timezone date shifts.
+ */
+export function getLocalTodayDate(now: Date = new Date()): string {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Parses a YYYY-MM-DD string into a local Date anchored at local noon (12:00:00)
+ * so calendar day arithmetic is immune to UTC parsing and DST midnight transitions.
+ */
+export function parseLocalDate(dateStr?: string): Date | null {
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
+    return null;
+  }
+  const [year, month, day] = dateStr.trim().split('-').map(Number);
+  if (!year || !month || !day) return null;
+  const constructed = new Date(year, month - 1, day, 12, 0, 0, 0);
+  if (
+    Number.isNaN(constructed.getTime()) ||
+    constructed.getFullYear() !== year ||
+    constructed.getMonth() !== month - 1 ||
+    constructed.getDate() !== day
+  ) {
+    return null;
+  }
+  return constructed;
+}
+
+/**
+ * Adds or subtracts calendar days from a YYYY-MM-DD date string in local time.
+ */
+export function addDaysToLocalDate(baseDateStr: string, offsetDays: number): string {
+  const base = parseLocalDate(baseDateStr) || new Date();
+  const target = new Date(
+    base.getFullYear(),
+    base.getMonth(),
+    base.getDate() + offsetDays,
+    12,
+    0,
+    0,
+    0
+  );
+  return getLocalTodayDate(target);
+}
+
+/**
+ * Returns a YYYY-MM-DD date string offset by `offsetDays` from today's local date.
+ */
+export function offsetDateFromToday(offsetDays: number, now: Date = new Date()): string {
+  return addDaysToLocalDate(getLocalTodayDate(now), offsetDays);
+}
+
+/**
+ * Returns a full ISO-8601 timestamp string for audit trail and history entries.
+ */
+export function getCurrentIsoTimestamp(now: Date = new Date()): string {
+  return now.toISOString();
+}
+
+/**
+ * Formats an ISO timestamp or legacy "YYYY-MM-DD HH:mm" string for human-readable display.
+ */
+export function formatTimestampForDisplay(timestamp?: string): string {
+  if (!timestamp || timestamp === '—') return '—';
+  const trimmed = timestamp.trim();
+  if (/^\d{4}-\d{2}-\d{2}(\s+\d{2}:\d{2})?$/.test(trimmed)) {
+    return trimmed;
+  }
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return trimmed;
+  }
+  const datePart = getLocalTodayDate(parsed);
+  const hours = String(parsed.getHours()).padStart(2, '0');
+  const minutes = String(parsed.getMinutes()).padStart(2, '0');
+  return `${datePart} ${hours}:${minutes}`;
+}
+
+/**
+ * Generates a collision-resistant identifier with a human-readable prefix.
+ */
+export function createRecordId(prefix: string): string {
+  idSequenceCounter += 1;
+  const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+  const timePart = Date.now().toString(36).slice(-4).toUpperCase();
+  return `${prefix}-${timePart}${idSequenceCounter}${randomPart}`;
+}
+
+/**
+ * Strips plaintext passwords before persisting user account state to browser storage.
+ */
+export function sanitizeUserForStorage(user: UserAccount): UserAccount {
+  const copy: UserAccount = { ...user };
+  delete copy.password;
+  return copy;
+}
+
+export const REFERENCE_DATE = getLocalTodayDate();
 
 /**
  * Normalizes phone numbers so uniqueness can be reliably enforced across all roles.
@@ -48,7 +152,7 @@ export function isValidPhoneNumber(raw: string): boolean {
 /**
  * Calculates age in years from a YYYY-MM-DD date of birth relative to referenceDate.
  */
-export function calculateAgeFromDob(dob: string, referenceDate: string = REFERENCE_DATE): number | null {
+export function calculateAgeFromDob(dob: string, referenceDate: string = getLocalTodayDate()): number | null {
   if (!dob || !/^\d{4}-\d{2}-\d{2}$/.test(dob)) return null;
   const [bYear, bMonth, bDay] = dob.split('-').map(Number);
   const [rYear, rMonth, rDay] = referenceDate.split('-').map(Number);
@@ -110,11 +214,11 @@ export function validateAccountUniqueness(
 }
 
 /**
- * Calculates expiry status and days remaining consistently from stored dates.
+ * Calculates expiry status and days remaining consistently from stored local calendar dates.
  */
 export function calculateExpiryDetails(
   expiryDate?: string,
-  referenceDate: string = REFERENCE_DATE
+  referenceDate: string = getLocalTodayDate()
 ): {
   daysRemaining: number | null;
   status: ExpiryStatus;
@@ -128,9 +232,9 @@ export function calculateExpiryDetails(
     };
   }
 
-  const expMs = Date.parse(`${expiryDate}T00:00:00Z`);
-  const refMs = Date.parse(`${referenceDate}T00:00:00Z`);
-  if (Number.isNaN(expMs) || Number.isNaN(refMs)) {
+  const expLocal = parseLocalDate(expiryDate);
+  const refLocal = parseLocalDate(referenceDate);
+  if (!expLocal || !refLocal) {
     return {
       daysRemaining: null,
       status: 'No Expiry',
@@ -138,7 +242,7 @@ export function calculateExpiryDetails(
     };
   }
 
-  const diffDays = Math.round((expMs - refMs) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round((expLocal.getTime() - refLocal.getTime()) / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) {
     return {
@@ -211,8 +315,8 @@ export function generateInternalDocumentCode(
 }
 
 /**
- * Simulated AI-assisted document classification that suggests a category and folder
- * based on filename and document title.
+ * Rule-based keyword classification that suggests a repository category and folder
+ * based on filename and document title keywords.
  */
 export function suggestDocumentCategory(
   fileName: string,
@@ -228,48 +332,48 @@ export function suggestDocumentCategory(
     return {
       category: 'Qualifications',
       folder: '/Repository/Faculty/Academic-Qualifications',
-      rationale: 'Matched academic degree/convocation keywords in title.',
+      rationale: 'Keyword match: academic degree or convocation terms in filename/title.',
     };
   }
   if (combined.includes('experience') || combined.includes('relieving') || combined.includes('service')) {
     return {
       category: 'Experience Certificates',
       folder: '/Repository/Faculty/Prior-Service-Records',
-      rationale: 'Matched prior teaching/industry service keywords.',
+      rationale: 'Keyword match: prior teaching or service terms in filename/title.',
     };
   }
   if (combined.includes('fire') || combined.includes('safety') || combined.includes('lab') || combined.includes('building') || combined.includes('occupancy') || combined.includes('lease') || combined.includes('library')) {
     return {
       category: 'Infrastructure',
       folder: '/Repository/Campus/Safety-And-Infrastructure',
-      rationale: 'Matched physical campus safety, occupancy, or laboratory keywords.',
+      rationale: 'Keyword match: campus safety, occupancy, or laboratory terms in filename/title.',
     };
   }
   if (combined.includes('noc') || combined.includes('affiliation') || combined.includes('aicte') || combined.includes('eoa') || combined.includes('approval')) {
     return {
       category: 'Approvals',
       folder: '/Repository/Regulatory/Statutory-Approvals',
-      rationale: 'Matched university affiliation or statutory NOC keywords.',
+      rationale: 'Keyword match: university affiliation or statutory approval terms in filename/title.',
     };
   }
   if (combined.includes('student') || combined.includes('roll') || combined.includes('marksheet') || combined.includes('gate') || combined.includes('scholarship')) {
     return {
       category: 'Student Records',
       folder: '/Repository/Students/Enrollment-And-Merit',
-      rationale: 'Matched student enrollment or merit record keywords.',
+      rationale: 'Keyword match: student enrollment or scholarship terms in filename/title.',
     };
   }
   if (combined.includes('faculty') || combined.includes('appointment') || combined.includes('pan') || combined.includes('joining')) {
     return {
       category: 'Faculty Records',
       folder: '/Repository/Faculty/Appointment-Orders',
-      rationale: 'Matched faculty appointment and roster keywords.',
+      rationale: 'Keyword match: faculty appointment or roster terms in filename/title.',
     };
   }
   return {
     category: 'Financial & Trust Deeds',
     folder: '/Repository/Governance/Trust-And-Audit',
-    rationale: 'Classified under statutory governance and financial records.',
+    rationale: 'Default keyword rule: classified under statutory governance and financial records.',
   };
 }
 
@@ -319,7 +423,7 @@ export function buildCategoryChecklist(category: ApplicationCategory): Checklist
 
   const selected = baseItems[category] || baseItems['Extension of Approval (EoA)'];
   return selected.map((item, idx) => ({
-    id: `chk-${Date.now()}-${idx + 1}`,
+    id: `${createRecordId('CHK')}-${idx + 1}`,
     title: item.title,
     required: item.required,
     documentCategory: item.category,
@@ -328,7 +432,7 @@ export function buildCategoryChecklist(category: ApplicationCategory): Checklist
 }
 
 /**
- * Enforces backend-equivalent role and institution access restrictions.
+ * Enforces role and institution access scoping across views, modals, notifications, and exports.
  */
 export function canUserAccessApplication(user: UserAccount, app: ApplicationRecord): boolean {
   if (user.role === 'admin') return true;
@@ -388,7 +492,7 @@ export function getDefaultRouteForRole(role: Role): string {
 export function computeDashboardMetrics(
   applications: ApplicationRecord[],
   documents: DocumentRecord[],
-  referenceDate: string = REFERENCE_DATE
+  referenceDate: string = getLocalTodayDate()
 ) {
   const totalApplications = applications.length;
   const pendingReview = applications.filter(
@@ -423,6 +527,18 @@ export function computeDashboardMetrics(
   };
 }
 
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function buildRecentMonthLabels(referenceDate: string, count: number = 6): string[] {
+  const base = parseLocalDate(referenceDate) || new Date();
+  const labels: string[] = [];
+  for (let i = count - 1; i >= 0; i -= 1) {
+    const d = new Date(base.getFullYear(), base.getMonth() - i, 1, 12, 0, 0);
+    labels.push(`${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`);
+  }
+  return labels;
+}
+
 /**
  * Computes structured chart datasets for the Admin Dashboard Recharts visualizations:
  * 1. Application Status Distribution (Bar / Donut chart)
@@ -432,7 +548,7 @@ export function computeDashboardMetrics(
 export function computeAdminChartData(
   applications: ApplicationRecord[],
   documents: DocumentRecord[],
-  referenceDate: string = REFERENCE_DATE
+  referenceDate: string = getLocalTodayDate()
 ) {
   const statusConfig: Array<{
     status: ApplicationRecord['status'];
@@ -466,46 +582,47 @@ export function computeAdminChartData(
       calculateExpiryDetails(d.expiryDate, referenceDate).status === 'Expired'
   ).length;
   const totalDocs = Math.max(documents.length, 1);
+  const monthLabels = buildRecentMonthLabels(referenceDate, 6);
 
   // Build a 6-period document processing trend anchored to live repository state
   const processingTrends = [
     {
-      period: 'May 2026',
+      period: monthLabels[0],
       uploaded: Math.max(2, Math.round(totalDocs * 0.35)),
       ocrExtracted: Math.max(2, Math.round(totalDocs * 0.32)),
       verified: Math.max(1, Math.round(verifiedTotal * 0.3)),
       flagged: Math.max(1, Math.round(flaggedTotal * 0.25)),
     },
     {
-      period: 'Jun 2026',
+      period: monthLabels[1],
       uploaded: Math.max(3, Math.round(totalDocs * 0.48)),
       ocrExtracted: Math.max(3, Math.round(totalDocs * 0.45)),
       verified: Math.max(2, Math.round(verifiedTotal * 0.45)),
       flagged: Math.max(1, Math.round(flaggedTotal * 0.4)),
     },
     {
-      period: 'Jul 2026',
+      period: monthLabels[2],
       uploaded: Math.max(4, Math.round(totalDocs * 0.62)),
       ocrExtracted: Math.max(4, Math.round(totalDocs * 0.6)),
       verified: Math.max(3, Math.round(verifiedTotal * 0.58)),
       flagged: Math.max(1, Math.round(flaggedTotal * 0.55)),
     },
     {
-      period: 'Aug 2026',
+      period: monthLabels[3],
       uploaded: Math.max(5, Math.round(totalDocs * 0.78)),
       ocrExtracted: Math.max(5, Math.round(totalDocs * 0.75)),
       verified: Math.max(4, Math.round(verifiedTotal * 0.72)),
       flagged: Math.max(2, Math.round(flaggedTotal * 0.7)),
     },
     {
-      period: 'Sep 2026',
+      period: monthLabels[4],
       uploaded: Math.max(6, Math.round(totalDocs * 0.9)),
       ocrExtracted: Math.max(6, Math.round(totalDocs * 0.88)),
       verified: Math.max(5, Math.round(verifiedTotal * 0.86)),
       flagged: Math.max(2, Math.round(flaggedTotal * 0.85)),
     },
     {
-      period: 'Oct 2026',
+      period: monthLabels[5],
       uploaded: documents.length,
       ocrExtracted: documents.length,
       verified: verifiedTotal,
@@ -533,8 +650,8 @@ export function computeAdminChartData(
         d.consistencyStatus === 'Mismatch Flagged' ||
         d.completenessStatus === 'Missing Pages/Fields' ||
         d.anomalyStatus === 'Suspected Alteration / Duplicate' ||
-        calculateExpiryDetails(d.expiryDate, referenceDate).status !== 'Valid' &&
-          calculateExpiryDetails(d.expiryDate, referenceDate).status !== 'No Expiry'
+        (calculateExpiryDetails(d.expiryDate, referenceDate).status !== 'Valid' &&
+          calculateExpiryDetails(d.expiryDate, referenceDate).status !== 'No Expiry')
     ).length;
     const pending = Math.max(0, docsInCat.length - verified - flagged);
     return {
@@ -562,7 +679,7 @@ export function computeAdminChartData(
 export function computeInstitutionChartData(
   applications: ApplicationRecord[],
   documents: DocumentRecord[],
-  referenceDate: string = REFERENCE_DATE
+  referenceDate: string = getLocalTodayDate()
 ) {
   const dossierReadiness = applications.map((app) => {
     const verified = app.checklist.filter((c) => c.status === 'Verified').length;

@@ -14,7 +14,7 @@ import {
   calculateExpiryDetails,
   canUserAccessDocument,
   canUserPerformAdminAction,
-  REFERENCE_DATE,
+  getLocalTodayDate,
 } from '../lib/domain';
 import {
   cardEntranceVariants,
@@ -68,9 +68,10 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
     'VLSI & Embedded Systems Lab (Block B, Room 208) Inspection Pack'
   );
   const [carpetAreaSqm, setCarpetAreaSqm] = useState(136);
-  const [infraCertNo, setInfraCertNo] = useState('VIT/INFRA/VLSI/2026/11');
+  const [infraCertNo, setInfraCertNo] = useState('VESIT/INFRA/VLSI/2026/11');
 
   const isAdmin = canUserPerformAdminAction(currentUser);
+  const todayStr = getLocalTodayDate();
 
   const authorizedDocs = useMemo(
     () => documents.filter((d) => canUserAccessDocument(currentUser, d)),
@@ -79,7 +80,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
 
   const filteredPillarDocs = useMemo(() => {
     return authorizedDocs.filter((doc) => {
-      const exp = calculateExpiryDetails(doc.expiryDate, REFERENCE_DATE);
+      const exp = calculateExpiryDetails(doc.expiryDate, todayStr);
       const isFlagged =
         exp.status === 'Expired' ||
         exp.status === 'Expiring Soon' ||
@@ -92,7 +93,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
       if (pillarFilter === 'pending_human') return doc.humanReviewStatus !== 'Reviewed';
       return true;
     });
-  }, [authorizedDocs, pillarFilter]);
+  }, [authorizedDocs, pillarFilter, todayStr]);
 
   const infraDocs = useMemo(
     () => authorizedDocs.filter((d) => d.isInfrastructureEvidence || d.category === 'Infrastructure'),
@@ -209,7 +210,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
                   {filteredPillarDocs.map((doc) => {
-                    const exp = calculateExpiryDetails(doc.expiryDate, REFERENCE_DATE);
+                    const exp = calculateExpiryDetails(doc.expiryDate, todayStr);
                     return (
                       <tr key={doc.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/40">
                         <td className="py-2.5 px-3">
@@ -228,10 +229,14 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                             className={
                               doc.completenessStatus.includes('Missing')
                                 ? 'text-red-700 dark:text-red-400 font-semibold'
-                                : 'text-emerald-700 dark:text-emerald-400'
+                                : doc.completenessStatus === 'Pending Review'
+                                  ? 'text-blue-700 dark:text-blue-400'
+                                  : 'text-emerald-700 dark:text-emerald-400'
                             }
                           >
-                            {doc.completenessStatus.includes('Missing') ? 'Missing Pages' : 'Complete'}
+                            {doc.completenessStatus.includes('Missing')
+                              ? 'Missing Pages'
+                              : doc.completenessStatus}
                           </span>
                         </td>
                         <td className="py-2.5 px-2 font-mono-tabular whitespace-nowrap text-[11px]">
@@ -252,10 +257,12 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                             className={
                               doc.consistencyStatus.includes('Mismatch')
                                 ? 'text-amber-700 dark:text-amber-400 font-semibold'
-                                : 'text-emerald-700 dark:text-emerald-400'
+                                : doc.consistencyStatus === 'Pending Check'
+                                  ? 'text-blue-700 dark:text-blue-400'
+                                  : 'text-emerald-700 dark:text-emerald-400'
                             }
                           >
-                            {doc.consistencyStatus.replace(' (Simulated)', '')}
+                            {doc.consistencyStatus}
                           </span>
                         </td>
                         <td className="py-2.5 px-2 whitespace-nowrap text-[11px]">
@@ -268,7 +275,9 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                           >
                             {doc.anomalyStatus.includes('Suspected')
                               ? 'Suspected Alteration'
-                              : 'None Detected'}
+                              : doc.anomalyStatus === 'Not Screened'
+                                ? 'Not Screened'
+                                : 'None Detected'}
                           </span>
                         </td>
                         <td className="py-2.5 px-2 whitespace-nowrap text-[11px]">

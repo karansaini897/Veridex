@@ -42,9 +42,9 @@ interface AppShellProps {
   onOpenDocument: (docId: string) => void;
   onMarkNotificationRead: (notifId: string) => void;
   onMarkAllNotificationsRead: () => void;
-  onSwitchDemoUser: (user: UserAccount) => void;
+  onSwitchActiveAccount: (user: UserAccount) => void;
   onLogout: () => void;
-  onResetDemoData: () => void;
+  onResetRegistryData: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
   onOpenPublicLanding?: () => void;
@@ -730,14 +730,14 @@ export const AppShell: React.FC<AppShellProps> = ({
                   <div className="text-xs text-slate-500 dark:text-slate-400 py-6 text-center space-y-2">
                     <p>Type to search across records you are authorized to access.</p>
                     <div className="flex flex-wrap justify-center gap-2 pt-1">
-                      {['APP-2026-0104', 'FAC-QUA-KAS-02', 'INF-FAC-VIT-01', 'Salunkhe', 'SPPU'].map((sample) => (
+                      {['APP-2026-0104', 'FAC-QUA-KAS-02', 'INF-FAC-VES-01', 'Salunkhe', 'VESIT'].map((chip) => (
                         <button
-                          key={sample}
+                          key={chip}
                           type="button"
-                          onClick={() => setSearchQuery(sample)}
+                          onClick={() => setSearchQuery(chip)}
                           className="px-2.5 py-1 rounded-lg liquid-glass-subtle text-slate-700 dark:text-slate-300 font-mono-tabular text-[11px] hover:border-blue-400/40 cursor-pointer"
                         >
-                          {sample}
+                          {chip}
                         </button>
                       ))}
                     </div>
