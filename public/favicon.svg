@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="100%" height="100%">
+  <defs>
+    <filter id="tab-contrast" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#0F172A" flood-opacity="0.22" />
+    </filter>
+  </defs>
+
+  <g filter="url(#tab-contrast)">
+    <!-- Left Stroke of V: Deep Navy Blue (#1B365D) -->
+    <polygon points="15.36,68.90 51.52,68.90 86.28,132.87 68.20,166.24" fill="#1B365D" />
+
+    <!-- Top Stripe of E: Indian Saffron / Orange (#EB8327) -->
+    <polygon points="148.86,68.90 240.64,68.90 226.25,95.32 134.47,95.32" fill="#EB8327" />
+
+    <!-- Middle Stripe of E with V-stem: White with subtle edge definition for light tabs -->
+    <polygon points="123.83,114.79 215.61,114.79 201.22,141.21 142.60,141.21 131.96,160.68 98.80,160.68 109.44,141.21" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1" stroke-linejoin="round" />
+
+    <!-- Bottom Stripe of E: Indian Green (#18782B) -->
+    <polygon points="98.80,160.68 190.58,160.68 176.18,187.10 84.40,187.10" fill="#18782B" />
+  </g>
+</svg>
