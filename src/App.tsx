@@ -92,7 +92,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    document.title = 'AICTE Application Validation & Document Authentication Portal';
+    document.title = 'Veridex | Institutional Document Management';
     const root = document.documentElement;
     if (darkMode) {
       root.classList.add('dark');
