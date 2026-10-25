@@ -648,7 +648,7 @@ export default function App() {
       institutionName: currentUser.institutionName || 'VESIT',
       officialInstitutionCode: currentUser.officialInstitutionCode || currentUser.institutionId,
       category: params.category,
-      submittedDate: params.submitImmediately ? todayStr : '—',
+      submittedDate: params.submitImmediately ? todayStr : 'Not Submitted',
       lastUpdated: todayStr,
       status: initialStatus,
       assignedReviewer: 'Karan Saini',
@@ -1154,7 +1154,7 @@ export default function App() {
       'Document Record Registered in Repository',
       'Document',
       newDocId,
-      `Registered ${fullDoc.internalCode} (${fullDoc.name}) — Completeness: ${fullDoc.completenessStatus}, Consistency: ${fullDoc.consistencyStatus}.`
+      `Registered ${fullDoc.internalCode} (${fullDoc.name}). Completeness: ${fullDoc.completenessStatus}, Consistency: ${fullDoc.consistencyStatus}.`
     );
   };
 

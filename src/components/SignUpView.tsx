@@ -612,7 +612,7 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                     data-testid="signup-error-banner"
                     className="p-3.5 rounded-xl bg-red-500/10 border border-red-400/70 flex items-start gap-2.5 text-xs text-red-900 dark:text-red-200"
                   >
-                    <AlertCircle className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
+                    <AlertCircle className="w-4 h-4 text-red-700 dark:text-red-300 shrink-0 mt-0.5" />
                     <span>{generalError}</span>
                   </div>
                 )}
@@ -1129,7 +1129,7 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                   role="alert"
                   className="p-3.5 rounded-xl bg-red-500/10 border border-red-400/70 flex items-start gap-2.5 text-xs text-red-900 dark:text-red-200"
                 >
-                  <AlertCircle className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
+                  <AlertCircle className="w-4 h-4 text-red-700 dark:text-red-300 shrink-0 mt-0.5" />
                   <span>{lookupError}</span>
                 </div>
               )}
@@ -1139,7 +1139,7 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                   role="status"
                   className="p-3.5 rounded-xl bg-emerald-500/10 border border-[#046A38]/50 flex items-start gap-2.5 text-xs text-stone-900 dark:text-emerald-200"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-[#046A38] shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-4 h-4 text-[#046A38] dark:text-emerald-400 shrink-0 mt-0.5" />
                   <span>{amendSuccessMsg}</span>
                 </div>
               )}
@@ -1151,7 +1151,7 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#C2410C]/25 pb-3">
                     <div>
-                      <span className="text-xs font-mono-tabular font-bold text-[#C2410C] block">
+                      <span className="text-xs font-mono-tabular font-bold text-[#C2410C] dark:text-amber-300 block">
                         Request ID: {foundRequest.id}
                       </span>
                       <h3 className="text-base font-display font-bold text-stone-900 dark:text-white">
@@ -1210,7 +1210,7 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                       data-testid="amend-request-form"
                       className="space-y-3.5 pt-3 border-t border-[#C2410C]/30"
                     >
-                      <div className="text-xs font-bold text-[#C2410C] uppercase tracking-wider">
+                      <div className="text-xs font-bold text-[#C2410C] dark:text-amber-300 uppercase tracking-wider">
                         Amend Registration Details &amp; Resubmit
                       </div>
 
@@ -1224,7 +1224,7 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                             className="w-full px-3 py-1.5 text-xs rounded-xl border border-[#C2410C]/40 bg-[#FFFDF9] dark:bg-stone-900"
                           />
                           {amendErrors.fullName && (
-                            <p className="text-[11px] text-red-700 mt-0.5">{amendErrors.fullName}</p>
+                            <p className="text-[11px] text-red-700 dark:text-red-300 mt-0.5">{amendErrors.fullName}</p>
                           )}
                         </div>
                         <div>
@@ -1236,7 +1236,7 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                             className="w-full px-3 py-1.5 text-xs rounded-xl border border-[#C2410C]/40 bg-[#FFFDF9] dark:bg-stone-900 font-mono-tabular"
                           />
                           {amendErrors.username && (
-                            <p className="text-[11px] text-red-700 mt-0.5">{amendErrors.username}</p>
+                            <p className="text-[11px] text-red-700 dark:text-red-300 mt-0.5">{amendErrors.username}</p>
                           )}
                         </div>
                         <div>
@@ -1248,7 +1248,7 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                             className="w-full px-3 py-1.5 text-xs rounded-xl border border-[#C2410C]/40 bg-[#FFFDF9] dark:bg-stone-900 font-mono-tabular"
                           />
                           {amendErrors.phone && (
-                            <p className="text-[11px] text-red-700 mt-0.5">{amendErrors.phone}</p>
+                            <p className="text-[11px] text-red-700 dark:text-red-300 mt-0.5">{amendErrors.phone}</p>
                           )}
                         </div>
                         <div>
@@ -1260,7 +1260,7 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                             className="w-full px-3 py-1.5 text-xs rounded-xl border border-[#C2410C]/40 bg-[#FFFDF9] dark:bg-stone-900"
                           />
                           {amendErrors.email && (
-                            <p className="text-[11px] text-red-700 mt-0.5">{amendErrors.email}</p>
+                            <p className="text-[11px] text-red-700 dark:text-red-300 mt-0.5">{amendErrors.email}</p>
                           )}
                         </div>
                         <div>

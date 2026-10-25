@@ -292,7 +292,7 @@ export interface ApplicationRecord {
   submittedDate: string; // YYYY-MM-DD
   lastUpdated: string; // YYYY-MM-DD
   status: ApplicationStatus;
-  decisionOutcome?: 'Compliance Verified — Recommended' | 'Conditional Compliance — Inspection Required' | 'Deficiency Recorded — Deferred';
+  decisionOutcome?: 'Compliance Verified: Recommended' | 'Conditional Compliance: Inspection Required' | 'Deficiency Recorded: Deferred' | string;
   assignedReviewer: string;
   checklist: ChecklistItem[];
   documentIds: string[];

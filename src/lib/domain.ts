@@ -566,7 +566,7 @@ export function resolveApprovalRouting(
       routedApproverUserIds: [],
       assignedApproverUserId: undefined,
       assignedApproverName: undefined,
-      routedApproverLabel: `Class Teacher Faculty (${instName} · ${reqDept} · ${request.academicYear} · Div ${request.division}) — No Approver Assigned`,
+      routedApproverLabel: `Class Teacher Faculty (${instName} · ${reqDept} · ${request.academicYear} · Div ${request.division}): No Approver Assigned`,
       noApproverAssigned: true,
       approverUnassigned: true,
     };
@@ -600,7 +600,7 @@ export function resolveApprovalRouting(
       routedApproverUserIds: [],
       assignedApproverUserId: undefined,
       assignedApproverName: undefined,
-      routedApproverLabel: `Institutional Manager (${instName}) — No Approver Assigned`,
+      routedApproverLabel: `Institutional Manager (${instName}): No Approver Assigned`,
       noApproverAssigned: true,
       approverUnassigned: true,
     };
@@ -628,7 +628,7 @@ export function resolveApprovalRouting(
     routedApproverUserIds: [],
     assignedApproverUserId: undefined,
     assignedApproverName: undefined,
-    routedApproverLabel: 'VERIDEX Regional Admin — No Approver Assigned',
+    routedApproverLabel: 'VERIDEX Regional Admin: No Approver Assigned',
     noApproverAssigned: true,
     approverUnassigned: true,
   };
@@ -764,7 +764,7 @@ export function buildApprovedUserAccountFromRequest(
       academicYear: req.academicYear,
       yearSemester: req.academicYear,
       division: req.division,
-      course: `B.Tech — ${deptCode}`,
+      course: `B.Tech (${deptCode})`,
       rollNumber: `${instShort}-${deptCode}-${req.division || 'A'}-${shortNumeric}`,
       approvedFromRequestId: req.id,
       approvedByUserId: approver.id,

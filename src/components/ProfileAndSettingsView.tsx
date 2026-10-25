@@ -289,8 +289,8 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
                   }}
                   className={`p-3.5 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 cursor-pointer ${
                     !darkMode
-                      ? 'border-blue-600 bg-blue-50/60 text-blue-800 font-semibold'
-                      : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                      ? 'border-[#C2410C] bg-[#EFE6D5] text-stone-900 font-semibold'
+                      : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300'
                   }`}
                 >
                   <Sun className="w-4 h-4" />
@@ -610,38 +610,38 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
                     type="text"
                     disabled
                     readOnly
-                    value={currentUser.institutionName || '—'}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                    value={currentUser.institutionName || 'Not assigned'}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 cursor-not-allowed"
                   />
                 </div>
                 {(currentUser.role === 'student' || currentUser.role === 'faculty') && (
                   <>
                     <div>
-                      <label className="block font-medium text-slate-600 dark:text-slate-400 mb-1">
+                      <label className="block font-medium text-slate-600 dark:text-slate-300 mb-1">
                         Department
                       </label>
                       <input
                         type="text"
                         disabled
                         readOnly
-                        value={currentUser.academicDepartment || currentUser.department || '—'}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                        value={currentUser.academicDepartment || currentUser.department || 'Not assigned'}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 cursor-not-allowed"
                       />
                     </div>
                     <div>
-                      <label className="block font-medium text-slate-600 dark:text-slate-400 mb-1">
+                      <label className="block font-medium text-slate-600 dark:text-slate-300 mb-1">
                         {currentUser.role === 'student' ? 'Year' : 'Academic Year'}
                       </label>
                       <input
                         type="text"
                         disabled
                         readOnly
-                        value={currentUser.academicYear || currentUser.yearSemester || '—'}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                        value={currentUser.academicYear || currentUser.yearSemester || 'Not assigned'}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 cursor-not-allowed"
                       />
                     </div>
                     <div>
-                      <label className="block font-medium text-slate-600 dark:text-slate-400 mb-1">
+                      <label className="block font-medium text-slate-600 dark:text-slate-300 mb-1">
                         {currentUser.role === 'student' ? 'Division' : 'Class Teacher Division'}
                       </label>
                       <input
@@ -650,10 +650,10 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
                         readOnly
                         value={
                           currentUser.role === 'student'
-                            ? currentUser.division || '—'
-                            : currentUser.classTeacherDivision || '—'
+                            ? currentUser.division || 'Not assigned'
+                            : currentUser.classTeacherDivision || 'Not assigned'
                         }
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 cursor-not-allowed"
                       />
                     </div>
                   </>
@@ -759,7 +759,7 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 font-mono-tabular"
                   />
                   <span className="text-[11px] text-slate-500 font-mono-tabular mt-0.5 block">
-                    Calculated Age: {calculatedAge !== null ? `${calculatedAge} years` : '—'}
+                    Calculated Age: {calculatedAge !== null ? `${calculatedAge} years` : 'Not recorded'}
                   </span>
                 </div>
 

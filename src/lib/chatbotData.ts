@@ -68,7 +68,7 @@ export function getRoleChatbotConfig(
           id: 'adm-agenda',
           category: 'Daily Agenda',
           question: "What's my agenda for the day?",
-          answer: `📅 Your Senior Regional Compliance Officer Daily Agenda (${todayDate}):\n\n1. Priority Flagged Dossier Triage:\n   • Review APP-2026-0104 (VESIT — Extension of Approval): Municipal Fire Safety renewal and faculty Ph.D. middle-initial clarification.\n   • Review APP-2026-0103 (Veermata Jijabai Technological Institute (VJTI) — EoA): Fire Safety Certificate marked for manual verification.\n   • Review APP-2026-0105 (D.J. Sanghvi — Increase in Intake): Missing Annexure-B.\n2. User Account Approvals:\n   • Triage pending institutional nodal officers and academic staff onboarding in the Western & Southern zone.\n3. Institutional Audit Calendar:\n   • Inspect 3 upcoming certificate expiry deadlines and review institutional compliance checklists.\n4. Regulatory Determinations:\n   • Record official compliance recommendations for completed institutional audits before end of business.`,
+          answer: `📅 Your Senior Regional Compliance Officer Daily Agenda (${todayDate}):\n\n1. Priority Flagged Dossier Triage:\n   • Review APP-2026-0104 (VESIT, Extension of Approval): Municipal Fire Safety renewal and faculty Ph.D. middle-initial clarification.\n   • Review APP-2026-0103 (Veermata Jijabai Technological Institute (VJTI), EoA): Fire Safety Certificate marked for manual verification.\n   • Review APP-2026-0105 (D.J. Sanghvi, Increase in Intake): Missing Annexure-B.\n2. User Account Approvals:\n   • Triage pending institutional nodal officers and academic staff onboarding in the Western & Southern zone.\n3. Institutional Audit Calendar:\n   • Inspect 3 upcoming certificate expiry deadlines and review institutional compliance checklists.\n4. Regulatory Determinations:\n   • Record official compliance recommendations for completed institutional audits before end of business.`,
         },
         {
           id: 'adm-pending',
@@ -80,19 +80,19 @@ export function getRoleChatbotConfig(
           id: 'adm-1',
           category: 'Queue Triage',
           question: 'Which institutional applications have flagged consistency or expiry issues right now?',
-          answer: `Currently, there are ${applications.length} total institutional applications in the registry (${pendingApps.length} in the active review queue and ${infoReqApps.length} awaiting additional information as of ${todayDate}).\n\n• Flagged Dossiers Requiring Officer Attention:\n1. APP-2026-0104 (VESIT — Extension of Approval): Municipal Fire & Life Safety Certificate (INF-FAC-VES-01) is expired and Ph.D. degree record (FAC-QUA-KUL-01) has a middle-initial variance.\n2. APP-2026-0103 (Veermata Jijabai Technological Institute (VJTI) — Extension of Approval): Fire Safety Certificate (INF-FAC-EMT-01) carries an integrity review flag requiring manual inspection.\n3. APP-2026-0105 (D.J. Sanghvi — Increase in Intake): Occupancy Certificate (INF-FAC-KAV-02) is missing Page 3 Annexure-B.\n\nUse "Review Dossier" in the Applications Registry to inspect the side-by-side evidence comparison before recording a human decision.`,
+          answer: `Currently, there are ${applications.length} total institutional applications in the registry (${pendingApps.length} in the active review queue and ${infoReqApps.length} awaiting additional information as of ${todayDate}).\n\n• Flagged Dossiers Requiring Officer Attention:\n1. APP-2026-0104 (VESIT, Extension of Approval): Municipal Fire & Life Safety Certificate (INF-FAC-VES-01) is expired and Ph.D. degree record (FAC-QUA-KUL-01) has a middle-initial variance.\n2. APP-2026-0103 (Veermata Jijabai Technological Institute (VJTI), Extension of Approval): Fire Safety Certificate (INF-FAC-EMT-01) carries an integrity review flag requiring manual inspection.\n3. APP-2026-0105 (D.J. Sanghvi, Increase in Intake): Occupancy Certificate (INF-FAC-KAV-02) is missing Page 3 Annexure-B.\n\nUse "Review Dossier" in the Applications Registry to inspect the side-by-side evidence comparison before recording a human decision.`,
         },
         {
           id: 'adm-2',
           category: 'Decision Protocol',
           question: "How do I issue an 'Additional Information Required' deficiency notice vs recording a final decision?",
-          answer: `As an authorized Regional Reviewer (${currentUser?.permissionLevel || 'Level 2/3'}), follow this workflow:\n\n1. Open any application from the Admin Dashboard by clicking "Review Dossier".\n2. Inspect the Checklist & 6-Pillar Verification Findings tab.\n3. To request clarification or a renewed certificate: Enter your reviewer note, select "Request Correction / Info", and confirm. This transitions the application to "Additional Information Required" and notifies the institution's Nodal Officer.\n4. To record a human determination: Select one of the compliance outcomes ("Compliance Verified — Recommended", "Conditional Compliance — Inspection Required", or "Deficiency Recorded — Deferred"), enter a mandatory decision note, and confirm. Every action is appended to the application history and audit trail.`,
+          answer: `As an authorized Regional Reviewer (${currentUser?.permissionLevel || 'Level 2/3'}), follow this workflow:\n\n1. Open any application from the Admin Dashboard by clicking "Review Dossier".\n2. Inspect the Checklist & 6-Pillar Verification Findings tab.\n3. To request clarification or a renewed certificate: Enter your reviewer note, select "Request Correction / Info", and confirm. This transitions the application to "Additional Information Required" and notifies the institution's Nodal Officer.\n4. To record a human determination: Select one of the compliance outcomes ("Compliance Verified: Recommended", "Conditional Compliance: Inspection Required", or "Deficiency Recorded: Deferred"), enter a mandatory decision note, and confirm. Every action is appended to the application history and audit trail.`,
         },
         {
           id: 'adm-3',
           category: 'Verification Pillars',
           question: 'Why does Issuer Verification show "Unavailable" or "Not Checked" on certain records, and how should I treat review flags?',
-          answer: `Under VERIDEX Responsible Verification Governance:\n\n• Issuer Verification ("Unavailable" / "Not Checked"): When an external municipal board or university registry integration is not connected in this portal environment, Issuer Verification is explicitly marked "Unavailable" or "Not Checked" rather than fabricated. Reviewers inspect the certificate number and metadata manually.\n• Review Signals (${flaggedDocs.length} currently flagged): Automated flags—such as name variances, missing pages, or layout anomalies—are decision-support review signals, NEVER automatic proof of fraud or automatic rejection. Human reviewer sign-off is required for every compliance decision.`,
+          answer: `Under VERIDEX Responsible Verification Governance:\n\n• Issuer Verification ("Unavailable" / "Not Checked"): When an external municipal board or university registry integration is not connected in this portal environment, Issuer Verification is explicitly marked "Unavailable" or "Not Checked" rather than fabricated. Reviewers inspect the certificate number and metadata manually.\n• Review Signals (${flaggedDocs.length} currently flagged): Automated flags (such as name variances, missing pages, or layout anomalies) are decision-support review signals, NEVER automatic proof of fraud or automatic rejection. Human reviewer sign-off is required for every compliance decision.`,
         },
         {
           id: 'adm-4',
@@ -153,7 +153,7 @@ export function getRoleChatbotConfig(
           id: 'inst-2',
           category: 'Flagged Certificates',
           question: 'Why were our Fire Safety Certificate and Faculty Ph.D. Record flagged in APP-2026-0104?',
-          answer: `In your institutional repository (${myDocs.length} records scoped to ${instCode}), two review signals on APP-2026-0104 require Nodal Officer attention:\n\n1. INF-FAC-VES-01 (Municipal Fire & Life Safety Certificate): The recorded expiry date has lapsed relative to today's date (${todayDate}). Register the renewed Municipal Fire Brigade certificate metadata as a new version.\n2. FAC-QUA-KUL-01 (Ph.D. Degree — Dr. Shravani Salunkhe): Consistency check noted a middle-initial variance ("Shravani M. Salunkhe" vs "Shravani Salunkhe" on the roster). Attach a name-equivalence clarification note when resubmitting.`,
+          answer: `In your institutional repository (${myDocs.length} records scoped to ${instCode}), two review signals on APP-2026-0104 require Nodal Officer attention:\n\n1. INF-FAC-VES-01 (Municipal Fire & Life Safety Certificate): The recorded expiry date has lapsed relative to today's date (${todayDate}). Register the renewed Municipal Fire Brigade certificate metadata as a new version.\n2. FAC-QUA-KUL-01 (Ph.D. Degree, Dr. Shravani Salunkhe): Consistency check noted a middle-initial variance ("Shravani M. Salunkhe" vs "Shravani Salunkhe" on the roster). Attach a name-equivalence clarification note when resubmitting.`,
         },
         {
           id: 'inst-3',
@@ -228,13 +228,13 @@ export function getRoleChatbotConfig(
           id: 'fac-2',
           category: 'Faculty & Lab Flags',
           question: 'Which faculty or laboratory records in my institution currently have verification flags?',
-          answer: `Within your authorized faculty and departmental scope at ${instName} (${facDocs.length} accessible records):\n\n• Flagged Qualification Record: Ph.D. Degree & Notification — Dr. Shravani Salunkhe (FAC-QUA-KUL-01) has a middle-initial consistency flag ("Shravani M. Salunkhe" vs "Shravani Salunkhe").\n• Flagged Institutional Infrastructure: Municipal Fire & Life Safety Certificate (INF-FAC-VES-01) is expired and awaiting renewal registration by the Nodal Officer.\n\nYou can inspect these in the "Verification & Compliance" or "Document Repository" views.`,
+          answer: `Within your authorized faculty and departmental scope at ${instName} (${facDocs.length} accessible records):\n\n• Flagged Qualification Record: Ph.D. Degree & Notification, Dr. Shravani Salunkhe (FAC-QUA-KUL-01) has a middle-initial consistency flag ("Shravani M. Salunkhe" vs "Shravani Salunkhe").\n• Flagged Institutional Infrastructure: Municipal Fire & Life Safety Certificate (INF-FAC-VES-01) is expired and awaiting renewal registration by the Nodal Officer.\n\nYou can inspect these in the "Verification & Compliance" or "Document Repository" views.`,
         },
         {
           id: 'fac-3',
           category: 'Lab Evidence Submission',
           question: 'How do I record computing lab carpet area and photographic evidence for EVC inspection?',
-          answer: `To log laboratory or instructional facility readiness metadata:\n\n1. Open the "Verification & Compliance" workspace from the left sidebar.\n2. Scroll to the "Infrastructure & Laboratory Visual Evidence Advisory" panel.\n3. Enter the Facility Title (e.g., "AI & High-Performance Computing Lab — Room A-304"), Declared Carpet Area in sq.m (norm ≥ 66 sq.m per 30 seats), and Reference Certificate Number.\n4. Click "Log Infrastructure Evidence". VERIDEX creates an INF-FAC record with an EVC physical inspection advisory note.`,
+          answer: `To log laboratory or instructional facility readiness metadata:\n\n1. Open the "Verification & Compliance" workspace from the left sidebar.\n2. Scroll to the "Infrastructure & Laboratory Visual Evidence Advisory" panel.\n3. Enter the Facility Title (e.g., "AI & High-Performance Computing Lab, Room A-304"), Declared Carpet Area in sq.m (norm ≥ 66 sq.m per 30 seats), and Reference Certificate Number.\n4. Click "Log Infrastructure Evidence". VERIDEX creates an INF-FAC record with an EVC physical inspection advisory note.`,
         },
         {
           id: 'fac-4',
@@ -286,7 +286,7 @@ export function getRoleChatbotConfig(
               ? myStudentDocs
                   .map(
                     (d) =>
-                      `• ${d.internalCode} — ${d.name} (Cert #${d.certificateNumber}): Completeness: ${d.completenessStatus} · Consistency: ${d.consistencyStatus} · Issuer Status: ${d.issuerVerificationStatus} · Human Review: ${d.humanReviewStatus}`
+                      `• ${d.internalCode}: ${d.name} (Cert #${d.certificateNumber}): Completeness: ${d.completenessStatus} · Consistency: ${d.consistencyStatus} · Issuer Status: ${d.issuerVerificationStatus} · Human Review: ${d.humanReviewStatus}`
                   )
                   .join('\n')
               : '• No pending discrepancies found on your student records.'
@@ -333,7 +333,7 @@ export function getRoleChatbotConfig(
         id: 'pub-1',
         category: 'Platform Overview',
         question: 'How does the 3-step VERIDEX workflow (Submit → Validate → Review) work?',
-        answer: `VERIDEX streamlines statutory compliance into three auditable stages:\n\n1. Submit: Institutional Nodal Officers select an application category (such as Extension of Approval or New Course Approval) and upload documents against a tailored checklist.\n2. Validate: Automated checks evaluate 6 pillars—Completeness, Expiry Windows, Cross-Document Consistency, Anomaly Indicators, Issuer Verification, and Human Review readiness.\n3. Review: Authorized AICTE compliance officers inspect flagged review signals, request clarifications if needed, and record final compliance decisions.`,
+        answer: `VERIDEX streamlines statutory compliance into three auditable stages:\n\n1. Submit: Institutional Nodal Officers select an application category (such as Extension of Approval or New Course Approval) and upload documents against a tailored checklist.\n2. Validate: Automated checks evaluate 6 pillars: Completeness, Expiry Windows, Cross-Document Consistency, Anomaly Indicators, Issuer Verification, and Human Review readiness.\n3. Review: Authorized AICTE compliance officers inspect flagged review signals, request clarifications if needed, and record final compliance decisions.`,
       },
       {
         id: 'pub-2',

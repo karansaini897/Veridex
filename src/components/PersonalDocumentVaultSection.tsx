@@ -1521,41 +1521,41 @@ export const PersonalDocumentVaultSection: React.FC<PersonalDocumentVaultSection
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] text-stone-600 mb-1">Title</label>
+                        <label className="block text-[11px] text-stone-600 dark:text-stone-300 mb-1">Title</label>
                         <input
                           type="text"
                           required
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950"
+                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-stone-600 mb-1">
+                        <label className="block text-[11px] text-stone-600 dark:text-stone-300 mb-1">
                           Certificate / Ref #
                         </label>
                         <input
                           type="text"
                           value={editCertNo}
                           onChange={(e) => setEditCertNo(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 font-mono-tabular"
+                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 font-mono-tabular"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-stone-600 mb-1">Holder Name</label>
+                        <label className="block text-[11px] text-stone-600 dark:text-stone-300 mb-1">Holder Name</label>
                         <input
                           type="text"
                           value={editHolder}
                           onChange={(e) => setEditHolder(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950"
+                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-stone-600 mb-1">Category</label>
+                        <label className="block text-[11px] text-stone-600 dark:text-stone-300 mb-1">Category</label>
                         <select
                           value={editCategory}
                           onChange={(e) => setEditCategory(e.target.value as DocumentCategory)}
-                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950"
+                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100"
                         >
                           {VAULT_CATEGORIES.filter((c) => c !== 'All').map((cat) => (
                             <option key={cat} value={cat}>
@@ -1565,35 +1565,35 @@ export const PersonalDocumentVaultSection: React.FC<PersonalDocumentVaultSection
                         </select>
                       </div>
                       <div>
-                        <label className="block text-[11px] text-stone-600 mb-1">
+                        <label className="block text-[11px] text-stone-600 dark:text-stone-300 mb-1">
                           Issuing Authority
                         </label>
                         <input
                           type="text"
                           value={editAuthority}
                           onChange={(e) => setEditAuthority(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950"
+                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-stone-600 mb-1">Issue Date</label>
+                        <label className="block text-[11px] text-stone-600 dark:text-stone-300 mb-1">Issue Date</label>
                         <input
                           type="date"
                           value={editIssueDate}
                           onChange={(e) => setEditIssueDate(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 font-mono-tabular"
+                          className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 font-mono-tabular"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[11px] text-stone-600 mb-1">
+                      <label className="block text-[11px] text-stone-600 dark:text-stone-300 mb-1">
                         Extracted / Corrected OCR Text
                       </label>
                       <textarea
                         rows={3}
                         value={editOcrText}
                         onChange={(e) => setEditOcrText(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 font-mono-tabular"
+                        className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 font-mono-tabular"
                       />
                     </div>
                     <div className="flex justify-end gap-2">

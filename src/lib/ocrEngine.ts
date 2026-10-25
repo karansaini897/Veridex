@@ -460,7 +460,7 @@ export async function processDocumentOcrInBrowser(params: {
       extractedText: cleaned,
       engineUsed: 'tesseract-image-ocr',
       message:
-        'Client-side OCR completed. OCR may misread names, numbers, or dates — please review and correct the extracted details before saving.',
+        'Client-side OCR completed. OCR may misread names, numbers, or dates. Please review and correct the extracted details before saving.',
       suggestedFields: parseSuggestedFieldsFromOcrText(cleaned, fileName, defaultHolderName),
     };
   } catch {

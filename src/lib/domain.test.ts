@@ -915,6 +915,74 @@ test('SIH PPT 6-Pillar evaluation, Document-to-Form Prefill, and Legacy Vault Re
   assert.ok(sixPillars.findings.some((f) => f.pillar === 'Expiry'));
 });
 
+test('Zero em dashes in seed records, chatbot responses, and non-destructive localStorage normalization', async () => {
+  const { SEED_USERS, SEED_DOCUMENTS, SEED_APPLICATIONS, SEED_AUDIT_EVENTS } = await import(
+    '../data/seedData'
+  );
+  const { loadValidatedArrayFromStorage, isValidStoredApplication } = await import('./storage');
 
+  const emDashChar = '\u2014';
 
+  const serializedSeeds = JSON.stringify({
+    SEED_USERS,
+    SEED_DOCUMENTS,
+    SEED_APPLICATIONS,
+    SEED_AUDIT_EVENTS,
+  });
+  assert.equal(
+    serializedSeeds.includes(emDashChar),
+    false,
+    'Seed records must not contain any em dashes'
+  );
 
+  const ctx = {
+    currentUser: SEED_USERS[0],
+    applications: SEED_APPLICATIONS,
+    documents: SEED_DOCUMENTS,
+  };
+  for (const role of ['public', 'admin', 'institutional_rep', 'faculty', 'student'] as const) {
+    const cfg = getRoleChatbotConfig(role, ctx);
+    for (const p of cfg.prompts) {
+      assert.equal(p.question.includes(emDashChar), false);
+      assert.equal(p.answer.includes(emDashChar), false);
+    }
+  }
+
+  // Verify legacy cached localStorage records have em dashes normalized non-destructively on load
+  const fakeStorage = {
+    getItem: () =>
+      JSON.stringify([
+        {
+          id: 'APP-LEGACY-1',
+          institutionId: 'INST-VESIT-104',
+          institutionName: 'VESIT',
+          officialInstitutionCode: 'W-MH-VESIT-104',
+          category: 'New Course Approval',
+          submittedDate: emDashChar,
+          lastUpdated: '2026-10-20',
+          status: 'Draft',
+          assignedReviewer: 'Karan Saini',
+          decisionOutcome: `Compliance Verified ${emDashChar} Recommended`,
+          checklist: [],
+          documentIds: [],
+          reviewNotes: [],
+          statusHistory: [],
+        },
+      ]),
+    setItem: () => {},
+    removeItem: () => {},
+    clear: () => {},
+    key: () => null,
+    length: 1,
+  } as Storage;
+
+  const loadedApps = loadValidatedArrayFromStorage(
+    'test_apps',
+    [],
+    isValidStoredApplication,
+    fakeStorage
+  );
+  assert.equal(loadedApps.length, 1);
+  assert.equal(loadedApps[0].submittedDate, 'Not Submitted');
+  assert.equal(loadedApps[0].decisionOutcome, 'Compliance Verified: Recommended');
+});

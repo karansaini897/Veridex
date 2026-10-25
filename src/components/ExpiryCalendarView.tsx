@@ -281,7 +281,7 @@ export const ExpiryCalendarView: React.FC<ExpiryCalendarViewProps> = ({
                             {doc.relatedApplicationId}
                           </button>
                         ) : (
-                          '—'
+                          'None'
                         )}
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">

@@ -320,7 +320,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
       division: assignedRole === 'student' ? division : undefined,
       classTeacherDivision:
         assignedRole === 'faculty' ? classTeacherDivision : undefined,
-      course: assignedRole === 'student' ? `B.Tech — ${academicDepartment}` : undefined,
+      course: assignedRole === 'student' ? `B.Tech (${academicDepartment})` : undefined,
     });
 
     setCreateSuccess(
@@ -512,7 +512,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
                           <span>Email: {req.email}</span>
                           <span>·</span>
                           <span>
-                            DOB: {req.dob} ({reqAge ?? '—'} yrs)
+                            DOB: {req.dob} ({reqAge ?? 'N/A'} yrs)
                           </span>
                           <span>·</span>
                           <span>Gender: {req.gender}</span>
@@ -805,7 +805,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 font-mono-tabular"
                     />
                     <span className="text-[11px] text-slate-500 font-mono-tabular mt-0.5 block">
-                      Calculated Age: {calculatedAge !== null ? `${calculatedAge} years` : '—'}
+                      Calculated Age: {calculatedAge !== null ? `${calculatedAge} years` : 'Not recorded'}
                     </span>
                   </div>
 
@@ -951,7 +951,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
                           <StatusBadge status={u.status} size="sm" />
                         </div>
                         <div className="text-[11px] text-stone-500 font-mono-tabular">
-                          @{u.username} · Phone: {u.normalizedPhone} · Age: {age ?? '—'}y
+                          @{u.username} · Phone: {u.normalizedPhone} · Age: {age ?? 'N/A'}y
                         </div>
                         <div className="text-[11px] text-stone-600 dark:text-stone-400 truncate">
                           {u.institutionName || u.designation}

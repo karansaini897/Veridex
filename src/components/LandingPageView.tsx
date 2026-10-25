@@ -87,7 +87,7 @@ const HERO_JOURNEY_STAGES: HeroJourneyStage[] = [
     actor: '6-Pillar Compliance Check',
     statusBadge: 'Flagged for Review',
     summary:
-      'Highlights expired clearances, missing annexure pages, or cross-document name variations as transparent prompts for officer inspection—never as automatic proof of fraud.',
+      'Highlights expired clearances, missing annexure pages, or cross-document name variations as transparent prompts for officer inspection, never as automatic proof of fraud.',
     recordCode: 'INF-FAC-VES-01 · Pillar: Expiry & Consistency',
     evidenceDetail:
       'Fire & Life Safety NOC validity window flagged + faculty surname spelling variation noted across degree scroll and roster.',
@@ -281,7 +281,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               Validate institutional applications, organize supporting document records against statutory checklists, and surface evidence-linked compliance findings through one structured review workflow.
             </p>
 
-            {/* Primary & Secondary Hero CTAs — Primary Action Clearly Dominant */}
+            {/* Primary & Secondary Hero CTAs: Primary Action Clearly Dominant */}
             <div className="pt-3 flex flex-wrap items-center justify-center gap-3.5">
               <button
                 type="button"
@@ -816,7 +816,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </section>
 
         {/* =========================================================
-            02. FEATURE SHOWCASE (#features) — 6 Bento Cards
+            02. FEATURE SHOWCASE (#features): 6 Bento Cards
            ========================================================= */}
         <section
           id="features"
@@ -915,7 +915,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   Proactive Validity &amp; Renewal Calendar
                 </h3>
                 <p className="text-xs sm:text-sm text-[#5C4A38] dark:text-[#D5C6B0] leading-relaxed">
-                  Automatically computes days remaining for fire safety NOCs, pollution control authorizations, and university affiliations—highlighting certificates that are expired or expiring within 45 days.
+                  Automatically computes days remaining for fire safety NOCs, pollution control authorizations, and university affiliations, highlighting certificates that are expired or expiring within 45 days.
                 </p>
               </div>
               <div className="p-3.5 rounded-xl bg-[#F3E9D7] dark:bg-[#1E160E] border border-[#C7A56A]/45 flex flex-wrap items-center justify-between gap-2 text-xs font-mono-tabular font-bold">
@@ -937,7 +937,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 Cross-Document Field &amp; Name Comparison
               </h3>
               <p className="text-xs sm:text-sm text-[#5C4A38] dark:text-[#D5C6B0] leading-relaxed">
-                Flags discrepancies between application form declarations and supporting certificates—such as spelling variations on degree scrolls or mismatched intake totals across affiliation orders.
+                Flags discrepancies between application form declarations and supporting certificates, such as spelling variations on degree scrolls or mismatched intake totals across affiliation orders.
               </p>
             </div>
 
@@ -953,7 +953,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 Configurable Regulatory Rule Engine
               </h3>
               <p className="text-xs sm:text-sm text-[#5C4A38] dark:text-[#D5C6B0] leading-relaxed">
-                Evaluates applications against versioned statutory norms—including minimum laboratory carpet area (66 sq.m), faculty-student cadre ratios, and corpus fund thresholds.
+                Evaluates applications against versioned statutory norms, including minimum laboratory carpet area (66 sq.m), faculty-student cadre ratios, and corpus fund thresholds.
               </p>
             </div>
           </div>
@@ -998,7 +998,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 actor: 'VERIDEX Validation Pipeline',
                 icon: <ShieldCheck className="w-4 h-4 text-[#046A38] dark:text-[#789783]" aria-hidden="true" />,
                 description:
-                  'VERIDEX evaluates completeness, expiry windows, cross-document consistency, and regulatory rule thresholds—attaching specific page and field evidence to each finding.',
+                  'VERIDEX evaluates completeness, expiry windows, cross-document consistency, and regulatory rule thresholds, attaching specific page and field evidence to each finding.',
                 deliverable: '6-Pillar Verification Findings & Expiry Alerts',
               },
               {
@@ -1075,7 +1075,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 04. Responsible Verification &amp; Governance
               </p>
               <h2 className="text-2xl sm:text-3xl font-display font-bold text-[#241B12] dark:text-[#F1E8D8] tracking-tight">
-                Review signals assist human officers—they never replace due process.
+                Review signals assist human officers; they never replace due process.
               </h2>
               <p className="text-xs sm:text-sm text-[#5C4A38] dark:text-[#D5C6B0] leading-relaxed">
                 Regulatory compliance decisions carry high institutional and academic stakes. VERIDEX is architected around strict data confidentiality and transparent human-in-the-loop governance.

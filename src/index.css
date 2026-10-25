@@ -15,7 +15,7 @@
     --heritage-sage: #789783;
     --heritage-ivory: #f1e8d8;
 
-    /* Universal Heritage Ornamental Border System Tokens (Light Mode — High Contrast on Warm Ivory) */
+    /* Universal Heritage Ornamental Border System Tokens (Light Mode: High Contrast on Warm Ivory) */
     --heritage-border-gold: #b58946;
     --heritage-border-gold-strong: #9e2919;
     --heritage-border-terracotta: rgba(158, 41, 25, 0.36);
@@ -25,14 +25,19 @@
     --heritage-table-border: rgba(173, 128, 62, 0.46);
     --heritage-table-cell-border: rgba(173, 128, 62, 0.24);
 
-    /* 4-Corner Ornate Heritage Flourishes (TL, TR, BR, BL) — Stays Strictly on 2px-5px Perimeter */
+    /* Light Mode Text Hierarchy */
+    --text-primary: #241b12;
+    --text-secondary: #5c4a38;
+    --text-muted: #786652;
+
+    /* 4-Corner Ornate Heritage Flourishes (TL, TR, BR, BL): Stays Strictly on 2px-5px Perimeter */
     --heritage-corners-ornate:
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none'%3E%3Cpath d='M1.5 25 L1.5 4.5 C1.5 2.8 2.8 1.5 4.5 1.5 L25 1.5' stroke='%23C7A56A' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M4.2 18.5 L4.2 6.5 C4.2 5.2 5.2 4.2 6.5 4.2 L18.5 4.2' stroke='%239E2919' stroke-width='1.2' stroke-linecap='round'/%3E%3Cpolygon points='2.5,2.5 7.5,2 9,7 7,9 2,7.5' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.9'/%3E%3Ccircle cx='5.2' cy='5.2' r='1.3' fill='%23F1E8D8'/%3E%3Ccircle cx='13' cy='2.8' r='1.3' fill='%23789783'/%3E%3Ccircle cx='2.8' cy='13' r='1.3' fill='%23789783'/%3E%3Ccircle cx='20' cy='2.5' r='1.1' fill='%23C7A56A'/%3E%3Ccircle cx='2.5' cy='20' r='1.1' fill='%23C7A56A'/%3E%3C/svg%3E"),
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none'%3E%3Cg transform='translate(28,0) scale(-1,1)'%3E%3Cpath d='M1.5 25 L1.5 4.5 C1.5 2.8 2.8 1.5 4.5 1.5 L25 1.5' stroke='%23C7A56A' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M4.2 18.5 L4.2 6.5 C4.2 5.2 5.2 4.2 6.5 4.2 L18.5 4.2' stroke='%239E2919' stroke-width='1.2' stroke-linecap='round'/%3E%3Cpolygon points='2.5,2.5 7.5,2 9,7 7,9 2,7.5' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.9'/%3E%3Ccircle cx='5.2' cy='5.2' r='1.3' fill='%23F1E8D8'/%3E%3Ccircle cx='13' cy='2.8' r='1.3' fill='%23789783'/%3E%3Ccircle cx='2.8' cy='13' r='1.3' fill='%23789783'/%3E%3Ccircle cx='20' cy='2.5' r='1.1' fill='%23C7A56A'/%3E%3Ccircle cx='2.5' cy='20' r='1.1' fill='%23C7A56A'/%3E%3C/g%3E%3C/svg%3E"),
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none'%3E%3Cg transform='translate(28,28) scale(-1,-1)'%3E%3Cpath d='M1.5 25 L1.5 4.5 C1.5 2.8 2.8 1.5 4.5 1.5 L25 1.5' stroke='%23C7A56A' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M4.2 18.5 L4.2 6.5 C4.2 5.2 5.2 4.2 6.5 4.2 L18.5 4.2' stroke='%239E2919' stroke-width='1.2' stroke-linecap='round'/%3E%3Cpolygon points='2.5,2.5 7.5,2 9,7 7,9 2,7.5' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.9'/%3E%3Ccircle cx='5.2' cy='5.2' r='1.3' fill='%23F1E8D8'/%3E%3Ccircle cx='13' cy='2.8' r='1.3' fill='%23789783'/%3E%3Ccircle cx='2.8' cy='13' r='1.3' fill='%23789783'/%3E%3Ccircle cx='20' cy='2.5' r='1.1' fill='%23C7A56A'/%3E%3Ccircle cx='2.5' cy='20' r='1.1' fill='%23C7A56A'/%3E%3C/g%3E%3C/svg%3E"),
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none'%3E%3Cg transform='translate(0,28) scale(1,-1)'%3E%3Cpath d='M1.5 25 L1.5 4.5 C1.5 2.8 2.8 1.5 4.5 1.5 L25 1.5' stroke='%23C7A56A' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M4.2 18.5 L4.2 6.5 C4.2 5.2 5.2 4.2 6.5 4.2 L18.5 4.2' stroke='%239E2919' stroke-width='1.2' stroke-linecap='round'/%3E%3Cpolygon points='2.5,2.5 7.5,2 9,7 7,9 2,7.5' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.9'/%3E%3Ccircle cx='5.2' cy='5.2' r='1.3' fill='%23F1E8D8'/%3E%3Ccircle cx='13' cy='2.8' r='1.3' fill='%23789783'/%3E%3Ccircle cx='2.8' cy='13' r='1.3' fill='%23789783'/%3E%3Ccircle cx='20' cy='2.5' r='1.1' fill='%23C7A56A'/%3E%3Ccircle cx='2.5' cy='20' r='1.1' fill='%23C7A56A'/%3E%3C/g%3E%3C/svg%3E");
 
-    /* 4-Corner Compact Heritage Flourishes for Small Boxes, Inputs, Buttons & Badges — Stays Strictly on 1px-3px Perimeter */
+    /* 4-Corner Compact Heritage Flourishes for Small Boxes, Inputs, Buttons & Badges: Stays Strictly on 1px-3px Perimeter */
     --heritage-corners-compact:
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M1.2 13.8 L1.2 3 C1.2 1.9 1.9 1.2 3 1.2 L13.8 1.2' stroke='%23C7A56A' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M3.2 9.5 L3.2 4.2 C3.2 3.5 3.5 3.2 4.2 3.2 L9.5 3.2' stroke='%239E2919' stroke-width='1.05' stroke-linecap='round'/%3E%3Cpolygon points='1.5,1.5 5.2,1.5 5.6,5.6 1.5,5.2' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.75'/%3E%3Ccircle cx='3.2' cy='3.2' r='0.9' fill='%23F1E8D8'/%3E%3Ccircle cx='8.5' cy='2' r='0.95' fill='%23789783'/%3E%3Ccircle cx='2' cy='8.5' r='0.95' fill='%23789783'/%3E%3C/svg%3E"),
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cg transform='translate(16,0) scale(-1,1)'%3E%3Cpath d='M1.2 13.8 L1.2 3 C1.2 1.9 1.9 1.2 3 1.2 L13.8 1.2' stroke='%23C7A56A' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M3.2 9.5 L3.2 4.2 C3.2 3.5 3.5 3.2 4.2 3.2 L9.5 3.2' stroke='%239E2919' stroke-width='1.05' stroke-linecap='round'/%3E%3Cpolygon points='1.5,1.5 5.2,1.5 5.6,5.6 1.5,5.2' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.75'/%3E%3Ccircle cx='3.2' cy='3.2' r='0.9' fill='%23F1E8D8'/%3E%3Ccircle cx='8.5' cy='2' r='0.95' fill='%23789783'/%3E%3Ccircle cx='2' cy='8.5' r='0.95' fill='%23789783'/%3E%3C/g%3E%3C/svg%3E"),
@@ -77,7 +82,9 @@
   }
 
   .dark {
-    /* Universal Heritage Ornamental Border System Tokens (Dark Mode — Luminous Gold & Terracotta on Espresso Brown) */
+    color-scheme: dark;
+
+    /* Universal Heritage Ornamental Border System Tokens (Dark Mode: Luminous Gold & Terracotta on Espresso Brown) */
     --heritage-border-gold: #c7a56a;
     --heritage-border-gold-strong: #e3c58e;
     --heritage-border-terracotta: rgba(158, 41, 25, 0.58);
@@ -86,6 +93,11 @@
     --heritage-control-inner: rgba(158, 41, 25, 0.46);
     --heritage-table-border: rgba(199, 165, 106, 0.38);
     --heritage-table-cell-border: rgba(199, 165, 106, 0.18);
+
+    /* Dark Mode Off-White Text Hierarchy (Warm Ivory / Off-White on Espresso Brown) */
+    --text-primary: #f3ebdd;
+    --text-secondary: #d1c7b7;
+    --text-muted: #b7aa98;
 
     /* Dark Mode: Reference Espresso Brown (#241B12) with Antique Gold (#C7A56A), Terracotta (#9E2919) & Sage (#789783) */
     --bg-canvas: #241b12;
@@ -119,9 +131,9 @@
       0 28px 64px -12px rgba(10, 7, 4, 0.86),
       0 8px 24px -4px rgba(158, 41, 25, 0.32);
     --chart-grid-stroke: rgba(199, 165, 106, 0.22);
-    --chart-axis-fill: #f1e8d8;
+    --chart-axis-fill: #f3ebdd;
     --chart-tooltip-bg: rgba(45, 34, 24, 0.97);
-    --chart-tooltip-text: #f1e8d8;
+    --chart-tooltip-text: #f3ebdd;
   }
 
   html {
@@ -131,7 +143,7 @@
   body {
     font-family: var(--font-sans);
     background-color: var(--bg-canvas);
-    color: #241b12;
+    color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
@@ -139,7 +151,7 @@
   }
 
   .dark body {
-    color: #f1e8d8;
+    color: var(--text-primary);
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -203,7 +215,7 @@
   );
 }
 
-/* Ambient Dashboard Canvas — Indian Heritage Espresso & Warm Ivory Tonal Blooms */
+/* Ambient Dashboard Canvas: Indian Heritage Espresso & Warm Ivory Tonal Blooms */
 .liquid-canvas {
   position: relative;
   background-color: var(--bg-canvas);
@@ -554,6 +566,12 @@
   color: #c2410c !important;
 }
 
+.dark .liquid-canvas .text-blue-700,
+.dark .liquid-canvas .text-blue-600,
+.dark .liquid-canvas .text-blue-800 {
+  color: #e6b87d !important;
+}
+
 .liquid-canvas .bg-blue-600 {
   background-color: #c2410c !important;
 }
@@ -562,8 +580,80 @@
 .dark .liquid-canvas svg.text-blue-700,
 .dark .liquid-canvas svg.text-blue-500,
 .dark .liquid-canvas svg.text-blue-400,
-.dark .liquid-canvas svg.text-indigo-400 {
-  color: #22c55e !important;
+.dark .liquid-canvas svg.text-indigo-400,
+.dark .liquid-canvas svg.text-slate-400 {
+  color: #6ee7b7 !important;
+}
+
+/* ============================================================================
+   DARK-MODE TEXT CONTRAST & OFF-WHITE HIERARCHY SYSTEM
+   Primary:   #F3EBDD (--text-primary)
+   Secondary: #D1C7B7 (--text-secondary)
+   Muted:     #B7AA98 (--text-muted)
+   Ensures zero black or low-contrast text on dark Espresso surfaces while
+   preserving semantic status badges and Light Mode colors.
+   ============================================================================ */
+
+/* Primary text in Dark Mode (#F3EBDD) */
+.dark :where(h1, h2, h3, h4, h5, h6, th, strong, dt),
+.dark .text-white,
+.dark .dark\:text-white,
+.dark .dark\:text-stone-100,
+.dark .dark\:text-slate-100,
+.dark .dark\:text-\[\#F1E8D8\],
+.dark .text-stone-900:not([class*="bg-[#EFE6D5]"]):not([class*="bg-amber-"]):not([class*="bg-yellow-"]),
+.dark .text-slate-900:not([class*="bg-[#EFE6D5]"]):not([class*="bg-amber-"]):not([class*="bg-yellow-"]),
+.dark .text-stone-800:not([class*="bg-amber-"]):not([class*="bg-red-"]):not([class*="bg-emerald-"]),
+.dark .text-slate-800:not([class*="bg-amber-"]):not([class*="bg-red-"]):not([class*="bg-emerald-"]) {
+  color: var(--text-primary);
+}
+
+/* Secondary text in Dark Mode (#D1C7B7) */
+.dark .dark\:text-stone-200,
+.dark .dark\:text-slate-200,
+.dark .dark\:text-stone-300,
+.dark .dark\:text-slate-300,
+.dark .dark\:text-\[\#D5C6B0\],
+.dark .text-stone-700:not([class*="dark:text-"]),
+.dark .text-slate-700:not([class*="dark:text-"]),
+.dark .text-stone-600:not([class*="dark:text-"]),
+.dark .text-slate-600:not([class*="dark:text-"]) {
+  color: var(--text-secondary);
+}
+
+/* Muted / helper / caption / timestamp text in Dark Mode (#B7AA98) */
+.dark .dark\:text-stone-400,
+.dark .dark\:text-slate-400,
+.dark .text-stone-500,
+.dark .text-slate-500,
+.dark .text-stone-400,
+.dark .text-slate-400 {
+  color: var(--text-muted) !important;
+}
+
+/* Luminous Dark-Mode overrides for dark heritage accents that lack a dark:text-* pairing */
+.dark .text-\[\#C2410C\]:not([class*="dark:text-"]),
+.dark .text-\[\#9E2919\]:not([class*="dark:text-"]) {
+  color: #e6b87d !important;
+}
+
+.dark .text-\[\#046A38\]:not([class*="dark:text-"]) {
+  color: #6ee7b7 !important;
+}
+
+.dark .text-red-700:not([class*="dark:text-"]),
+.dark .text-red-800:not([class*="dark:text-"]) {
+  color: #fca5a5 !important;
+}
+
+/* Recharts Legend & Axis labels in Dark Mode */
+.dark .recharts-legend-item-text {
+  color: var(--text-primary) !important;
+}
+
+.dark .recharts-cartesian-axis-tick-value,
+.dark .recharts-text {
+  fill: var(--text-secondary);
 }
 
 /* 5. All Form Controls: Inputs, Search Boxes, Selects, Textareas, Date Inputs & File Upload Controls */
@@ -571,6 +661,7 @@
 .liquid-canvas select,
 .liquid-canvas textarea {
   background-color: rgba(254, 250, 242, 0.92);
+  color: var(--text-primary);
   background-image: var(--heritage-corners-compact);
   background-position:
     top 1.5px left 1.5px,
@@ -589,14 +680,32 @@
     background-color 120ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.dark .liquid-canvas input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
-.dark .liquid-canvas select,
-.dark .liquid-canvas textarea {
+.liquid-canvas input::placeholder,
+.liquid-canvas textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+.dark select,
+.dark textarea {
   background-color: rgba(28, 21, 15, 0.90);
+  color: var(--text-primary) !important;
   border-color: var(--heritage-control-border) !important;
   box-shadow:
     inset 0 0 0 1px var(--heritage-control-inner),
     inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 1;
+}
+
+.dark select option {
+  background-color: #241b12;
+  color: #f3ebdd;
 }
 
 .liquid-canvas input:not([type="checkbox"]):not([type="radio"]):focus,
@@ -831,7 +940,7 @@ button[class*="rounded-full"] {
 }
 
 .dark .btn-secondary {
-  color: #f1e8d8;
+  color: var(--text-primary);
 }
 
 .btn-secondary:hover:not(:disabled) {

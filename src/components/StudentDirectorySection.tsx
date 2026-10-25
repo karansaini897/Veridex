@@ -88,7 +88,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                 Roll No: {student.rollNumber || 'VESIT23CE018'}
               </p>
               <p className="text-[11px] text-stone-600 dark:text-stone-400 truncate">
-                {student.course || 'B.Tech — CMPN'} · {student.academicYear || 'Second Year'} Div {student.division || 'A'}
+                {student.course || 'B.Tech (CMPN)'} · {student.academicYear || 'Second Year'} Div {student.division || 'A'}
               </p>
             </div>
           </div>

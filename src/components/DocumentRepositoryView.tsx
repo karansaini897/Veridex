@@ -969,7 +969,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                   className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 space-y-3"
                 >
                   <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                    Upload New Version (v{selectedDocument.versions.length + 1}) — Preserves Prior Version History
+                    Upload New Version (v{selectedDocument.versions.length + 1}): Preserves Prior Version History
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -1083,7 +1083,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-stone-900 dark:text-white">
-                          {f.pillar} — {f.affectedFieldOrPage}
+                          {f.pillar}: {f.affectedFieldOrPage}
                         </span>
                         <StatusBadge status={f.status} size="sm" />
                       </div>
@@ -1147,7 +1147,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                     <div key={ver.versionNumber} className="py-3 text-xs flex items-center justify-between gap-4">
                       <div>
                         <div className="font-semibold text-slate-900 dark:text-white font-mono-tabular">
-                          v{ver.versionNumber} — {ver.fileName} ({ver.fileSize})
+                          v{ver.versionNumber}: {ver.fileName} ({ver.fileSize})
                         </div>
                         <div className="text-slate-600 dark:text-slate-400 mt-0.5">
                           {ver.changeNote}
@@ -1252,11 +1252,11 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                   <option value="">
                     {availableVaultDocs.length > 0
                       ? `Select from ${availableVaultDocs.length} saved Personal Vault document(s)...`
-                      : 'No saved Personal Vault documents yet — upload in Vault or choose a file below'}
+                      : 'No saved Personal Vault documents yet. Upload in Vault or choose a file below.'}
                   </option>
                   {availableVaultDocs.map((vdoc) => (
                     <option key={vdoc.id} value={vdoc.id}>
-                      {vdoc.editableDetails.title} — Cert #{vdoc.editableDetails.certificateNumber} ({vdoc.category})
+                      {vdoc.editableDetails.title} (Cert #{vdoc.editableDetails.certificateNumber}, {vdoc.category})
                     </option>
                   ))}
                 </select>
@@ -1327,7 +1327,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                     required
                     value={docTitle}
                     onChange={(e) => setDocTitle(e.target.value)}
-                    placeholder="e.g. Ph.D. Convocation Degree — Dr. Arvind Kashyap"
+                    placeholder="e.g. Ph.D. Convocation Degree (Dr. Arvind Kashyap)"
                     className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
                   />
                 </div>
@@ -1427,7 +1427,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                       )
                       .map((a) => (
                         <option key={a.id} value={a.id}>
-                          {a.id} — {a.category}
+                          {a.id}: {a.category}
                         </option>
                       ))}
                   </select>

@@ -296,7 +296,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     <MotionConfig reducedMotion="user">
     <div className="min-h-screen flex liquid-canvas text-stone-900 dark:text-stone-100 relative">
       <HeritageAmbientPattern />
-      {/* Desktop Sidebar — Linux-window-inspired horizontal fold/expand from left */}
+      {/* Desktop Sidebar: Linux-window-inspired horizontal fold/expand from left */}
       <motion.aside
         id="veridex-desktop-sidebar"
         data-testid="desktop-sidebar"

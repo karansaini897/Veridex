@@ -125,6 +125,40 @@ export function isValidStoredStudentSubmission(val: unknown): val is StudentRequ
   );
 }
 
+const PROTECTED_CREDENTIAL_KEYS = new Set(['password', 'credentialDigest']);
+
+/**
+ * Non-destructively normalizes legacy em dashes in cached localStorage display fields
+ * while strictly preserving IDs, credentials, digests, roles, and record structure.
+ */
+function normalizeLegacyEmDashes<T>(val: T, keyName?: string): T {
+  if (keyName && PROTECTED_CREDENTIAL_KEYS.has(keyName)) {
+    return val;
+  }
+  if (typeof val === 'string') {
+    if (val === '\u2014') {
+      return (keyName === 'submittedDate' ? 'Not Submitted' : 'Not recorded') as unknown as T;
+    }
+    if (val.includes('\u2014')) {
+      return val
+        .replace(/\s*\u2014\s*/g, ': ')
+        .replace(/\u2014/g, ', ') as unknown as T;
+    }
+    return val;
+  }
+  if (Array.isArray(val)) {
+    return val.map((item) => normalizeLegacyEmDashes(item)) as unknown as T;
+  }
+  if (isRecordObject(val)) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(val)) {
+      out[k] = normalizeLegacyEmDashes(v, k);
+    }
+    return out as T;
+  }
+  return val;
+}
+
 /**
  * Safely reads and validates an array from localStorage.
  * Filters out malformed items and returns `fallback` if JSON is missing, corrupted, or empty when fallback is non-empty.
@@ -141,7 +175,7 @@ export function loadValidatedArrayFromStorage<T>(
     if (!raw) return fallback;
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return fallback;
-    const validItems = parsed.filter(validator);
+    const validItems = parsed.filter(validator).map((item) => normalizeLegacyEmDashes(item));
     if (validItems.length === 0 && fallback.length > 0 && parsed.length > 0) {
       return fallback;
     }

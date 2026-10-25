@@ -362,7 +362,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 className="w-full py-2.5 px-4 rounded-xl liquid-glass-subtle liquid-glass-interactive border-2 border-[#046A38]/45 text-stone-900 dark:text-stone-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <UserPlus className="w-4 h-4 text-[#046A38]" />
-                <span>Sign Up — Request Role Account</span>
+                <span>Sign Up: Request Role Account</span>
               </button>
             </div>
           )}

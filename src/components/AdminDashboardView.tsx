@@ -165,8 +165,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       .sort((a, b) => {
         const rawA = a[sortField] || '';
         const rawB = b[sortField] || '';
-        const valA = sortField === 'submittedDate' && rawA === '—' ? '0000-00-00' : rawA;
-        const valB = sortField === 'submittedDate' && rawB === '—' ? '0000-00-00' : rawB;
+        const valA = sortField === 'submittedDate' && rawA === 'Not Submitted' ? '0000-00-00' : rawA;
+        const valB = sortField === 'submittedDate' && rawB === 'Not Submitted' ? '0000-00-00' : rawB;
         const cmp = valA.localeCompare(valB);
         return sortDirection === 'asc' ? cmp : -cmp;
       });

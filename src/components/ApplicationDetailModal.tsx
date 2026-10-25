@@ -98,7 +98,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const [adminNote, setAdminNote] = useState('');
   const [selectedDecision, setSelectedDecision] = useState<
     NonNullable<ApplicationRecord['decisionOutcome']>
-  >('Compliance Verified — Recommended');
+  >('Compliance Verified: Recommended');
   const [decisionConfirmOpen, setDecisionConfirmOpen] = useState(false);
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
 
@@ -501,7 +501,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                             type="button"
                             onClick={() => {
                               setUploadingChecklistId(isUploadingThis ? null : item.id);
-                              setUploadTitle(`${item.title} — ${application.officialInstitutionCode}`);
+                              setUploadTitle(`${item.title} (${application.officialInstitutionCode})`);
                               setUploadCertNo(`CERT/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 8999)}`);
                             }}
                             className="btn-secondary !py-1 !px-2.5 cursor-pointer"
@@ -539,7 +539,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                                 </option>
                                 {vaultDocs.map((vd) => (
                                   <option key={vd.id} value={vd.id}>
-                                    {vd.editableDetails.title} — Cert #{vd.editableDetails.certificateNumber}
+                                    {vd.editableDetails.title} (Cert #{vd.editableDetails.certificateNumber})
                                   </option>
                                 ))}
                               </select>
@@ -813,14 +813,14 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                       }
                       className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
                     >
-                      <option value="Compliance Verified — Recommended">
-                        Compliance Verified — Recommended
+                      <option value="Compliance Verified: Recommended">
+                        Compliance Verified: Recommended
                       </option>
-                      <option value="Conditional Compliance — Inspection Required">
-                        Conditional Compliance — Inspection Required
+                      <option value="Conditional Compliance: Inspection Required">
+                        Conditional Compliance: Inspection Required
                       </option>
-                      <option value="Deficiency Recorded — Deferred">
-                        Deficiency Recorded — Deferred
+                      <option value="Deficiency Recorded: Deferred">
+                        Deficiency Recorded: Deferred
                       </option>
                     </select>
                     <div className="flex justify-end gap-2">

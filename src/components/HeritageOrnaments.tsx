@@ -260,7 +260,7 @@ export const HeritageAmbientPattern: React.FC = () => {
         <rect width="100%" height="100%" fill="url(#veridex-ambient-jaali-lattice)" />
       </svg>
 
-      {/* Top-Left Semicircular Ornamental Mandala Wheel — Continuously Rotating Around Its Own Center */}
+      {/* Top-Left Semicircular Ornamental Mandala Wheel: Continuously Rotating Around Its Own Center */}
       <div className="absolute -top-28 -left-28 w-[420px] h-[420px] pointer-events-none select-none">
         <svg
           data-testid="heritage-top-left-wheel"
@@ -307,7 +307,7 @@ export const HeritageAmbientPattern: React.FC = () => {
         </svg>
       </div>
 
-      {/* Top-Right Semicircular Ornamental Mandala Wheel — Continuously Rotating Around Its Own Center */}
+      {/* Top-Right Semicircular Ornamental Mandala Wheel: Continuously Rotating Around Its Own Center */}
       <div className="absolute -top-28 -right-28 w-[420px] h-[420px] pointer-events-none select-none">
         <svg
           data-testid="heritage-top-right-wheel"
