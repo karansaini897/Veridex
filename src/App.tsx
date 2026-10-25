@@ -92,7 +92,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    document.title = 'Veridex | Institutional Document Management';
+    document.title = 'VERIDEX - Institutional Document Management';
     const root = document.documentElement;
     if (darkMode) {
       root.classList.add('dark');
