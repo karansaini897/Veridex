@@ -18,6 +18,8 @@ import {
   calculateAgeFromDob,
   computeCredentialDigest,
   formatRoleDisplayName,
+  getEffectiveAssociationStatus,
+  getEffectiveAssignmentStatus,
   getLocalTodayDate,
   isValidEmail,
   normalizeFullName,
@@ -489,6 +491,24 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
               <span className="text-slate-500">Account Status</span>
               <span className="font-semibold text-emerald-700 dark:text-emerald-400">
                 {currentUser.status}
+              </span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">Assignment Status</span>
+              <span
+                data-testid="profile-readonly-assignment-status"
+                className="font-semibold text-[#C2410C] dark:text-amber-300"
+              >
+                {getEffectiveAssignmentStatus(currentUser)}
+              </span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">Institutional Affiliation</span>
+              <span
+                data-testid="profile-readonly-association-status"
+                className="font-semibold text-slate-900 dark:text-white"
+              >
+                {getEffectiveAssociationStatus(currentUser)}
               </span>
             </div>
             {currentUser.institutionName && (

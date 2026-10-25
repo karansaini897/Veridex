@@ -110,6 +110,8 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
     case 'Active':
     case 'Active Rule':
     case 'Approved':
+    case 'Assigned':
+    case 'Position Available':
       return {
         tone: 'success',
         label: normalized === 'No Anomaly Detected' ? 'No Anomaly Signal' : normalized,
@@ -123,6 +125,7 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
     case 'Pending Activation':
     case 'Pending Approval':
     case 'Approval Pending':
+    case 'Assignment Pending':
     case 'Processing':
       return {
         tone: 'review',
@@ -136,6 +139,8 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
     case 'No Approver Assigned':
     case 'Needs Review':
     case 'Needs review in demo':
+    case 'Reassignment Required':
+    case 'Unassigned':
       return {
         tone: 'warning',
         label: normalized,
@@ -152,6 +157,8 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
     case 'Expired':
     case 'Suspended':
     case 'Rejected':
+    case 'Removed':
+    case 'Deactivated':
       return {
         tone: 'danger',
         label:
@@ -159,9 +166,14 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
             ? 'Missing Pages / Fields'
             : normalized === 'Suspected Alteration / Duplicate'
               ? 'Review Signal: Alteration / Duplicate'
-              : normalized,
+              : normalized === 'Removed'
+                ? 'Association Removed'
+                : normalized,
         icon:
-          normalized === 'Suspended' || normalized === 'Rejected' ? (
+          normalized === 'Suspended' ||
+          normalized === 'Rejected' ||
+          normalized === 'Removed' ||
+          normalized === 'Deactivated' ? (
             <Ban className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
           ) : (
             <ShieldAlert className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />

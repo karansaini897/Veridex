@@ -33,10 +33,14 @@ import {
   ACADEMIC_DIVISIONS,
   ACADEMIC_YEARS,
   GENDER_OPTIONS,
+  ROLE_UNIQUENESS_RULES,
   calculateAgeFromDob,
   computeCredentialDigest,
   formatRoleDisplayName,
+  getActiveClassDivisionHolder,
+  getInstitutionRoleAvailability,
   getLocalTodayDate,
+  isRoleUniquePerInstitution,
   normalizePhoneNumber,
   validateSignupSubmission,
 } from '../lib/domain';
@@ -164,6 +168,30 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
   const selectedInstitution = useMemo(
     () => institutions.find((i) => i.id === institutionId) || institutions[0],
     [institutions, institutionId]
+  );
+
+  const roleIsUniquePerInstitution = useMemo(
+    () => isRoleUniquePerInstitution(requestedRole),
+    [requestedRole]
+  );
+
+  const institutionAvailabilityList = useMemo(
+    () =>
+      getInstitutionRoleAvailability(
+        requestedRole,
+        institutions,
+        users,
+        approvalRequests
+      ),
+    [requestedRole, institutions, users, approvalRequests]
+  );
+
+  const selectedInstitutionAvailability = useMemo(
+    () =>
+      institutionAvailabilityList.find(
+        (item) => item.institution.id === institutionId
+      ) || institutionAvailabilityList[0],
+    [institutionAvailabilityList, institutionId]
   );
 
   // Non-confidential description of the approval tier
@@ -651,6 +679,23 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                             setRequestedRole(item.role);
                             setFieldErrors({});
                             setGeneralError(null);
+                            if (isRoleUniquePerInstitution(item.role)) {
+                              const avail = getInstitutionRoleAvailability(
+                                item.role,
+                                institutions,
+                                users,
+                                approvalRequests
+                              );
+                              const currentAvail = avail.find(
+                                (a) => a.institution.id === institutionId
+                              );
+                              if (currentAvail && !currentAvail.available) {
+                                const firstOpen = avail.find((a) => a.available);
+                                if (firstOpen) {
+                                  setInstitutionId(firstOpen.institution.id);
+                                }
+                              }
+                            }
                           }}
                           data-testid={`role-option-${item.role}`}
                           aria-pressed={active}
@@ -894,29 +939,134 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div className={requestedRole === 'institutional_rep' ? 'sm:col-span-2' : ''}>
-                      <label
-                        htmlFor="signup-college"
-                        className="block text-xs font-semibold text-stone-800 dark:text-stone-300 mb-1"
-                      >
-                        College / Institution *
-                      </label>
-                      <select
-                        id="signup-college"
-                        value={institutionId}
-                        onChange={(e) => setInstitutionId(e.target.value)}
-                        className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border-2 border-[#C2410C]/40 bg-[#FFFDF9] dark:bg-stone-900 text-stone-900 dark:text-white"
-                      >
-                        {institutions.map((inst) => (
-                          <option key={inst.id} value={inst.id}>
-                            {inst.name} ({inst.code})
-                          </option>
-                        ))}
-                      </select>
-                      {fieldErrors.institutionId && (
-                        <p className="text-[11px] text-red-700 dark:text-red-300 mt-1">
-                          {fieldErrors.institutionId}
-                        </p>
+                    <div className={requestedRole === 'institutional_rep' ? 'sm:col-span-2 space-y-2.5' : ''}>
+                      <div>
+                        <label
+                          htmlFor="signup-college"
+                          className="block text-xs font-semibold text-stone-800 dark:text-stone-300 mb-1"
+                        >
+                          College / Institution *
+                        </label>
+                        <select
+                          id="signup-college"
+                          value={institutionId}
+                          onChange={(e) => {
+                            setInstitutionId(e.target.value);
+                            setFieldErrors((prev) => {
+                              const next = { ...prev };
+                              delete next.institutionId;
+                              return next;
+                            });
+                          }}
+                          className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border-2 border-[#C2410C]/40 bg-[#FFFDF9] dark:bg-stone-900 text-stone-900 dark:text-white"
+                        >
+                          {institutionAvailabilityList.map((item) => (
+                            <option
+                              key={item.institution.id}
+                              value={item.institution.id}
+                              disabled={!item.available}
+                            >
+                              {item.institution.name} ({item.institution.code})
+                              {roleIsUniquePerInstitution
+                                ? item.available
+                                  ? ' · Position Available'
+                                  : ` · Unavailable (${item.statusLabel})`
+                                : ''}
+                            </option>
+                          ))}
+                        </select>
+                        {fieldErrors.institutionId && (
+                          <p
+                            data-testid="signup-institution-error"
+                            className="text-[11px] text-red-700 dark:text-red-300 mt-1"
+                          >
+                            {fieldErrors.institutionId}
+                          </p>
+                        )}
+                      </div>
+
+                      {roleIsUniquePerInstitution && (
+                        <div
+                          data-testid="signup-role-uniqueness-panel"
+                          className="p-3.5 rounded-xl liquid-glass-subtle border border-[#C2410C]/35 space-y-2.5 text-xs"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-bold text-stone-900 dark:text-white flex items-center gap-1.5">
+                              <Lock className="w-3.5 h-3.5 text-[#C2410C]" />
+                              <span>
+                                Institutional Role Uniqueness: {ROLE_UNIQUENESS_RULES[requestedRole].positionLabel}
+                              </span>
+                            </span>
+                            <span className="text-[11px] font-semibold text-[#046A38] dark:text-emerald-400">
+                              Max 1 Active Holder per Institution
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-stone-600 dark:text-stone-300 leading-relaxed">
+                            Each institution may have only one active {ROLE_UNIQUENESS_RULES[requestedRole].positionLabel}. Colleges with an active holder or pending application are locked and cannot be selected unless that position is vacated.
+                          </p>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                            {institutionAvailabilityList.map((item) => {
+                              const isSelected = item.institution.id === institutionId;
+                              return (
+                                <button
+                                  key={item.institution.id}
+                                  type="button"
+                                  disabled={!item.available}
+                                  data-testid={`inst-availability-card-${item.institution.id}`}
+                                  onClick={() => {
+                                    if (item.available) {
+                                      setInstitutionId(item.institution.id);
+                                      setFieldErrors((prev) => {
+                                        const next = { ...prev };
+                                        delete next.institutionId;
+                                        return next;
+                                      });
+                                    }
+                                  }}
+                                  className={`p-2.5 rounded-xl text-left transition-all border ${
+                                    !item.available
+                                      ? 'opacity-65 cursor-not-allowed bg-stone-200/40 dark:bg-stone-900/50 border-stone-300 dark:border-stone-800'
+                                      : isSelected
+                                        ? 'cursor-pointer bg-[#046A38]/12 border-[#046A38] shadow-xs'
+                                        : 'cursor-pointer liquid-glass-subtle border-[#C2410C]/30 hover:border-[#046A38]'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between gap-1.5">
+                                    <span className="font-bold text-stone-900 dark:text-white truncate">
+                                      {item.institution.name}
+                                    </span>
+                                    <span
+                                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold font-mono-tabular shrink-0 ${
+                                        item.available
+                                          ? 'bg-emerald-500/15 text-[#046A38] dark:text-emerald-300'
+                                          : 'bg-red-500/15 text-red-700 dark:text-red-300'
+                                      }`}
+                                    >
+                                      {item.available ? 'Available' : 'Occupied'}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-stone-600 dark:text-stone-400 mt-1 leading-snug">
+                                    {item.available
+                                      ? `Open position (${item.institution.code})`
+                                      : item.occupiedByUser
+                                        ? `Held by ${item.occupiedByUser.fullName}`
+                                        : item.statusLabel}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {selectedInstitutionAvailability && !selectedInstitutionAvailability.available && (
+                            <div
+                              role="alert"
+                              className="p-2.5 rounded-lg bg-red-500/12 border border-red-500/45 text-[11px] text-red-900 dark:text-red-200"
+                            >
+                              {selectedInstitutionAvailability.reason}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -1024,11 +1174,25 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
                               }
                               className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border-2 border-[#C2410C]/40 bg-[#FFFDF9] dark:bg-stone-900 text-stone-900 dark:text-white"
                             >
-                              {ACADEMIC_DIVISIONS.map((div) => (
-                                <option key={div} value={div}>
-                                  Division {div}
-                                </option>
-                              ))}
+                              {ACADEMIC_DIVISIONS.map((div) => {
+                                const existingHolder = getActiveClassDivisionHolder(
+                                  {
+                                    institutionId,
+                                    academicDepartment: department,
+                                    academicYear,
+                                    classTeacherDivision: div,
+                                  },
+                                  users
+                                );
+                                return (
+                                  <option key={div} value={div}>
+                                    Division {div}
+                                    {existingHolder
+                                      ? ` · Occupied (${existingHolder.fullName})`
+                                      : ' · Available'}
+                                  </option>
+                                );
+                              })}
                             </select>
                             {fieldErrors.classTeacherDivision && (
                               <p className="text-[11px] text-red-700 dark:text-red-300 mt-1">

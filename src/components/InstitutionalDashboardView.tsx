@@ -37,6 +37,9 @@ import {
   UserAccount,
 } from '../types/portal';
 import {
+  AssignmentMutationResult,
+  ConflictResolutionStrategy,
+  OrganisationalAssignmentPatch,
   buildCategoryChecklist,
   calculateExpiryDetails,
   canUserAccessApplication,
@@ -59,6 +62,7 @@ import { StudentDocumentSubmissionModal } from './StudentDocumentSubmissionModal
 interface InstitutionalDashboardViewProps {
   currentUser: UserAccount;
   institution?: Institution;
+  institutions?: Institution[];
   applications: ApplicationRecord[];
   documents: DocumentRecord[];
   auditEvents: AuditEvent[];
@@ -73,6 +77,19 @@ interface InstitutionalDashboardViewProps {
     decision: 'Approved' | 'Rejected' | 'Needs Review',
     note: string
   ) => void;
+  onApplyAssignment?: (
+    targetUserId: string,
+    patch: OrganisationalAssignmentPatch,
+    conflictResolution?: Exclude<ConflictResolutionStrategy, 'cancel'>
+  ) => AssignmentMutationResult;
+  onRemoveFromAssignment?: (
+    targetUserId: string,
+    reason?: string
+  ) => AssignmentMutationResult;
+  onRemoveInstitutionalAssociation?: (
+    targetUserId: string,
+    reason?: string
+  ) => AssignmentMutationResult;
   onOpenApplication: (appId: string) => void;
   onOpenDocument: (docId: string) => void;
   onCreateApplication: (params: {
@@ -132,6 +149,7 @@ const DASHBOARD_ITEM_VARIANTS = {
 export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProps> = ({
   currentUser,
   institution,
+  institutions,
   applications,
   documents,
   auditEvents,
@@ -142,6 +160,9 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
   onCreateDocumentRequest,
   onSubmitStudentDocuments,
   onReviewSubmissionDecision,
+  onApplyAssignment,
+  onRemoveFromAssignment,
+  onRemoveInstitutionalAssociation,
   onOpenApplication,
   onOpenDocument,
   onCreateApplication,
@@ -665,11 +686,31 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
         </motion.section>
       )}
 
-      {/* Institution Manager: Faculty Directory */}
+      {/* Institution Manager: Faculty & Student Personnel Directories */}
       {currentUser.role === 'institutional_rep' && allUsers.length > 0 && (
-        <motion.div variants={DASHBOARD_ITEM_VARIANTS}>
-          <FacultyDirectorySection currentUser={currentUser} allUsers={allUsers} />
-        </motion.div>
+        <>
+          <motion.div variants={DASHBOARD_ITEM_VARIANTS}>
+            <FacultyDirectorySection
+              currentUser={currentUser}
+              allUsers={allUsers}
+              institutions={institutions}
+              onApplyAssignment={onApplyAssignment}
+              onRemoveFromAssignment={onRemoveFromAssignment}
+              onRemoveInstitutionalAssociation={onRemoveInstitutionalAssociation}
+            />
+          </motion.div>
+          <motion.div variants={DASHBOARD_ITEM_VARIANTS}>
+            <StudentDirectorySection
+              currentTeacher={currentUser}
+              allUsers={allUsers}
+              submissions={studentSubmissions}
+              institutions={institutions}
+              onApplyAssignment={onApplyAssignment}
+              onRemoveFromAssignment={onRemoveFromAssignment}
+              onRemoveInstitutionalAssociation={onRemoveInstitutionalAssociation}
+            />
+          </motion.div>
+        </>
       )}
 
       {/* Faculty: Assigned Students Directory */}
@@ -679,6 +720,10 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             currentTeacher={currentUser}
             allUsers={allUsers}
             submissions={studentSubmissions}
+            institutions={institutions}
+            onApplyAssignment={onApplyAssignment}
+            onRemoveFromAssignment={onRemoveFromAssignment}
+            onRemoveInstitutionalAssociation={onRemoveInstitutionalAssociation}
           />
         </motion.div>
       )}

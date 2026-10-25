@@ -33,7 +33,11 @@ import {
   SEED_USERS,
 } from './data/seedData';
 import {
+  AssignmentMutationResult,
+  ConflictResolutionStrategy,
+  OrganisationalAssignmentPatch,
   addDaysToLocalDate,
+  applyOrganisationalAssignmentChange,
   applyReviewerDecisionToSubmission,
   buildApprovedUserAccountFromRequest,
   buildCategoryChecklist,
@@ -47,8 +51,11 @@ import {
   generateInternalDocumentCode,
   getCurrentIsoTimestamp,
   getLocalTodayDate,
+  removeInstitutionalAssociation,
+  removePersonnelFromAssignment,
   resolveApprovalRouting,
   resolveRepositoryStatusesFromSubmission,
+  syncStudentClassTeacherLinks,
 } from './lib/domain';
 import {
   STORAGE_KEYS,
@@ -543,6 +550,192 @@ export default function App() {
       updatedReq.id,
       `${decision} ${formatRoleDisplayName(updatedReq.requestedRole)} request for ${updatedReq.fullName} (@${updatedReq.username}, ${updatedReq.institutionName}). Note: ${note}`
     );
+  };
+
+  // Re-evaluate routing for any pending registration requests when personnel assignments change
+  const refreshPendingApprovalRouting = (nextUsers: UserAccount[]) => {
+    setApprovalRequests((prev) =>
+      prev.map((req) => {
+        if (req.status !== 'Pending Approval') return req;
+        const refreshedRouting = resolveApprovalRouting(
+          {
+            requestedRole: req.requestedRole,
+            institutionId: req.institutionId,
+            academicDepartment: req.academicDepartment,
+            academicYear: req.academicYear,
+            division: req.division,
+            classTeacherDivision: req.classTeacherDivision,
+          },
+          nextUsers,
+          SEED_INSTITUTIONS
+        );
+        return {
+          ...req,
+          routedApproverUserIds: refreshedRouting.routedApproverUserIds,
+          routedApproverLabel: refreshedRouting.routedApproverLabel,
+          noApproverAssigned: refreshedRouting.noApproverAssigned,
+        };
+      })
+    );
+  };
+
+  // Hierarchical Organisational Assignment Update (with Conflict Resolution)
+  const handleApplyOrganisationalAssignment = (
+    targetUserId: string,
+    patch: OrganisationalAssignmentPatch,
+    conflictResolution?: Exclude<ConflictResolutionStrategy, 'cancel'>
+  ): AssignmentMutationResult => {
+    if (!currentUser) {
+      return {
+        success: false,
+        error: 'Authentication required.',
+        users,
+        auditAction: 'Assignment Blocked',
+        auditDetails: 'Authentication required.',
+      };
+    }
+    const targetUser = users.find((u) => u.id === targetUserId);
+    if (!targetUser) {
+      return {
+        success: false,
+        error: 'Target personnel record not found.',
+        users,
+        auditAction: 'Assignment Blocked',
+        auditDetails: 'Target personnel record not found.',
+      };
+    }
+
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+    const result = applyOrganisationalAssignmentChange({
+      actor: currentUser,
+      targetUserId,
+      patch,
+      conflictResolution,
+      users,
+      institutions: SEED_INSTITUTIONS,
+      timestamp: nowDisplay,
+    });
+
+    if (!result.success) {
+      return result;
+    }
+
+    setUsers(result.users);
+    refreshPendingApprovalRouting(result.users);
+
+    appendAudit(
+      currentUser,
+      result.auditAction || 'Organisational Assignment Updated',
+      'Account',
+      targetUser.username,
+      result.auditDetails || 'Updated organisational assignment.'
+    );
+
+    return result;
+  };
+
+  // Remove Personnel from Current Assignment (Retains Institutional Association)
+  const handleRemoveFromAssignment = (
+    targetUserId: string,
+    reason?: string
+  ): AssignmentMutationResult => {
+    if (!currentUser) {
+      return {
+        success: false,
+        error: 'Authentication required.',
+        users,
+        auditAction: 'Release Blocked',
+        auditDetails: 'Authentication required.',
+      };
+    }
+    const targetUser = users.find((u) => u.id === targetUserId);
+    if (!targetUser) {
+      return {
+        success: false,
+        error: 'Target personnel record not found.',
+        users,
+        auditAction: 'Release Blocked',
+        auditDetails: 'Target personnel record not found.',
+      };
+    }
+
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+    const result = removePersonnelFromAssignment({
+      actor: currentUser,
+      targetUserId,
+      reason,
+      users,
+      timestamp: nowDisplay,
+    });
+
+    if (!result.success) {
+      return result;
+    }
+
+    setUsers(result.users);
+    refreshPendingApprovalRouting(result.users);
+
+    appendAudit(
+      currentUser,
+      result.auditAction || 'Personnel Released from Assignment',
+      'Account',
+      targetUser.username,
+      result.auditDetails || 'Released from current assignment.'
+    );
+
+    return result;
+  };
+
+  // Remove Personnel Institutional Association (Detaches from Institution while Preserving Record)
+  const handleRemoveInstitutionalAssociation = (
+    targetUserId: string,
+    reason?: string
+  ): AssignmentMutationResult => {
+    if (!currentUser) {
+      return {
+        success: false,
+        error: 'Authentication required.',
+        users,
+        auditAction: 'Association Removal Blocked',
+        auditDetails: 'Authentication required.',
+      };
+    }
+    const targetUser = users.find((u) => u.id === targetUserId);
+    if (!targetUser) {
+      return {
+        success: false,
+        error: 'Target personnel record not found.',
+        users,
+        auditAction: 'Association Removal Blocked',
+        auditDetails: 'Target personnel record not found.',
+      };
+    }
+
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+    const result = removeInstitutionalAssociation({
+      actor: currentUser,
+      targetUserId,
+      reason,
+      users,
+      timestamp: nowDisplay,
+    });
+
+    if (!result.success) {
+      return result;
+    }
+
+    setUsers(result.users);
+    refreshPendingApprovalRouting(result.users);
+
+    appendAudit(
+      currentUser,
+      result.auditAction || 'Institutional Association Removed',
+      'Account',
+      targetUser.username,
+      result.auditDetails || 'Removed institutional association.'
+    );
+
+    return result;
   };
 
   // Create New Application (Institutional Representative)
@@ -1880,6 +2073,7 @@ export default function App() {
           <InstitutionalDashboardView
             currentUser={currentUser}
             institution={userInstitution}
+            institutions={SEED_INSTITUTIONS}
             applications={applications}
             documents={documents}
             auditEvents={auditEvents}
@@ -1890,6 +2084,9 @@ export default function App() {
             onCreateDocumentRequest={handleCreateDocumentRequest}
             onSubmitStudentDocuments={handleSubmitStudentDocuments}
             onReviewSubmissionDecision={handleReviewStudentSubmission}
+            onApplyAssignment={handleApplyOrganisationalAssignment}
+            onRemoveFromAssignment={handleRemoveFromAssignment}
+            onRemoveInstitutionalAssociation={handleRemoveInstitutionalAssociation}
             onOpenApplication={(appId) => setSelectedApplicationId(appId)}
             onOpenDocument={(docId) => {
               setActiveView('documents');
@@ -1920,10 +2117,15 @@ export default function App() {
           <InstitutionalDashboardView
             currentUser={currentUser}
             institution={userInstitution}
+            institutions={SEED_INSTITUTIONS}
             applications={applications}
             documents={documents}
             auditEvents={auditEvents}
             pendingApprovalCount={pendingApprovalCount}
+            allUsers={users}
+            onApplyAssignment={handleApplyOrganisationalAssignment}
+            onRemoveFromAssignment={handleRemoveFromAssignment}
+            onRemoveInstitutionalAssociation={handleRemoveInstitutionalAssociation}
             onOpenApplication={(appId) => setSelectedApplicationId(appId)}
             onOpenDocument={(docId) => {
               setActiveView('documents');
@@ -2076,7 +2278,9 @@ export default function App() {
               id: createRecordId('USR'),
               createdAt: getLocalTodayDate(),
             };
-            setUsers((prev) => [created, ...prev]);
+            const nextUsers = syncStudentClassTeacherLinks([created, ...users]);
+            setUsers(nextUsers);
+            refreshPendingApprovalRouting(nextUsers);
             appendAudit(
               currentUser,
               'Account Provisioned',
@@ -2086,9 +2290,11 @@ export default function App() {
             );
           }}
           onUpdateAccountStatus={(userId, status: AccountStatus) => {
-            setUsers((prev) =>
-              prev.map((u) => (u.id === userId ? { ...u, status } : u))
+            const nextUsers = syncStudentClassTeacherLinks(
+              users.map((u) => (u.id === userId ? { ...u, status } : u))
             );
+            setUsers(nextUsers);
+            refreshPendingApprovalRouting(nextUsers);
             appendAudit(
               currentUser,
               'Account Status Updated',
@@ -2098,6 +2304,9 @@ export default function App() {
             );
           }}
           onDecideApprovalRequest={handleDecideApprovalRequest}
+          onApplyAssignment={handleApplyOrganisationalAssignment}
+          onRemoveFromAssignment={handleRemoveFromAssignment}
+          onRemoveInstitutionalAssociation={handleRemoveInstitutionalAssociation}
           onOpenApplication={(appId) => setSelectedApplicationId(appId)}
           onOpenDocument={(docId) => {
             setActiveView('documents');

@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Download,
   UserPlus,
@@ -10,6 +10,8 @@ import {
   MessageSquareWarning,
   ShieldCheck,
   Clock,
+  SlidersHorizontal,
+  Lock,
 } from 'lucide-react';
 import {
   AcademicDepartment,
@@ -29,8 +31,13 @@ import {
   ACADEMIC_DEPARTMENTS,
   ACADEMIC_DIVISIONS,
   ACADEMIC_YEARS,
+  AssignmentMutationResult,
+  ConflictResolutionStrategy,
+  InstitutionRoleAvailability,
+  OrganisationalAssignmentPatch,
   calculateAgeFromDob,
   calculateExpiryDetails,
+  canManagePersonnel,
   canUserAccessApplication,
   canUserAccessDocument,
   canUserActionApprovalRequest,
@@ -38,6 +45,11 @@ import {
   canUserViewApprovalRequest,
   computeCredentialDigest,
   formatRoleDisplayName,
+  getActiveClassDivisionHolder,
+  getActiveInstitutionRoleHolder,
+  getEffectiveAssociationStatus,
+  getEffectiveAssignmentStatus,
+  getInstitutionRoleAvailability,
   getLocalTodayDate,
   validateAccountUniqueness,
 } from '../lib/domain';
@@ -47,6 +59,7 @@ import {
   staggerContainerVariants,
 } from '../lib/motion';
 import { AnimatedMetricValue, StatusBadge } from './StatusPrimitives';
+import { PersonnelAssignmentManagerModal } from './PersonnelAssignmentManagerModal';
 
 interface ReportsAndAccountsViewProps {
   mode: 'reports' | 'accounts';
@@ -64,6 +77,19 @@ interface ReportsAndAccountsViewProps {
     decision: 'Approved' | 'Rejected' | 'Correction Requested',
     note: string
   ) => void;
+  onApplyAssignment?: (
+    targetUserId: string,
+    patch: OrganisationalAssignmentPatch,
+    conflictResolution?: Exclude<ConflictResolutionStrategy, 'cancel'>
+  ) => AssignmentMutationResult;
+  onRemoveFromAssignment?: (
+    targetUserId: string,
+    reason?: string
+  ) => AssignmentMutationResult;
+  onRemoveInstitutionalAssociation?: (
+    targetUserId: string,
+    reason?: string
+  ) => AssignmentMutationResult;
   onOpenApplication: (appId: string) => void;
   onOpenDocument: (docId: string) => void;
 }
@@ -80,6 +106,9 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
   onCreateAccount,
   onUpdateAccountStatus,
   onDecideApprovalRequest,
+  onApplyAssignment,
+  onRemoveFromAssignment,
+  onRemoveInstitutionalAssociation,
   onOpenApplication,
   onOpenDocument,
 }) => {
@@ -96,6 +125,13 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [decisionFeedback, setDecisionFeedback] = useState<string | null>(null);
 
+  // Personnel Hierarchy Management State
+  const [managingUserId, setManagingUserId] = useState<string | null>(null);
+  const [personnelFilter, setPersonnelFilter] = useState<
+    'all' | 'assigned' | 'reassignment' | 'removed'
+  >('all');
+  const [personnelFeedback, setPersonnelFeedback] = useState<string | null>(null);
+
   const todayStr = getLocalTodayDate();
 
   // Admin Account Creation State
@@ -107,7 +143,7 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
   const [gender, setGender] = useState<UserAccount['gender']>('Prefer not to say');
   const [accountStatus, setAccountStatus] = useState<AccountStatus>('Active');
   const [assignedRole, setAssignedRole] = useState<Role>('institutional_rep');
-  const [institutionId, setInstitutionId] = useState('INST-VESIT-104');
+  const [institutionId, setInstitutionId] = useState('INST-NMIMS-401');
 
   const deriveFirstnameLastname = (rawName: string): string => {
     const cleaned = rawName
@@ -224,6 +260,34 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const institutionAvailabilityMap = useMemo(() => {
+    const map = new Map<string, InstitutionRoleAvailability>();
+    const list = getInstitutionRoleAvailability(
+      assignedRole,
+      institutions,
+      users,
+      approvalRequests
+    );
+    for (const item of list) {
+      map.set(item.institution.id, item);
+    }
+    return map;
+  }, [institutions, assignedRole, users, approvalRequests]);
+
+  useEffect(() => {
+    if (assignedRole === 'institutional_rep' && accountStatus === 'Active') {
+      const currentAvail = institutionAvailabilityMap.get(institutionId);
+      if (currentAvail && !currentAvail.available) {
+        const firstOpen = institutions.find(
+          (i) => institutionAvailabilityMap.get(i.id)?.available
+        );
+        if (firstOpen) {
+          setInstitutionId(firstOpen.id);
+        }
+      }
+    }
+  }, [assignedRole, accountStatus, institutionId, institutions, institutionAvailabilityMap]);
+
   const handleConfirmDecision = (req: AccountApprovalRequest) => {
     setDecisionError(null);
     if (
@@ -235,6 +299,41 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
         `A reviewer reason/note is mandatory when marking a request as "${pendingDecisionType}".`
       );
       return;
+    }
+
+    if (pendingDecisionType === 'Approved') {
+      if (req.requestedRole === 'institutional_rep') {
+        const activeHolder = getActiveInstitutionRoleHolder(
+          'institutional_rep',
+          req.institutionId,
+          users
+        );
+        if (activeHolder) {
+          setDecisionError(
+            `Institutional Role Uniqueness Conflict: ${req.institutionName} already has an active Institutional Manager (${activeHolder.fullName}, @${activeHolder.username}). Release or reassign the existing holder before approving a new Institutional Manager for this college.`
+          );
+          return;
+        }
+      }
+      if (req.requestedRole === 'faculty' && req.classTeacherDivision) {
+        const dept = req.academicDepartment || req.department || 'CMPN';
+        const yr = req.academicYear || 'Second Year';
+        const activeCt = getActiveClassDivisionHolder(
+          {
+            institutionId: req.institutionId,
+            academicDepartment: dept,
+            academicYear: yr,
+            classTeacherDivision: req.classTeacherDivision,
+          },
+          users
+        );
+        if (activeCt) {
+          setDecisionError(
+            `Class Teacher Division Conflict: ${activeCt.fullName} (@${activeCt.username}) is already the active Class Teacher for ${dept} · ${yr} · Division ${req.classTeacherDivision} at ${req.institutionName}. Release or reassign their division slot before approving this request.`
+          );
+          return;
+        }
+      }
     }
 
     onDecideApprovalRequest(
@@ -288,6 +387,39 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
 
     const selectedInst = institutions.find((i) => i.id === institutionId);
 
+    if (accountStatus === 'Active') {
+      if (assignedRole === 'institutional_rep' && selectedInst) {
+        const existingIr = getActiveInstitutionRoleHolder(
+          'institutional_rep',
+          selectedInst.id,
+          users
+        );
+        if (existingIr) {
+          setFormError(
+            `Institutional Role Uniqueness Violation: ${selectedInst.name} already has an active Institutional Manager (${existingIr.fullName}, @${existingIr.username}). Select an institution with an available position or release the current holder first.`
+          );
+          return;
+        }
+      }
+      if (assignedRole === 'faculty' && selectedInst && classTeacherDivision) {
+        const existingCt = getActiveClassDivisionHolder(
+          {
+            institutionId: selectedInst.id,
+            academicDepartment,
+            academicYear,
+            classTeacherDivision,
+          },
+          users
+        );
+        if (existingCt) {
+          setFormError(
+            `Class Teacher Division Conflict: ${existingCt.fullName} (@${existingCt.username}) is already the active Class Teacher for ${academicDepartment} · ${academicYear} · Division ${classTeacherDivision} at ${selectedInst.name}.`
+          );
+          return;
+        }
+      }
+    }
+
     onCreateAccount({
       fullName: fullName.trim(),
       username: canonicalUsername,
@@ -321,6 +453,8 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
       classTeacherDivision:
         assignedRole === 'faculty' ? classTeacherDivision : undefined,
       course: assignedRole === 'student' ? `B.Tech (${academicDepartment})` : undefined,
+      assignmentStatus: accountStatus === 'Active' ? 'Assigned' : 'Assignment Pending',
+      institutionalAssociationStatus: 'Active',
     });
 
     setCreateSuccess(
@@ -663,325 +797,546 @@ export const ReportsAndAccountsView: React.FC<ReportsAndAccountsViewProps> = ({
           )}
         </motion.section>
 
-        {/* Admin-Only Direct Provisioning & Full Account Directory */}
-        {canUserPerformAdminAction(currentUser) && (
-          <motion.div
-            variants={staggerContainerVariants}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
-          >
-            {/* Left 6 Cols: Create New Account Form */}
-            <motion.section
-              variants={cardEntranceVariants}
-              className="lg:col-span-6 liquid-glass rounded-2xl p-6 space-y-4"
-            >
-              <h2 className="text-base font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-[#046A38]" />
-                <span>Direct Admin Account Provisioning</span>
-              </h2>
+        {/* Subordinate Personnel & Organisational Hierarchy Directory (Visible to Admin, Institutional Manager, and Faculty) */}
+        {(() => {
+          const manageableUsers = users.filter((u) => {
+            if (currentUser.role === 'admin') return true;
+            // Also include personnel whose previousInstitutionId matches currentUser.institutionId so IR can see removed associations in the 'removed' filter
+            if (
+              currentUser.role === 'institutional_rep' &&
+              u.previousInstitutionId === currentUser.institutionId &&
+              getEffectiveAssociationStatus(u) === 'Removed'
+            ) {
+              return u.role === 'faculty' || u.role === 'student';
+            }
+            return canManagePersonnel(currentUser, u, 'view_profile').allowed;
+          });
 
-              {formError && (
-                <div
-                  role="alert"
-                  className="p-3.5 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-xs text-red-800 dark:text-red-200 flex items-start gap-2"
-                >
-                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                  <span>{formError}</span>
-                </div>
-              )}
+          const filteredPersonnel = manageableUsers.filter((u) => {
+            const effAssign = getEffectiveAssignmentStatus(u);
+            const effAssoc = getEffectiveAssociationStatus(u);
+            if (personnelFilter === 'assigned') {
+              return effAssign === 'Assigned' && effAssoc === 'Active';
+            }
+            if (personnelFilter === 'reassignment') {
+              return (
+                (effAssign === 'Reassignment Required' ||
+                  effAssign === 'Assignment Pending' ||
+                  effAssign === 'Unassigned') &&
+                effAssoc === 'Active'
+              );
+            }
+            if (personnelFilter === 'removed') {
+              return effAssoc === 'Removed';
+            }
+            return true;
+          });
 
-              {createSuccess && (
-                <div
-                  role="status"
-                  className="p-3.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-2"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>{createSuccess}</span>
-                </div>
-              )}
+          const managingTarget = users.find((u) => u.id === managingUserId) || null;
 
-              <form onSubmit={handleCreateAccountSubmit} className="space-y-4" noValidate>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          return (
+            <>
+              <motion.section
+                variants={sectionEntranceVariants}
+                initial="hidden"
+                animate="visible"
+                data-testid="subordinate-personnel-directory"
+                className="liquid-glass rounded-2xl p-6 space-y-5"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200/70 dark:border-stone-800 pb-4">
                   <div>
-                    <label htmlFor="acc-role" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Assigned Role *
-                    </label>
-                    <select
-                      id="acc-role"
-                      value={assignedRole}
-                      onChange={(e) => setAssignedRole(e.target.value as Role)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
-                    >
-                      <option value="institutional_rep">Institutional Manager</option>
-                      <option value="faculty">Faculty</option>
-                      <option value="student">Student</option>
-                      <option value="admin">Admin (Authorized Provisioning)</option>
-                    </select>
+                    <h2 className="text-base font-display font-bold text-stone-900 dark:text-white flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-[#046A38]" />
+                      <span>
+                        {currentUser.role === 'admin'
+                          ? `Organisational Hierarchy & Personnel Registry (${filteredPersonnel.length})`
+                          : currentUser.role === 'institutional_rep'
+                            ? `Institution Subordinate Personnel & Assignment Directory (${filteredPersonnel.length})`
+                            : `Departmental Student Assignment Directory (${filteredPersonnel.length})`}
+                      </span>
+                    </h2>
+                    <p className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
+                      {currentUser.role === 'admin'
+                        ? 'Inspect and manage Institutional Managers, Faculty, and Students across all colleges. Enforce role uniqueness and resolve slot conflicts.'
+                        : currentUser.role === 'institutional_rep'
+                          ? `Manage subordinate Faculty and Students within ${currentUser.institutionName}. Reassign divisions, resolve Class Teacher conflicts, or remove institutional associations.`
+                          : `Manage subordinate Student academic year and division assignments within ${currentUser.academicDepartment || 'your department'} at ${currentUser.institutionName}.`}
+                    </p>
                   </div>
 
-                  <div>
-                    <label htmlFor="acc-status" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Account Status
-                    </label>
-                    <select
-                      id="acc-status"
-                      value={accountStatus}
-                      onChange={(e) => setAccountStatus(e.target.value as AccountStatus)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Pending Activation">Pending Activation</option>
-                      <option value="Suspended">Suspended</option>
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label htmlFor="acc-fullname" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Full Name *
-                    </label>
-                    <input
-                      id="acc-fullname"
-                      type="text"
-                      required
-                      value={fullName}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setFullName(val);
-                        setUsername(deriveFirstnameLastname(val));
-                      }}
-                      placeholder="e.g. Dr. Nandini Deshpande"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="acc-username" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Globally Unique Username *
-                    </label>
-                    <input
-                      id="acc-username"
-                      type="text"
-                      required
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="e.g. nandini.deshpande"
-                      className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-950 font-mono-tabular ${
-                        fieldErrors.username
-                          ? 'border-red-500'
-                          : 'border-slate-300 dark:border-slate-700'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="acc-phone" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Unique Phone Number *
-                    </label>
-                    <input
-                      id="acc-phone"
-                      type="text"
-                      required
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. +91 98229 44110"
-                      className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-950 font-mono-tabular ${
-                        fieldErrors.phone
-                          ? 'border-red-500'
-                          : 'border-slate-300 dark:border-slate-700'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="acc-dob" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Date of Birth (Calculates Age)
-                    </label>
-                    <input
-                      id="acc-dob"
-                      type="date"
-                      value={dob}
-                      onChange={(e) => setDob(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 font-mono-tabular"
-                    />
-                    <span className="text-[11px] text-slate-500 font-mono-tabular mt-0.5 block">
-                      Calculated Age: {calculatedAge !== null ? `${calculatedAge} years` : 'Not recorded'}
-                    </span>
-                  </div>
-
-                  <div>
-                    <label htmlFor="acc-email" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Official Email Address
-                    </label>
-                    <input
-                      id="acc-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@institution.edu.in"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
-                    />
-                  </div>
-                </div>
-
-                {/* Role-Specific Fields */}
-                {assignedRole !== 'admin' && (
-                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-3 text-xs">
-                    <div>
-                      <label htmlFor="acc-inst" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        College / Institution
-                      </label>
-                      <select
-                        id="acc-inst"
-                        value={institutionId}
-                        onChange={(e) => setInstitutionId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {(
+                      [
+                        { id: 'all', label: 'All in Scope' },
+                        { id: 'assigned', label: 'Active Assigned' },
+                        { id: 'reassignment', label: 'Unassigned / Reassignment Needed' },
+                        { id: 'removed', label: 'Association Removed' },
+                      ] as const
+                    ).map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        data-testid={`personnel-filter-${tab.id}`}
+                        onClick={() => setPersonnelFilter(tab.id)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                          personnelFilter === tab.id
+                            ? 'bg-[#046A38] text-white'
+                            : 'liquid-glass-subtle text-stone-700 dark:text-stone-300'
+                        }`}
                       >
-                        {institutions.map((inst) => (
-                          <option key={inst.id} value={inst.id}>
-                            {inst.name} ({inst.code})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                    {(assignedRole === 'faculty' || assignedRole === 'student') && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                          <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Department
-                          </label>
-                          <select
-                            value={academicDepartment}
-                            onChange={(e) =>
-                              setAcademicDepartment(e.target.value as AcademicDepartment)
-                            }
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
-                          >
-                            {ACADEMIC_DEPARTMENTS.map((d) => (
-                              <option key={d} value={d}>
-                                {d}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Academic Year
-                          </label>
-                          <select
-                            value={academicYear}
-                            onChange={(e) => setAcademicYear(e.target.value as AcademicYear)}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
-                          >
-                            {ACADEMIC_YEARS.map((y) => (
-                              <option key={y} value={y}>
-                                {y}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            {assignedRole === 'student' ? 'Division' : 'Class Teacher Div'}
-                          </label>
-                          <select
-                            value={
-                              assignedRole === 'student' ? division : classTeacherDivision
-                            }
-                            onChange={(e) => {
-                              const val = e.target.value as AcademicDivision;
-                              if (assignedRole === 'student') setDivision(val);
-                              else setClassTeacherDivision(val);
-                            }}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
-                          >
-                            {ACADEMIC_DIVISIONS.map((div) => (
-                              <option key={div} value={div}>
-                                Division {div}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    )}
+                {personnelFeedback && (
+                  <div
+                    role="status"
+                    data-testid="personnel-hierarchy-feedback"
+                    className="p-3.5 rounded-xl bg-emerald-500/10 border border-[#046A38]/40 text-xs text-stone-900 dark:text-emerald-200 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[#046A38] shrink-0" />
+                      <span>{personnelFeedback}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPersonnelFeedback(null)}
+                      className="text-[11px] font-semibold underline cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
                   </div>
                 )}
 
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#C2410C] hover:bg-[#9A3412] text-white text-xs font-semibold cursor-pointer"
-                >
-                  Validate Uniqueness &amp; Provision Account
-                </button>
-              </form>
-            </motion.section>
+                {filteredPersonnel.length === 0 ? (
+                  <div className="p-6 rounded-xl liquid-glass-subtle text-center text-xs text-stone-600 dark:text-stone-400">
+                    No personnel records match the selected assignment filter in your scope of authority.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-stone-200/80 dark:divide-stone-800">
+                    {filteredPersonnel.map((u) => {
+                      const age = calculateAgeFromDob(u.dob, todayStr);
+                      const effAssign = getEffectiveAssignmentStatus(u);
+                      const effAssoc = getEffectiveAssociationStatus(u);
+                      const canEdit =
+                        Boolean(onApplyAssignment) &&
+                        canManagePersonnel(currentUser, u, 'edit_assignment').allowed;
 
-            {/* Right 6 Cols: Registered Accounts Directory */}
-            <motion.section
-              variants={cardEntranceVariants}
-              className="lg:col-span-6 liquid-glass rounded-2xl p-6 space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">
-                  Active Accounts Registry ({users.length})
-                </h2>
-                <span className="text-xs text-slate-500 font-mono-tabular">
-                  Global Phone &amp; Username Index
-                </span>
-              </div>
+                      return (
+                        <div
+                          key={u.id}
+                          data-testid={`personnel-row-${u.id}`}
+                          className="py-3.5 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-stone-900 dark:text-white">
+                                {u.fullName}
+                              </span>
+                              <span className="text-stone-400">·</span>
+                              <span className="text-[#C2410C] dark:text-amber-400 font-semibold">
+                                {formatRoleDisplayName(u.role)}
+                              </span>
+                              <StatusBadge status={u.status} size="sm" />
+                              <StatusBadge status={effAssign} size="sm" />
+                              {effAssoc !== 'Active' && (
+                                <StatusBadge status={effAssoc} size="sm" />
+                              )}
+                            </div>
 
-              <div className="divide-y divide-slate-200 dark:divide-slate-800">
-                {users.map((u) => {
-                  const age = calculateAgeFromDob(u.dob, todayStr);
-                  return (
-                    <div
-                      key={u.id}
-                      className="py-3.5 first:pt-0 last:pb-0 flex items-start justify-between gap-3 text-xs"
-                    >
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-stone-900 dark:text-white">
-                            {u.fullName}
-                          </span>
-                          <span className="text-stone-400">·</span>
-                          <span className="text-[#C2410C] dark:text-amber-400 font-semibold">
-                            {formatRoleDisplayName(u.role)}
-                          </span>
-                          <StatusBadge status={u.status} size="sm" />
-                        </div>
-                        <div className="text-[11px] text-stone-500 font-mono-tabular">
-                          @{u.username} · Phone: {u.normalizedPhone} · Age: {age ?? 'N/A'}y
-                        </div>
-                        <div className="text-[11px] text-stone-600 dark:text-stone-400 truncate">
-                          {u.institutionName || u.designation}
-                          {(u.academicDepartment || u.department) &&
-                            ` · ${u.academicDepartment || u.department}`}
-                          {u.academicYear && ` · ${u.academicYear}`}
-                          {u.division && ` · Div ${u.division}`}
-                          {u.classTeacherDivision && ` · CT Div ${u.classTeacherDivision}`}
-                        </div>
-                      </div>
+                            <div className="text-[11px] text-stone-500 font-mono-tabular">
+                              @{u.username} · Phone: {u.normalizedPhone} · Age: {age ?? 'N/A'}y
+                            </div>
 
-                      <select
-                        aria-label={`Change account status for ${u.fullName}`}
-                        value={u.status}
-                        onChange={(e) =>
-                          onUpdateAccountStatus(u.id, e.target.value as AccountStatus)
+                            <div className="text-[11px] text-stone-700 dark:text-stone-300">
+                              {effAssoc === 'Removed' ? (
+                                <span className="text-red-700 dark:text-red-300 font-semibold">
+                                  Detached from {u.previousInstitutionName || 'Institution'}
+                                </span>
+                              ) : (
+                                <>
+                                  <strong>{u.institutionName || u.designation}</strong>
+                                  {(u.academicDepartment || u.department) &&
+                                    ` · Dept: ${u.academicDepartment || u.department}`}
+                                  {u.academicYear && ` · ${u.academicYear}`}
+                                  {u.role === 'student' && (
+                                    <span>
+                                      {' '}
+                                      ·{' '}
+                                      {u.division
+                                        ? `Division ${u.division}`
+                                        : 'Unassigned Division'}
+                                    </span>
+                                  )}
+                                  {u.role === 'faculty' && (
+                                    <span>
+                                      {' '}
+                                      ·{' '}
+                                      {u.classTeacherDivision
+                                        ? `Class Teacher Div ${u.classTeacherDivision}`
+                                        : 'No Class Teacher Division'}
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+
+                            {u.assignmentNote && (
+                              <div className="text-[11px] text-stone-500 dark:text-stone-400 italic">
+                                Note: {u.assignmentNote}
+                                {u.assignmentUpdatedByName
+                                  ? ` (by ${u.assignmentUpdatedByName})`
+                                  : ''}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 shrink-0">
+                            {canEdit && (
+                              <button
+                                type="button"
+                                data-testid={`registry-manage-user-${u.id}`}
+                                onClick={() => setManagingUserId(u.id)}
+                                className="px-3 py-1.5 rounded-xl bg-[#C2410C]/12 hover:bg-[#C2410C] text-[#C2410C] dark:text-amber-300 hover:text-white text-xs font-semibold transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <SlidersHorizontal className="w-3.5 h-3.5" />
+                                <span>Manage Assignment</span>
+                              </button>
+                            )}
+
+                            {canUserPerformAdminAction(currentUser) && (
+                              <select
+                                aria-label={`Change account status for ${u.fullName}`}
+                                value={u.status}
+                                onChange={(e) =>
+                                  onUpdateAccountStatus(u.id, e.target.value as AccountStatus)
+                                }
+                                disabled={u.id === currentUser.id}
+                                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-[11px] font-medium"
+                              >
+                                <option value="Active">Active</option>
+                                <option value="Pending Activation">Pending Activation</option>
+                                <option value="Suspended">Suspended</option>
+                              </select>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.section>
+
+              <AnimatePresence>
+                {managingTarget &&
+                  onApplyAssignment &&
+                  onRemoveFromAssignment &&
+                  onRemoveInstitutionalAssociation && (
+                    <PersonnelAssignmentManagerModal
+                      actor={currentUser}
+                      targetUser={managingTarget}
+                      allUsers={users}
+                      institutions={institutions}
+                      onClose={() => setManagingUserId(null)}
+                      onApplyAssignment={(targetUserId, patch, conflictResolution) => {
+                        const res = onApplyAssignment(targetUserId, patch, conflictResolution);
+                        if (res.success && res.auditDetails) {
+                          setPersonnelFeedback(res.auditDetails);
                         }
-                        disabled={u.id === currentUser.id}
-                        className="px-2.5 py-1 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-[11px] font-medium"
-                      >
-                        <option value="Active">Active</option>
-                        <option value="Pending Activation">Pending Activation</option>
-                        <option value="Suspended">Suspended</option>
-                      </select>
-                    </div>
-                  );
-                })}
+                        return res;
+                      }}
+                      onRemoveFromAssignment={(targetUserId, reason) => {
+                        const res = onRemoveFromAssignment(targetUserId, reason);
+                        if (res.success && res.auditDetails) {
+                          setPersonnelFeedback(res.auditDetails);
+                        }
+                        return res;
+                      }}
+                      onRemoveInstitutionalAssociation={(targetUserId, reason) => {
+                        const res = onRemoveInstitutionalAssociation(targetUserId, reason);
+                        if (res.success && res.auditDetails) {
+                          setPersonnelFeedback(res.auditDetails);
+                        }
+                        return res;
+                      }}
+                    />
+                  )}
+              </AnimatePresence>
+            </>
+          );
+        })()}
+
+        {/* Admin-Only Direct Provisioning */}
+        {canUserPerformAdminAction(currentUser) && (
+          <motion.section
+            variants={cardEntranceVariants}
+            initial="hidden"
+            animate="visible"
+            className="liquid-glass rounded-2xl p-6 space-y-4"
+          >
+            <h2 className="text-base font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-[#046A38]" />
+              <span>Direct Admin Account Provisioning (Enforces Role Uniqueness)</span>
+            </h2>
+
+            {formError && (
+              <div
+                role="alert"
+                className="p-3.5 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-xs text-red-800 dark:text-red-200 flex items-start gap-2"
+              >
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <span>{formError}</span>
               </div>
-            </motion.section>
-          </motion.div>
+            )}
+
+            {createSuccess && (
+              <div
+                role="status"
+                className="p-3.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span>{createSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateAccountSubmit} className="space-y-4" noValidate>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <label htmlFor="acc-role" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Assigned Role *
+                  </label>
+                  <select
+                    id="acc-role"
+                    value={assignedRole}
+                    onChange={(e) => setAssignedRole(e.target.value as Role)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
+                  >
+                    <option value="institutional_rep">Institutional Manager (Unique per College)</option>
+                    <option value="faculty">Faculty</option>
+                    <option value="student">Student</option>
+                    <option value="admin">Admin (Authorized Provisioning)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="acc-status" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Account Status
+                  </label>
+                  <select
+                    id="acc-status"
+                    value={accountStatus}
+                    onChange={(e) => setAccountStatus(e.target.value as AccountStatus)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Pending Activation">Pending Activation</option>
+                    <option value="Suspended">Suspended</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label htmlFor="acc-fullname" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    id="acc-fullname"
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFullName(val);
+                      setUsername(deriveFirstnameLastname(val));
+                    }}
+                    placeholder="e.g. Dr. Nandini Deshpande"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="acc-username" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Globally Unique Username *
+                  </label>
+                  <input
+                    id="acc-username"
+                    type="text"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="e.g. nandini.deshpande"
+                    className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-950 font-mono-tabular ${
+                      fieldErrors.username
+                        ? 'border-red-500'
+                        : 'border-slate-300 dark:border-slate-700'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="acc-phone" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Unique Phone Number *
+                  </label>
+                  <input
+                    id="acc-phone"
+                    type="text"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="e.g. +91 98229 44110"
+                    className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-950 font-mono-tabular ${
+                      fieldErrors.phone
+                        ? 'border-red-500'
+                        : 'border-slate-300 dark:border-slate-700'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="acc-dob" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Date of Birth (Calculates Age)
+                  </label>
+                  <input
+                    id="acc-dob"
+                    type="date"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 font-mono-tabular"
+                  />
+                  <span className="text-[11px] text-slate-500 font-mono-tabular mt-0.5 block">
+                    Calculated Age: {calculatedAge !== null ? `${calculatedAge} years` : 'Not recorded'}
+                  </span>
+                </div>
+
+                <div>
+                  <label htmlFor="acc-email" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Official Email Address
+                  </label>
+                  <input
+                    id="acc-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@institution.edu.in"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
+                  />
+                </div>
+              </div>
+
+              {/* Role-Specific Fields */}
+              {assignedRole !== 'admin' && (
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-3 text-xs">
+                  <div>
+                    <label htmlFor="acc-inst" className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      College / Institution
+                    </label>
+                    <select
+                      id="acc-inst"
+                      value={institutionId}
+                      onChange={(e) => setInstitutionId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
+                    >
+                      {institutions.map((inst) => {
+                        const avail = institutionAvailabilityMap.get(inst.id);
+                        const isBlocked =
+                          assignedRole === 'institutional_rep' &&
+                          accountStatus === 'Active' &&
+                          avail &&
+                          !avail.available;
+                        return (
+                          <option key={inst.id} value={inst.id} disabled={Boolean(isBlocked)}>
+                            {inst.name} ({inst.code})
+                            {isBlocked && avail?.occupiedByUser
+                              ? ` [Occupied by ${avail.occupiedByUser.fullName}]`
+                              : assignedRole === 'institutional_rep'
+                                ? ' [Position Available]'
+                                : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {assignedRole === 'institutional_rep' && (
+                      <p className="text-[11px] text-stone-600 dark:text-stone-400 mt-1 flex items-center gap-1">
+                        <Lock className="w-3 h-3 text-[#C2410C] shrink-0" />
+                        <span>
+                          Colleges with an active Institutional Manager are locked above to enforce one active holder per institution.
+                        </span>
+                      </p>
+                    )}
+                  </div>
+
+                  {(assignedRole === 'faculty' || assignedRole === 'student') && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          Department
+                        </label>
+                        <select
+                          value={academicDepartment}
+                          onChange={(e) =>
+                            setAcademicDepartment(e.target.value as AcademicDepartment)
+                          }
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
+                        >
+                          {ACADEMIC_DEPARTMENTS.map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          Academic Year
+                        </label>
+                        <select
+                          value={academicYear}
+                          onChange={(e) => setAcademicYear(e.target.value as AcademicYear)}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
+                        >
+                          {ACADEMIC_YEARS.map((y) => (
+                            <option key={y} value={y}>
+                              {y}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          {assignedRole === 'student' ? 'Division' : 'Class Teacher Div'}
+                        </label>
+                        <select
+                          value={
+                            assignedRole === 'student' ? division : classTeacherDivision
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value as AcademicDivision;
+                            if (assignedRole === 'student') setDivision(val);
+                            else setClassTeacherDivision(val);
+                          }}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
+                        >
+                          {ACADEMIC_DIVISIONS.map((div) => (
+                            <option key={div} value={div}>
+                              Division {div}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#C2410C] hover:bg-[#9A3412] text-white text-xs font-semibold cursor-pointer"
+              >
+                Validate Uniqueness &amp; Provision Account
+              </button>
+            </form>
+          </motion.section>
         )}
       </div>
     );

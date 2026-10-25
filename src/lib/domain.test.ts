@@ -986,3 +986,246 @@ test('Zero em dashes in seed records, chatbot responses, and non-destructive loc
   assert.equal(loadedApps[0].submittedDate, 'Not Submitted');
   assert.equal(loadedApps[0].decisionOutcome, 'Compliance Verified: Recommended');
 });
+
+test('Institutional Role Uniqueness enforces one active Institutional Manager per college and frees vacated slots', async () => {
+  const { SEED_USERS, SEED_INSTITUTIONS, SEED_APPROVAL_REQUESTS } = await import(
+    '../data/seedData'
+  );
+  const {
+    getInstitutionRoleAvailability,
+    validateSignupSubmission,
+    removePersonnelFromAssignment,
+  } = await import('./domain');
+
+  const availabilityList = getInstitutionRoleAvailability(
+    'institutional_rep',
+    SEED_INSTITUTIONS,
+    SEED_USERS,
+    SEED_APPROVAL_REQUESTS
+  );
+  const vesitAvail = availabilityList.find((a) => a.institution.id === 'INST-VESIT-104')!;
+  const nmimsAvail = availabilityList.find((a) => a.institution.id === 'INST-NMIMS-401')!;
+
+  // 1. VESIT already has an active Institutional Manager (Dr. Aashay Khadkikar)
+  assert.equal(vesitAvail.available, false);
+  assert.equal(vesitAvail.occupiedByUser?.username, 'aashay.khadkikar');
+
+  // 2. NMIMS has no active Institutional Manager
+  assert.equal(nmimsAvail.available, true);
+  assert.equal(nmimsAvail.occupiedByUser, null);
+
+  // 3. Sign-Up validation blocks applying for Institutional Manager at VESIT
+  const blockedRes = validateSignupSubmission(
+    {
+      requestedRole: 'institutional_rep',
+      fullName: 'Dr. Vikramaditya Kulkarni',
+      username: 'vikramaditya.kulkarni',
+      password: 'vikramaditya.kulkarni',
+      confirmPassword: 'vikramaditya.kulkarni',
+      phone: '+91 98190 77889',
+      email: 'vikramaditya.kulkarni@vesit.edu.in',
+      dob: '1981-04-12',
+      gender: 'Male',
+      institutionId: 'INST-VESIT-104',
+    },
+    SEED_USERS,
+    SEED_APPROVAL_REQUESTS,
+    SEED_INSTITUTIONS,
+    '2026-10-25'
+  );
+  assert.equal(blockedRes.valid, false);
+  assert.ok(blockedRes.errors.institutionId?.includes('Dr. Aashay Khadkikar'));
+
+  // 4. Sign-Up validation allows applying for Institutional Manager at NMIMS
+  const allowedRes = validateSignupSubmission(
+    {
+      requestedRole: 'institutional_rep',
+      fullName: 'Dr. Vikramaditya Kulkarni',
+      username: 'vikramaditya.kulkarni',
+      password: 'vikramaditya.kulkarni',
+      confirmPassword: 'vikramaditya.kulkarni',
+      phone: '+91 98190 77889',
+      email: 'vikramaditya.kulkarni@nmims.edu.in',
+      dob: '1981-04-12',
+      gender: 'Male',
+      institutionId: 'INST-NMIMS-401',
+    },
+    SEED_USERS,
+    SEED_APPROVAL_REQUESTS,
+    SEED_INSTITUTIONS,
+    '2026-10-25'
+  );
+  assert.equal(allowedRes.valid, true);
+
+  // 5. Vacating Dr. Aashay Khadkikar's position frees VESIT for a new Institutional Manager
+  const admin = SEED_USERS.find((u) => u.role === 'admin')!;
+  const aashay = SEED_USERS.find((u) => u.username === 'aashay.khadkikar')!;
+  const vacatedRes = removePersonnelFromAssignment({
+    actor: admin,
+    targetUserId: aashay.id,
+    users: SEED_USERS,
+    reason: 'Completed term as nodal signatory.',
+    timestamp: '25 Oct 2026, 12:00 IST',
+  });
+  assert.equal(vacatedRes.success, true);
+
+  const availAfterVacate = getInstitutionRoleAvailability(
+    'institutional_rep',
+    SEED_INSTITUTIONS,
+    vacatedRes.users,
+    SEED_APPROVAL_REQUESTS
+  ).find((a) => a.institution.id === 'INST-VESIT-104')!;
+  assert.equal(availAfterVacate.available, true);
+});
+
+test('Hierarchical Authority enforces rank and institutional scope boundaries', async () => {
+  const { SEED_USERS } = await import('../data/seedData');
+  const { canManagePersonnel } = await import('./domain');
+
+  const admin = SEED_USERS.find((u) => u.username === 'karan.saini')!;
+  const vesitIr = SEED_USERS.find((u) => u.username === 'aashay.khadkikar')!;
+  const djsIr = SEED_USERS.find((u) => u.username === 'gauri.sardal')!;
+  const vesitFac1 = SEED_USERS.find((u) => u.username === 'shravani.salunkhe')!;
+  const vesitFac2 = SEED_USERS.find((u) => u.username === 'rajesh.nayak')!;
+  const vesitStu = SEED_USERS.find((u) => u.username === 'shreya.kaulgud')!;
+
+  // Admin can manage IR, Faculty, and Student across any institution
+  assert.equal(canManagePersonnel(admin, vesitIr, 'edit_assignment').allowed, true);
+  assert.equal(canManagePersonnel(admin, djsIr, 'edit_assignment').allowed, true);
+  assert.equal(canManagePersonnel(admin, vesitFac1, 'edit_assignment').allowed, true);
+
+  // Institutional Manager can manage Faculty and Students in their own college, but NOT other colleges or Admins
+  assert.equal(canManagePersonnel(vesitIr, vesitFac1, 'edit_assignment').allowed, true);
+  assert.equal(canManagePersonnel(vesitIr, vesitStu, 'edit_assignment').allowed, true);
+  assert.equal(canManagePersonnel(vesitIr, djsIr, 'edit_assignment').allowed, false);
+  assert.equal(canManagePersonnel(djsIr, vesitFac1, 'edit_assignment').allowed, false);
+  assert.equal(canManagePersonnel(vesitIr, admin, 'edit_assignment').allowed, false);
+
+  // Faculty can manage subordinate Students in their department, but NOT fellow Faculty or Superiors
+  assert.equal(canManagePersonnel(vesitFac1, vesitStu, 'edit_assignment').allowed, true);
+  assert.equal(canManagePersonnel(vesitFac1, vesitFac2, 'edit_assignment').allowed, false);
+  assert.equal(canManagePersonnel(vesitFac1, vesitIr, 'edit_assignment').allowed, false);
+
+  // No self-management via subordinate hierarchy controls
+  assert.equal(canManagePersonnel(vesitIr, vesitIr, 'edit_assignment').allowed, false);
+});
+
+test('Organisational Assignment Conflict Resolution and Remove from Assignment vs Remove Institutional Association', async () => {
+  const { SEED_USERS, SEED_INSTITUTIONS } = await import('../data/seedData');
+  const {
+    detectAssignmentConflict,
+    applyOrganisationalAssignmentChange,
+    removePersonnelFromAssignment,
+    removeInstitutionalAssociation,
+    getEffectiveAssignmentStatus,
+    getEffectiveAssociationStatus,
+  } = await import('./domain');
+
+  const vesitIr = SEED_USERS.find((u) => u.username === 'aashay.khadkikar')!;
+  const rajesh = SEED_USERS.find((u) => u.username === 'rajesh.nayak')!; // CMPN · Third Year · Div B
+
+  // 1. Attempting to assign Rajesh to CMPN · Second Year · Div A detects conflict with Dr. Shravani Salunkhe
+  const conflict = detectAssignmentConflict(
+    rajesh,
+    {
+      institutionId: 'INST-VESIT-104',
+      academicDepartment: 'CMPN',
+      academicYear: 'Second Year',
+      classTeacherDivision: 'A',
+    },
+    SEED_USERS,
+    SEED_INSTITUTIONS
+  );
+  assert.equal(conflict.hasConflict, true);
+  assert.equal(conflict.conflictingUser?.username, 'shravani.salunkhe');
+
+  // 2. Calling applyOrganisationalAssignmentChange without conflictResolution blocks silent overwrite
+  const blockedChange = applyOrganisationalAssignmentChange({
+    actor: vesitIr,
+    targetUserId: rajesh.id,
+    patch: {
+      academicDepartment: 'CMPN',
+      academicYear: 'Second Year',
+      classTeacherDivision: 'A',
+    },
+    users: SEED_USERS,
+    institutions: SEED_INSTITUTIONS,
+    timestamp: '25 Oct 2026, 12:05 IST',
+  });
+  assert.equal(blockedChange.success, false);
+  assert.equal(blockedChange.requiresConflictResolution, true);
+  assert.ok(blockedChange.conflict?.hasConflict);
+
+  // 3. Resolving conflict via 'release_conflicting_holder' releases Shravani ('Reassignment Required') and assigns Rajesh
+  const resolvedChange = applyOrganisationalAssignmentChange({
+    actor: vesitIr,
+    targetUserId: rajesh.id,
+    patch: {
+      academicDepartment: 'CMPN',
+      academicYear: 'Second Year',
+      classTeacherDivision: 'A',
+      note: 'Reassigned to Second Year Div A Class Teacher.',
+    },
+    users: SEED_USERS,
+    institutions: SEED_INSTITUTIONS,
+    conflictResolution: 'release_conflicting_holder',
+    timestamp: '25 Oct 2026, 12:10 IST',
+  });
+  assert.equal(resolvedChange.success, true);
+
+  const updatedShravani = resolvedChange.users.find(
+    (u) => u.username === 'shravani.salunkhe'
+  )!;
+  const updatedRajesh = resolvedChange.users.find(
+    (u) => u.username === 'rajesh.nayak'
+  )!;
+  assert.equal(getEffectiveAssignmentStatus(updatedShravani), 'Reassignment Required');
+  assert.equal(updatedShravani.classTeacherDivision, undefined);
+  assert.equal(getEffectiveAssociationStatus(updatedShravani), 'Active'); // Still affiliated with VESIT!
+  assert.equal(getEffectiveAssignmentStatus(updatedRajesh), 'Assigned');
+  assert.equal(updatedRajesh.classTeacherDivision, 'A');
+  assert.equal(updatedRajesh.academicYear, 'Second Year');
+
+  // 4. Students in CMPN · Second Year · Div A (e.g., Shreya Kaulgud) automatically sync to the new Class Teacher (Rajesh)
+  const updatedShreya = resolvedChange.users.find(
+    (u) => u.username === 'shreya.kaulgud'
+  )!;
+  assert.equal(updatedShreya.assignedTeacherUserId, updatedRajesh.id);
+
+  // 5. Remove from Assignment vs Remove Institutional Association
+  const sunita = resolvedChange.users.find((u) => u.username === 'sunita.kulkarni')!;
+  const assignRemoved = removePersonnelFromAssignment({
+    actor: vesitIr,
+    targetUserId: sunita.id,
+    users: resolvedChange.users,
+    reason: 'Sabbatical leave from departmental teaching.',
+    timestamp: '25 Oct 2026, 12:15 IST',
+  });
+  assert.equal(assignRemoved.success, true);
+  const sunitaAfterAssignRemoval = assignRemoved.users.find(
+    (u) => u.username === 'sunita.kulkarni'
+  )!;
+  assert.equal(getEffectiveAssignmentStatus(sunitaAfterAssignRemoval), 'Reassignment Required');
+  assert.equal(getEffectiveAssociationStatus(sunitaAfterAssignRemoval), 'Active');
+  assert.equal(sunitaAfterAssignRemoval.institutionId, 'INST-VESIT-104');
+
+  const assocRemoved = removeInstitutionalAssociation({
+    actor: vesitIr,
+    targetUserId: sunitaAfterAssignRemoval.id,
+    users: assignRemoved.users,
+    reason: 'Transferred out of institution.',
+    timestamp: '25 Oct 2026, 12:20 IST',
+  });
+  assert.equal(assocRemoved.success, true);
+  const sunitaAfterAssocRemoval = assocRemoved.users.find(
+    (u) => u.username === 'sunita.kulkarni'
+  )!;
+  assert.equal(getEffectiveAssociationStatus(sunitaAfterAssocRemoval), 'Removed');
+  assert.equal(getEffectiveAssignmentStatus(sunitaAfterAssocRemoval), 'Unassigned');
+  assert.equal(sunitaAfterAssocRemoval.status, 'Suspended');
+  assert.equal(sunitaAfterAssocRemoval.previousInstitutionId, 'INST-VESIT-104');
+  // Historical identity and credentials remain intact
+  assert.equal(sunitaAfterAssocRemoval.username, 'sunita.kulkarni');
+});
+
+

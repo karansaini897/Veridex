@@ -19,6 +19,16 @@ import {
   VaultDocumentRecord,
   VerificationFinding,
 } from '../types/portal';
+import {
+  getActiveClassDivisionHolder,
+  getActiveInstitutionRoleHolder,
+  getPendingInstitutionRoleRequest,
+  isActivePositionHolder,
+  isRoleUniquePerInstitution,
+  ROLE_UNIQUENESS_RULES,
+} from './hierarchy';
+
+export * from './hierarchy';
 
 
 export const ACADEMIC_DEPARTMENTS: readonly AcademicDepartment[] = [
@@ -455,13 +465,32 @@ export function validateSignupSubmission(
     }
   }
 
-  // 8. College / Institution validation
+  // 8. College / Institution validation & Role Uniqueness Enforcement
+  const matchedInst = allowedInstitutions?.find((i) => i.id === candidate.institutionId);
   if (!candidate.institutionId) {
     errors.institutionId = 'Please select one of the six authorized colleges.';
-  } else if (allowedInstitutions && allowedInstitutions.length > 0) {
-    const matchedInst = allowedInstitutions.find((i) => i.id === candidate.institutionId);
-    if (!matchedInst) {
-      errors.institutionId = 'Please select one of the six authorized colleges.';
+  } else if (allowedInstitutions && allowedInstitutions.length > 0 && !matchedInst) {
+    errors.institutionId = 'Please select one of the six authorized colleges.';
+  } else if (isRoleUniquePerInstitution(candidate.requestedRole)) {
+    const instLabel = matchedInst?.name || candidate.institutionId;
+    const posLabel = ROLE_UNIQUENESS_RULES[candidate.requestedRole].positionLabel;
+    const activeHolder = getActiveInstitutionRoleHolder(
+      candidate.requestedRole,
+      candidate.institutionId,
+      existingUsers
+    );
+    if (activeHolder) {
+      errors.institutionId = `The ${posLabel} position at ${instLabel} is already occupied by ${activeHolder.fullName} (@${activeHolder.username}). Each institution is restricted to one active ${posLabel}. Please select an available institution.`;
+    } else {
+      const pendingHolder = getPendingInstitutionRoleRequest(
+        candidate.requestedRole,
+        candidate.institutionId,
+        existingRequests,
+        excludeReqId
+      );
+      if (pendingHolder) {
+        errors.institutionId = `The ${posLabel} position at ${instLabel} already has a pending application under review (${pendingHolder.fullName}). Please select an available institution.`;
+      }
     }
   }
 
@@ -493,6 +522,20 @@ export function validateSignupSubmission(
       !ACADEMIC_DIVISIONS.includes(candidate.classTeacherDivision as AcademicDivision)
     ) {
       errors.classTeacherDivision = 'Select the Division you are Class Teacher of (A, B, or C).';
+    } else if (!errors.institutionId && !errors.department && !errors.academicYear) {
+      const existingAdvisor = getActiveClassDivisionHolder(
+        {
+          institutionId: candidate.institutionId,
+          academicDepartment: deptCandidate,
+          academicYear: candidate.academicYear,
+          classTeacherDivision: candidate.classTeacherDivision,
+        },
+        existingUsers
+      );
+      if (existingAdvisor) {
+        const instLabel = matchedInst?.name || candidate.institutionId;
+        errors.classTeacherDivision = `Class Teacher Division ${candidate.classTeacherDivision} (${instLabel} · ${deptCandidate} · ${candidate.academicYear}) is already assigned to ${existingAdvisor.fullName} (@${existingAdvisor.username}). Select an available division or academic year.`;
+      }
     }
   }
 
@@ -539,7 +582,7 @@ export function resolveApprovalRouting(
     const matchingTeachers = users.filter(
       (u) =>
         u.role === 'faculty' &&
-        u.status === 'Active' &&
+        isActivePositionHolder(u) &&
         u.institutionId === request.institutionId &&
         (u.academicDepartment === reqDept || u.department === reqDept) &&
         u.academicYear === request.academicYear &&
@@ -576,7 +619,7 @@ export function resolveApprovalRouting(
     const matchingManagers = users.filter(
       (u) =>
         u.role === 'institutional_rep' &&
-        u.status === 'Active' &&
+        isActivePositionHolder(u) &&
         u.institutionId === request.institutionId
     );
 

@@ -66,6 +66,14 @@ export interface Institution {
 
 export type Gender = 'Female' | 'Male' | 'Non-binary' | 'Prefer not to say';
 
+export type OrganisationalAssignmentStatus =
+  | 'Assigned'
+  | 'Unassigned'
+  | 'Assignment Pending'
+  | 'Reassignment Required';
+
+export type InstitutionalAssociationStatus = 'Active' | 'Removed' | 'Deactivated';
+
 export interface UserAccount {
   id: string;
   fullName: string;
@@ -87,7 +95,11 @@ export interface UserAccount {
   institutionName?: string;
   officialInstitutionCode?: string;
   designation?: string;
-  authorizationStatus?: 'Verified Nodal Officer' | 'Provisional Signatory' | 'Pending Authorization';
+  authorizationStatus?:
+    | 'Verified Nodal Officer'
+    | 'Provisional Signatory'
+    | 'Pending Authorization'
+    | 'Pending Re-Verification';
   permissionLevel?: 'Regional Reviewer (Level 2)' | 'National Compliance Auditor (Level 3)';
   employeeId?: string;
   department?: string;
@@ -110,6 +122,14 @@ export interface UserAccount {
   workloadSummary?: string;
   officeLocation?: string;
   specialization?: string;
+  // Organisational Hierarchy & Personnel Assignment State
+  assignmentStatus?: OrganisationalAssignmentStatus;
+  institutionalAssociationStatus?: InstitutionalAssociationStatus;
+  previousInstitutionId?: string;
+  previousInstitutionName?: string;
+  assignmentUpdatedAt?: string;
+  assignmentUpdatedByName?: string;
+  assignmentNote?: string;
 }
 
 export interface ApprovalHistoryEntry {

@@ -12,20 +12,54 @@ import {
   Building2,
   ChevronRight,
   Search,
+  SlidersHorizontal,
+  CheckCircle2,
 } from 'lucide-react';
-import { UserAccount } from '../types/portal';
+import { Institution, UserAccount } from '../types/portal';
+import {
+  AssignmentMutationResult,
+  ConflictResolutionStrategy,
+  OrganisationalAssignmentPatch,
+  canManagePersonnel,
+  getEffectiveAssociationStatus,
+  getEffectiveAssignmentStatus,
+} from '../lib/domain';
+import { SEED_INSTITUTIONS } from '../data/seedData';
+import { StatusBadge } from './StatusPrimitives';
+import { PersonnelAssignmentManagerModal } from './PersonnelAssignmentManagerModal';
 
 interface FacultyDirectorySectionProps {
   currentUser: UserAccount;
   allUsers: UserAccount[];
+  institutions?: Institution[];
+  onApplyAssignment?: (
+    targetUserId: string,
+    patch: OrganisationalAssignmentPatch,
+    conflictResolution?: Exclude<ConflictResolutionStrategy, 'cancel'>
+  ) => AssignmentMutationResult;
+  onRemoveFromAssignment?: (
+    targetUserId: string,
+    reason?: string
+  ) => AssignmentMutationResult;
+  onRemoveInstitutionalAssociation?: (
+    targetUserId: string,
+    reason?: string
+  ) => AssignmentMutationResult;
 }
 
 interface FacultyProfileModalProps {
   faculty: UserAccount;
+  canManage: boolean;
+  onManageAssignment?: () => void;
   onClose: () => void;
 }
 
-export const FacultyProfileModal: React.FC<FacultyProfileModalProps> = ({ faculty, onClose }) => {
+export const FacultyProfileModal: React.FC<FacultyProfileModalProps> = ({
+  faculty,
+  canManage,
+  onManageAssignment,
+  onClose,
+}) => {
   const initials = faculty.fullName
     .replace(/\b(Dr|Prof|Mr|Ms|Mrs)\b\.?/gi, '')
     .trim()
@@ -34,6 +68,9 @@ export const FacultyProfileModal: React.FC<FacultyProfileModalProps> = ({ facult
     .map((s) => s[0])
     .join('')
     .toUpperCase();
+
+  const effectiveAssignment = getEffectiveAssignmentStatus(faculty);
+  const effectiveAssociation = getEffectiveAssociationStatus(faculty);
 
   return (
     <div
@@ -70,9 +107,12 @@ export const FacultyProfileModal: React.FC<FacultyProfileModalProps> = ({ facult
               </div>
             )}
             <div className="min-w-0">
-              <h3 className="font-display font-bold text-base sm:text-lg text-stone-900 dark:text-white truncate">
-                {faculty.fullName}
-              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-display font-bold text-base sm:text-lg text-stone-900 dark:text-white truncate">
+                  {faculty.fullName}
+                </h3>
+                <StatusBadge status={effectiveAssignment} size="sm" />
+              </div>
               <p className="text-xs text-[#C2410C] dark:text-amber-400 font-semibold truncate">
                 {faculty.designation || 'Faculty Member'}
               </p>
@@ -95,32 +135,49 @@ export const FacultyProfileModal: React.FC<FacultyProfileModalProps> = ({ facult
         <div className="p-4 sm:p-5 space-y-4 max-h-[75vh] overflow-y-auto bg-stone-50/50 dark:bg-stone-950/40 text-stone-900 dark:text-stone-100 text-xs">
           {/* Institutional Affiliation */}
           <div className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-[#C2410C]/25 space-y-1.5">
-            <div className="flex items-center gap-1.5 font-bold text-[#046A38] dark:text-emerald-400">
-              <Building2 className="w-3.5 h-3.5" />
-              <span>Department &amp; Cadre</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 font-bold text-[#046A38] dark:text-emerald-400">
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Department &amp; Organisational Assignment</span>
+              </div>
+              {effectiveAssociation !== 'Active' && (
+                <StatusBadge status={effectiveAssociation} size="sm" />
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono-tabular text-stone-700 dark:text-stone-300">
               <div>
                 <span className="text-stone-500 block text-[10px]">Institution</span>
-                <span className="font-semibold text-stone-900 dark:text-white">{faculty.institutionName}</span>
+                <span className="font-semibold text-stone-900 dark:text-white">
+                  {faculty.institutionName || 'Unassigned'}
+                </span>
               </div>
               <div>
                 <span className="text-stone-500 block text-[10px]">Department</span>
-                <span className="font-semibold text-stone-900 dark:text-white">{faculty.academicDepartment || faculty.department || 'CMPN'}</span>
-              </div>
-              <div>
-                <span className="text-stone-500 block text-[10px]">Academic Year &amp; Class</span>
                 <span className="font-semibold text-stone-900 dark:text-white">
-                  {faculty.academicYear || 'All Years'} {faculty.classTeacherDivision ? `· Div ${faculty.classTeacherDivision}` : ''}
+                  {faculty.academicDepartment || faculty.department || 'Unassigned'}
                 </span>
               </div>
               <div>
-                <span className="text-stone-500 block text-[10px]">Status</span>
-                <span className="inline-flex items-center gap-1 font-bold text-[#046A38]">
-                  ● Active Cadre
+                <span className="text-stone-500 block text-[10px]">Academic Year &amp; Class Division</span>
+                <span className="font-semibold text-stone-900 dark:text-white">
+                  {faculty.academicYear || 'All Years'}{' '}
+                  {faculty.classTeacherDivision
+                    ? `· Class Teacher Div ${faculty.classTeacherDivision}`
+                    : '· Subject Faculty (No Class Div)'}
+                </span>
+              </div>
+              <div>
+                <span className="text-stone-500 block text-[10px]">Assignment Status</span>
+                <span className="inline-flex items-center gap-1 font-bold text-[#046A38] dark:text-emerald-400">
+                  ● {effectiveAssignment}
                 </span>
               </div>
             </div>
+            {faculty.assignmentNote && (
+              <div className="pt-1.5 mt-1.5 border-t border-stone-200 dark:border-stone-800 text-[11px] text-stone-600 dark:text-stone-400">
+                <strong>Latest Assignment Note:</strong> {faculty.assignmentNote}
+              </div>
+            )}
           </div>
 
           {/* Academic Qualifications & Specialization */}
@@ -159,11 +216,11 @@ export const FacultyProfileModal: React.FC<FacultyProfileModalProps> = ({ facult
                 <span>Mentorship &amp; Teaching Workload</span>
               </span>
               <span className="px-2 py-0.5 rounded-full bg-[#046A38] text-white text-[10px] font-mono-tabular font-bold">
-                {faculty.assignedStudentCount || 18} Assigned Students
+                {faculty.assignedStudentCount ?? 0} Assigned Students
               </span>
             </div>
             <p className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed mt-1">
-              {faculty.workloadSummary || '18 Mentee Students · 3 Courses · Laboratory Compliance Lead'}
+              {faculty.workloadSummary || 'Mentee Students · Courses · Laboratory Compliance Lead'}
             </p>
           </div>
 
@@ -192,7 +249,20 @@ export const FacultyProfileModal: React.FC<FacultyProfileModalProps> = ({ facult
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3 bg-[#FCF9F2] dark:bg-stone-900 border-t border-[#C2410C]/20 flex justify-end">
+        <div className="p-3 bg-[#FCF9F2] dark:bg-stone-900 border-t border-[#C2410C]/20 flex items-center justify-between gap-2">
+          {canManage && onManageAssignment ? (
+            <button
+              type="button"
+              data-testid="modal-btn-manage-faculty-assignment"
+              onClick={onManageAssignment}
+              className="btn-secondary !py-1.5 !px-3.5 text-xs inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#C2410C]" />
+              <span>Manage Organisational Assignment</span>
+            </button>
+          ) : (
+            <div />
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -209,15 +279,22 @@ export const FacultyProfileModal: React.FC<FacultyProfileModalProps> = ({ facult
 export const FacultyDirectorySection: React.FC<FacultyDirectorySectionProps> = ({
   currentUser,
   allUsers,
+  institutions = SEED_INSTITUTIONS,
+  onApplyAssignment,
+  onRemoveFromAssignment,
+  onRemoveInstitutionalAssociation,
 }) => {
-  const [selectedFaculty, setSelectedFaculty] = useState<UserAccount | null>(null);
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
+  const [managingFacultyId, setManagingFacultyId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
-  // Scoped to the institution of the manager
+  // Scoped to the institution of the manager, excluding removed associations
   const institutionFaculty = allUsers.filter(
     (u) =>
       u.role === 'faculty' &&
+      getEffectiveAssociationStatus(u) !== 'Removed' &&
       (currentUser.role === 'admin' || u.institutionId === currentUser.institutionId)
   );
 
@@ -227,6 +304,7 @@ export const FacultyDirectorySection: React.FC<FacultyDirectorySectionProps> = (
     return (
       f.fullName.toLowerCase().includes(q) ||
       (f.department && f.department.toLowerCase().includes(q)) ||
+      (f.academicDepartment && f.academicDepartment.toLowerCase().includes(q)) ||
       (f.designation && f.designation.toLowerCase().includes(q)) ||
       f.email.toLowerCase().includes(q)
     );
@@ -238,6 +316,9 @@ export const FacultyDirectorySection: React.FC<FacultyDirectorySectionProps> = (
       ? filteredFaculty.slice(0, 4)
       : filteredFaculty;
 
+  const selectedFaculty = allUsers.find((u) => u.id === selectedFacultyId) || null;
+  const managingFaculty = allUsers.find((u) => u.id === managingFacultyId) || null;
+
   return (
     <section aria-label="Institution Faculty Directory" className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -247,7 +328,7 @@ export const FacultyDirectorySection: React.FC<FacultyDirectorySectionProps> = (
             <span>Institution Faculty &amp; Academic Cadre Directory</span>
           </div>
           <p className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
-            Faculty members affiliated with {currentUser.institutionName || 'your institution'} ({institutionFaculty.length} registered). Click any faculty member to inspect their profile.
+            Faculty members affiliated with {currentUser.institutionName || 'your institution'} ({institutionFaculty.length} active). Authorized superiors can inspect profiles and manage departmental or class division assignments.
           </p>
         </div>
 
@@ -274,6 +355,26 @@ export const FacultyDirectorySection: React.FC<FacultyDirectorySectionProps> = (
         </div>
       </div>
 
+      {actionFeedback && (
+        <div
+          role="status"
+          data-testid="faculty-directory-feedback"
+          className="p-3 rounded-xl bg-emerald-500/10 border border-[#046A38]/40 text-xs text-stone-900 dark:text-emerald-200 flex items-center justify-between gap-2"
+        >
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#046A38] shrink-0" />
+            <span>{actionFeedback}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setActionFeedback(null)}
+            className="text-[11px] font-semibold underline cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {displayedFaculty.length === 0 ? (
         <div className="p-8 text-center rounded-2xl liquid-glass border border-dashed border-[#C2410C]/40 text-stone-600 dark:text-stone-400 text-xs">
           No faculty members found matching your search.
@@ -290,15 +391,30 @@ export const FacultyDirectorySection: React.FC<FacultyDirectorySectionProps> = (
               .join('')
               .toUpperCase();
 
+            const effectiveAssignment = getEffectiveAssignmentStatus(faculty);
+            const canManage =
+              Boolean(onApplyAssignment) &&
+              canManagePersonnel(currentUser, faculty, 'edit_assignment').allowed;
+
             return (
-              <motion.button
+              <motion.div
                 key={faculty.id}
-                type="button"
                 whileHover={{ y: -2 }}
-                onClick={() => setSelectedFaculty(faculty)}
-                className="text-left p-4 rounded-2xl liquid-glass liquid-glass-interactive cursor-pointer flex flex-col justify-between gap-3 group border border-[#C2410C]/35"
+                data-testid={`faculty-card-${faculty.id}`}
+                className="text-left p-4 rounded-2xl liquid-glass liquid-glass-interactive flex flex-col justify-between gap-3 group border border-[#C2410C]/35"
               >
-                <div className="flex items-start gap-3">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedFacultyId(faculty.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedFacultyId(faculty.id);
+                    }
+                  }}
+                  className="flex items-start gap-3 cursor-pointer"
+                >
                   {faculty.avatarUrl ? (
                     <img
                       src={faculty.avatarUrl}
@@ -312,35 +428,73 @@ export const FacultyDirectorySection: React.FC<FacultyDirectorySectionProps> = (
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <h4 className="font-display font-bold text-sm text-stone-900 dark:text-white truncate group-hover:text-[#C2410C] transition-colors">
-                      {faculty.fullName}
-                    </h4>
+                    <div className="flex items-center justify-between gap-1.5">
+                      <h4 className="font-display font-bold text-sm text-stone-900 dark:text-white truncate group-hover:text-[#C2410C] transition-colors">
+                        {faculty.fullName}
+                      </h4>
+                      <StatusBadge status={effectiveAssignment} size="sm" />
+                    </div>
                     <p className="text-[11px] text-stone-600 dark:text-stone-400 font-medium truncate mt-0.5">
                       {faculty.designation || 'Faculty Member'}
                     </p>
-                    <div className="flex items-center gap-1.5 text-[10px] text-stone-500 font-mono-tabular mt-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-stone-500 font-mono-tabular mt-1.5">
                       <span className="px-1.5 py-0.5 rounded-md bg-[#046A38]/10 text-[#046A38] dark:text-emerald-400 font-bold">
-                        {faculty.academicDepartment || faculty.department || 'CMPN'}
+                        {faculty.academicDepartment || faculty.department || 'Unassigned Dept'}
                       </span>
-                      <span>·</span>
-                      <span>{faculty.highestQualification?.split('(')[0] || 'Ph.D.'}</span>
+                      {faculty.academicYear && (
+                        <>
+                          <span>·</span>
+                          <span>{faculty.academicYear}</span>
+                        </>
+                      )}
+                      {faculty.classTeacherDivision ? (
+                        <>
+                          <span>·</span>
+                          <span className="font-bold text-[#C2410C] dark:text-amber-400">
+                            CT Div {faculty.classTeacherDivision}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span>·</span>
+                          <span className="text-stone-400">No Class Div</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-2.5 border-t border-stone-200/80 dark:border-stone-800/80 flex items-center justify-between text-[11px]">
+                <div className="pt-2.5 border-t border-stone-200/80 dark:border-stone-800/80 flex items-center justify-between gap-2 text-[11px]">
                   <div className="text-stone-600 dark:text-stone-400 font-mono-tabular">
                     <span className="font-semibold text-stone-900 dark:text-white">
-                      {faculty.assignedStudentCount || 18}
+                      {faculty.assignedStudentCount ?? 0}
                     </span>{' '}
                     Mentees
                   </div>
-                  <span className="text-[#C2410C] dark:text-amber-400 font-semibold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
-                    <span>View Profile</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </span>
+
+                  <div className="flex items-center gap-2">
+                    {canManage && (
+                      <button
+                        type="button"
+                        data-testid={`btn-manage-faculty-${faculty.id}`}
+                        onClick={() => setManagingFacultyId(faculty.id)}
+                        className="px-2.5 py-1 rounded-lg bg-[#C2410C]/12 hover:bg-[#C2410C] text-[#C2410C] dark:text-amber-300 hover:text-white font-semibold transition-colors inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <SlidersHorizontal className="w-3 h-3" />
+                        <span>Manage Assignment</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFacultyId(faculty.id)}
+                      className="text-[#C2410C] dark:text-amber-400 font-semibold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform cursor-pointer"
+                    >
+                      <span>Profile</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </motion.button>
+              </motion.div>
             );
           })}
         </div>
@@ -351,7 +505,50 @@ export const FacultyDirectorySection: React.FC<FacultyDirectorySectionProps> = (
         {selectedFaculty && (
           <FacultyProfileModal
             faculty={selectedFaculty}
-            onClose={() => setSelectedFaculty(null)}
+            canManage={
+              Boolean(onApplyAssignment) &&
+              canManagePersonnel(currentUser, selectedFaculty, 'edit_assignment').allowed
+            }
+            onManageAssignment={() => {
+              const targetId = selectedFaculty.id;
+              setSelectedFacultyId(null);
+              setManagingFacultyId(targetId);
+            }}
+            onClose={() => setSelectedFacultyId(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Personnel Assignment Manager Modal */}
+      <AnimatePresence>
+        {managingFaculty && onApplyAssignment && onRemoveFromAssignment && onRemoveInstitutionalAssociation && (
+          <PersonnelAssignmentManagerModal
+            actor={currentUser}
+            targetUser={managingFaculty}
+            allUsers={allUsers}
+            institutions={institutions}
+            onClose={() => setManagingFacultyId(null)}
+            onApplyAssignment={(targetUserId, patch, conflictResolution) => {
+              const res = onApplyAssignment(targetUserId, patch, conflictResolution);
+              if (res.success && res.auditDetails) {
+                setActionFeedback(res.auditDetails);
+              }
+              return res;
+            }}
+            onRemoveFromAssignment={(targetUserId, reason) => {
+              const res = onRemoveFromAssignment(targetUserId, reason);
+              if (res.success && res.auditDetails) {
+                setActionFeedback(res.auditDetails);
+              }
+              return res;
+            }}
+            onRemoveInstitutionalAssociation={(targetUserId, reason) => {
+              const res = onRemoveInstitutionalAssociation(targetUserId, reason);
+              if (res.success && res.auditDetails) {
+                setActionFeedback(res.auditDetails);
+              }
+              return res;
+            }}
           />
         )}
       </AnimatePresence>
