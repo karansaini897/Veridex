@@ -12,7 +12,7 @@ import {
   Server,
   ShieldCheck,
 } from 'lucide-react';
-import { AccountApprovalRequest, UserAccount } from '../types/portal';
+import { AccountApprovalRequest, UserAccount, VaultDocumentRecord } from '../types/portal';
 import {
   GENDER_OPTIONS,
   calculateAgeFromDob,
@@ -28,6 +28,7 @@ import {
   cardEntranceVariants,
   staggerContainerVariants,
 } from '../lib/motion';
+import { PersonalDocumentVaultSection } from './PersonalDocumentVaultSection';
 
 interface ProfileAndSettingsViewProps {
   mode: 'profile' | 'settings';
@@ -38,6 +39,7 @@ interface ProfileAndSettingsViewProps {
   darkMode: boolean;
   onToggleDarkMode: () => void;
   onResetRegistryData: () => void;
+  onSyncVaultToRepository?: (vaultDoc: VaultDocumentRecord) => void;
 }
 
 export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
@@ -49,6 +51,7 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
   darkMode,
   onToggleDarkMode,
   onResetRegistryData,
+  onSyncVaultToRepository,
 }) => {
   const [fullName, setFullName] = useState(currentUser.fullName);
   const [username, setUsername] = useState(currentUser.username);
@@ -864,6 +867,12 @@ export const ProfileAndSettingsView: React.FC<ProfileAndSettingsViewProps> = ({
           </motion.section>
         </div>
       </motion.div>
+
+      {/* Personal Document Vault inside Profile */}
+      <PersonalDocumentVaultSection
+        currentUser={currentUser}
+        onSyncToRepository={onSyncVaultToRepository}
+      />
     </div>
   );
 };

@@ -53,6 +53,11 @@ interface AdminDashboardViewProps {
   documentRequests?: DocumentSubmissionRequest[];
   studentSubmissions?: StudentRequestSubmission[];
   onCreateDocumentRequest?: (newReq: DocumentSubmissionRequest) => void;
+  onReviewSubmissionDecision?: (
+    submissionId: string,
+    decision: 'Approved' | 'Rejected' | 'Needs Review',
+    note: string
+  ) => void;
   onOpenApplication: (appId: string) => void;
   onOpenDocument: (docId: string) => void;
   onNavigate: (view: MainView) => void;
@@ -116,6 +121,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   documentRequests = [],
   studentSubmissions = [],
   onCreateDocumentRequest,
+  onReviewSubmissionDecision,
   onOpenApplication,
   onOpenDocument,
   onNavigate,
@@ -1033,6 +1039,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           allUsers={allUsers}
           currentUser={currentUser}
           onCreateNewRequest={onCreateDocumentRequest ? () => setCreateRequestModalOpen(true) : undefined}
+          onReviewSubmissionDecision={onReviewSubmissionDecision}
         />
       )}
 

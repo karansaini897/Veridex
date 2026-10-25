@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Search,
@@ -6,6 +6,7 @@ import {
   X,
   History,
   ArrowUpRight,
+  Database,
 } from 'lucide-react';
 import {
   ApplicationRecord,
@@ -14,6 +15,7 @@ import {
   ExpiryStatus,
   Institution,
   UserAccount,
+  VaultDocumentRecord,
 } from '../types/portal';
 import {
   addDaysToLocalDate,
@@ -41,6 +43,8 @@ import {
   FileTypeMarker,
   StatusBadge,
 } from './StatusPrimitives';
+import { PersonalDocumentVaultSection } from './PersonalDocumentVaultSection';
+import { createVaultBlobObjectUrl } from '../lib/vaultStorage';
 
 interface DocumentRepositoryViewProps {
   currentUser: UserAccount;
@@ -64,6 +68,7 @@ interface DocumentRepositoryViewProps {
     status: DocumentRecord['humanReviewStatus'],
     note: string
   ) => void;
+  onSyncVaultToRepository?: (vaultDoc: VaultDocumentRecord) => void;
 }
 
 const CATEGORIES: Array<'All' | DocumentCategory> = [
@@ -79,6 +84,8 @@ const CATEGORIES: Array<'All' | DocumentCategory> = [
 
 export type TrackingStatus =
   | 'Pending Verification'
+  | 'Verified in demo'
+  | 'Pending Approval'
   | 'Under Review'
   | 'Approved'
   | 'Rejected'
@@ -86,7 +93,7 @@ export type TrackingStatus =
 
 export function getDocVerificationStatus(doc: DocumentRecord): TrackingStatus {
   if (doc.verificationStatusLabel) return doc.verificationStatusLabel;
-  if (doc.issuerVerificationStatus === 'Verified') return 'Approved';
+  if (doc.issuerVerificationStatus === 'Verified') return 'Verified in demo';
   if (doc.issuerVerificationStatus === 'Failed') return 'Rejected';
   if (doc.issuerVerificationStatus === 'Pending') return 'Pending Verification';
   if (doc.completenessStatus === 'Missing Pages/Fields' || doc.consistencyStatus === 'Mismatch Flagged') {
@@ -129,6 +136,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
   onUploadDocument,
   onReplaceDocumentVersion,
   onUpdateDocumentHumanReview,
+  onSyncVaultToRepository,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'All' | DocumentCategory>('All');
@@ -136,6 +144,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
   const [verificationFilter, setVerificationFilter] = useState<'All' | TrackingStatus>('All');
   const [approvalFilter, setApprovalFilter] = useState<'All' | TrackingStatus>('All');
   const [sortBy, setSortBy] = useState<'uploadDate' | 'name' | 'internalCode' | 'expiryDate' | 'statusUpdatedAt'>('uploadDate');
+  const [vaultBlobPreviewUrl, setVaultBlobPreviewUrl] = useState<string | null>(null);
 
   const todayStr = getLocalTodayDate();
 
@@ -243,6 +252,29 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
     () => authorizedDocs.find((d) => d.id === selectedDocumentId) || null,
     [authorizedDocs, selectedDocumentId]
   );
+
+  useEffect(() => {
+    let revokeFn: (() => void) | null = null;
+    let cancelled = false;
+    setVaultBlobPreviewUrl(null);
+
+    if (selectedDocument?.vaultDocumentId) {
+      createVaultBlobObjectUrl(selectedDocument.vaultDocumentId).then((handle) => {
+        if (!handle) return;
+        if (cancelled) {
+          handle.revoke();
+        } else {
+          revokeFn = handle.revoke;
+          setVaultBlobPreviewUrl(handle.url);
+        }
+      });
+    }
+
+    return () => {
+      cancelled = true;
+      if (revokeFn) revokeFn();
+    };
+  }, [selectedDocument?.vaultDocumentId]);
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError(null);
@@ -382,6 +414,12 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
         )}
       </div>
 
+      {/* Personal Document Vault (IndexedDB + Client-Side OCR) */}
+      <PersonalDocumentVaultSection
+        currentUser={currentUser}
+        onSyncToRepository={onSyncVaultToRepository}
+      />
+
       {/* Category Filter Bar */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
         {CATEGORIES.map((cat) => {
@@ -434,8 +472,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
             className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300/80 dark:border-slate-700 bg-white/80 dark:bg-slate-950/70 text-slate-900 dark:text-white"
           >
             <option value="All">All Verification Statuses</option>
-            <option value="Approved">Approved</option>
-            <option value="Under Review">Under Review</option>
+            <option value="Verified in demo">Verified in demo</option>
             <option value="Pending Verification">Pending Verification</option>
             <option value="Needs Review">Needs Review</option>
             <option value="Rejected">Rejected</option>
@@ -451,8 +488,8 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
           >
             <option value="All">All Approval Statuses</option>
             <option value="Approved">Approved</option>
+            <option value="Pending Approval">Pending Approval</option>
             <option value="Under Review">Under Review</option>
-            <option value="Pending Verification">Pending Verification</option>
             <option value="Needs Review">Needs Review</option>
             <option value="Rejected">Rejected</option>
           </select>
@@ -529,6 +566,12 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                           {doc.name}
                         </span>
                         <FileTypeMarker mimeType={doc.mimeType} fileName={doc.fileName} fileSize={doc.fileSize} />
+                        {(doc.hasStoredFileBlob || doc.vaultDocumentId) && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono-tabular font-bold bg-[#046A38]/15 text-[#046A38] dark:text-emerald-300 inline-flex items-center gap-1">
+                            <Database className="w-2.5 h-2.5" />
+                            <span>IndexedDB File</span>
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-stone-500 font-mono-tabular mt-0.5 flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-[#C2410C] dark:text-amber-400">{doc.internalCode}</span>
@@ -703,18 +746,19 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                     </span>
                   </div>
 
-                  {/* Render actual uploaded preview if previewUrl is available */}
-                  {selectedDocument.previewUrl ? (
+                  {/* Render actual uploaded preview if previewUrl or IndexedDB vaultBlobPreviewUrl is available */}
+                  {vaultBlobPreviewUrl || selectedDocument.previewUrl ? (
                     <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2">
-                      {selectedDocument.mimeType.startsWith('image/') || selectedDocument.previewUrl.startsWith('data:image/') ? (
+                      {selectedDocument.mimeType.startsWith('image/') ||
+                      (vaultBlobPreviewUrl || selectedDocument.previewUrl || '').startsWith('data:image/') ? (
                         <img
-                          src={selectedDocument.previewUrl}
+                          src={vaultBlobPreviewUrl || selectedDocument.previewUrl}
                           alt={selectedDocument.name}
                           className="max-h-64 w-full object-contain rounded-md"
                         />
                       ) : (
                         <iframe
-                          src={selectedDocument.previewUrl}
+                          src={vaultBlobPreviewUrl || selectedDocument.previewUrl}
                           title={selectedDocument.name}
                           className="w-full h-64 rounded-md border-0"
                         />
@@ -735,6 +779,9 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                         <div>Issued: {selectedDocument.issueDate}</div>
                         <div>
                           Valid Until: {selectedDocument.expiryDate || 'Permanent / No Expiry'}
+                        </div>
+                        <div className="pt-1 text-[10px] text-amber-700 dark:text-amber-400">
+                          Storage Type: Metadata-only record (no binary blob in browser IndexedDB)
                         </div>
                       </div>
                     </div>

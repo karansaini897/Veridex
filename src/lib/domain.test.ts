@@ -569,4 +569,251 @@ test('resolveApprovalRouting, canUserActionApprovalRequest, and buildApprovedUse
   assert.equal(verifyUserCredential(approvedAccount, 'wrong.password'), false);
 });
 
+test('loadUsersPreservingSeedAccounts preserves all seed user credentials even when storage is missing or partial', async () => {
+  const { SEED_USERS } = await import('../data/seedData');
+  const { loadUsersPreservingSeedAccounts } = await import('./storage');
+
+  // Even without window.localStorage in Node, seed accounts are preserved intact
+  const loadedUsers = loadUsersPreservingSeedAccounts(SEED_USERS);
+  assert.equal(loadedUsers.length, SEED_USERS.length);
+  for (const seed of SEED_USERS) {
+    const found = loadedUsers.find((u) => u.username === seed.username);
+    assert.ok(found, `Expected seed user ${seed.username} to be preserved`);
+    assert.equal(found.password, seed.password);
+    assert.equal(found.role, seed.role);
+  }
+});
+
+test('Personal Document Vault stores, isolates by ownerUserId, retrieves binary blobs, and deletes cleanly', async () => {
+  const {
+    saveVaultDocumentWithBlob,
+    getVaultDocumentsForUser,
+    getVaultDocumentBlob,
+    deleteVaultDocument,
+    clearMemoryVaultForTesting,
+  } = await import('./vaultStorage');
+  const { VaultDocumentRecord } = await import('../types/portal');
+
+  clearMemoryVaultForTesting();
+
+  const blobContent = new Uint8Array([37, 80, 68, 70, 45, 49, 46, 52]);
+  const sampleRecord = {
+    id: 'VAULT-TEST-001',
+    ownerUserId: 'USR-STU-SHREYA',
+    ownerName: 'Shreya Kaulgud',
+    ownerRole: 'student' as const,
+    institutionId: 'INST-VESIT-104',
+    institutionName: 'VESIT',
+    title: 'VESIT Semester IV Marksheet',
+    documentType: 'Marksheet / Grade Card',
+    category: 'Qualifications' as const,
+    originalFileName: 'vesit_sem4_marksheet.pdf',
+    mimeType: 'application/pdf' as const,
+    fileSizeBytes: blobContent.byteLength,
+    fileSizeLabel: '8 B',
+    dateAdded: '2026-10-25 10:00 IST',
+    updatedAt: '2026-10-25 10:00 IST',
+    ocrStatus: 'Completed' as const,
+    ocrExtractedText: 'Name: Shreya Kaulgud\nRoll No: 2024CMPN042\nInstitution: VESIT',
+    editableDetails: {
+      title: 'VESIT Semester IV Marksheet',
+      documentType: 'Marksheet / Grade Card',
+      category: 'Qualifications' as const,
+      holderName: 'Shreya Kaulgud',
+      certificateNumber: 'MRK-2026-042',
+      issuingAuthority: 'VESIT',
+      issueDate: '2026-05-20',
+      expiryDate: '',
+      notes: 'Verified by user',
+    },
+    verificationStatus: 'Pending Verification' as const,
+    approvalStatus: 'Not Submitted' as const,
+    hasStoredBlob: true,
+    captureSource: 'file_upload' as const,
+  } satisfies VaultDocumentRecord;
+
+  const saveRes = await saveVaultDocumentWithBlob(
+    sampleRecord,
+    new Blob([blobContent], { type: 'application/pdf' })
+  );
+  assert.equal(saveRes.ok, true);
+
+  const shreyaDocs = await getVaultDocumentsForUser('USR-STU-SHREYA');
+  const otherDocs = await getVaultDocumentsForUser('USR-OTHER-999');
+
+  assert.equal(shreyaDocs.length, 1);
+  assert.equal(shreyaDocs[0].title, 'VESIT Semester IV Marksheet');
+  assert.equal(otherDocs.length, 0);
+
+  const retrievedBlob = await getVaultDocumentBlob('VAULT-TEST-001');
+  assert.ok(retrievedBlob);
+  assert.equal(retrievedBlob.size, blobContent.byteLength);
+
+  await deleteVaultDocument('VAULT-TEST-001', 'USR-STU-SHREYA');
+  const afterDelete = await getVaultDocumentsForUser('USR-STU-SHREYA');
+  assert.equal(afterDelete.length, 0);
+});
+
+test('parseSuggestedFieldsFromOcrText extracts draft fields and extractTextFromPdfInBrowser reads selectable PDF text', async () => {
+  const { parseSuggestedFieldsFromOcrText, extractTextFromPdfInBrowser } = await import('./ocrEngine');
+
+  const rawText = [
+    'Vivekanand Education Society Institute of Technology (VESIT)',
+    'Semester IV Grade Card & Marksheet',
+    'Student Name: Shreya Kaulgud',
+    'Certificate No: CERT-VESIT-8891',
+    'Date of Issue: 2026-04-15',
+  ].join('\n');
+
+  const parsed = parseSuggestedFieldsFromOcrText(rawText, 'sem4_marksheet.pdf', 'Shreya Kaulgud');
+  assert.equal(parsed.holderName, 'Shreya Kaulgud');
+  assert.equal(parsed.certificateNumber, 'CERT-VESIT-8891');
+  assert.equal(parsed.issueDate, '2026-04-15');
+  assert.ok(parsed.issuingAuthority?.includes('VESIT'));
+
+  // Create a synthetic PDF blob with a BT ... (text) Tj ... ET text stream
+  const pdfString = `%PDF-1.4
+1 0 obj
+<< /Length 74 >>
+stream
+BT
+/F1 12 Tf
+72 712 Td
+(Shreya Kaulgud VESIT Semester IV Marksheet) Tj
+ET
+endstream
+endobj
+%%EOF`;
+  const encoder = new TextEncoder();
+  const pdfBlob = new Blob([encoder.encode(pdfString)], { type: 'application/pdf' });
+  const pdfRes = await extractTextFromPdfInBrowser(pdfBlob);
+  assert.equal(pdfRes.isScannedOrEmpty, false);
+  assert.ok(pdfRes.text.includes('Shreya Kaulgud VESIT Semester IV Marksheet'));
+});
+
+test('Verification vs Approval separation and independent per-request reuse of Vault documents', async () => {
+  const {
+    buildSubmittedFileFromVaultDocument,
+    resolveRepositoryStatusesFromSubmission,
+    applyReviewerDecisionToSubmission,
+  } = await import('./domain');
+  const { VaultDocumentRecord, StudentRequestSubmission, DocumentRequirement } = await import(
+    '../types/portal'
+  );
+
+  const vaultDoc: VaultDocumentRecord = {
+    id: 'VAULT-REUSE-101',
+    ownerUserId: 'USR-STU-SHREYA',
+    ownerName: 'Shreya Kaulgud',
+    ownerRole: 'student',
+    institutionId: 'INST-VESIT-104',
+    institutionName: 'VESIT',
+    title: 'VESIT Student ID Card',
+    documentType: 'Student ID Card',
+    category: 'Student Records',
+    originalFileName: 'shreya_vesit_id.png',
+    mimeType: 'image/png',
+    fileSizeBytes: 84200,
+    fileSizeLabel: '82.2 KB',
+    dateAdded: '2026-10-25 09:30 IST',
+    updatedAt: '2026-10-25 09:30 IST',
+    ocrStatus: 'Completed',
+    ocrExtractedText: 'VESIT Student ID - Shreya Kaulgud - CMPN',
+    editableDetails: {
+      title: 'VESIT Student ID Card',
+      documentType: 'Student ID Card',
+      category: 'Student Records',
+      holderName: 'Shreya Kaulgud',
+      certificateNumber: 'ID-2026-042',
+      issuingAuthority: 'VESIT',
+      issueDate: '2025-07-01',
+      expiryDate: '2028-06-30',
+      notes: '',
+    },
+    verificationStatus: 'Pending Verification',
+    approvalStatus: 'Not Submitted',
+    hasStoredBlob: true,
+    captureSource: 'file_upload',
+  };
+
+  const requirement: DocumentRequirement = {
+    id: 'REQ-DOC-ID',
+    name: 'College ID Card',
+    description: 'Valid college identity card',
+    required: true,
+  };
+
+  // Reuse the same vault document across two different requests
+  const fileForReq1 = buildSubmittedFileFromVaultDocument(
+    requirement,
+    vaultDoc,
+    '2026-10-25 10:15 IST',
+    'Verified in demo'
+  );
+  const fileForReq2 = buildSubmittedFileFromVaultDocument(
+    requirement,
+    vaultDoc,
+    '2026-10-25 10:20 IST',
+    'Verified in demo'
+  );
+
+  // Verify Demo Verification does NOT auto-approve the file
+  assert.equal(fileForReq1.verificationOutcome, 'Verified in demo');
+  assert.equal(fileForReq1.approvalStatus, 'Pending Approval');
+  assert.equal(fileForReq1.vaultDocumentId, 'VAULT-REUSE-101');
+  assert.equal(fileForReq1.sourceType, 'vault');
+
+  const sub1: StudentRequestSubmission = {
+    id: 'SUB-1',
+    requestId: 'REQ-TYPE-BONAFIDE',
+    studentId: 'USR-STU-SHREYA',
+    studentName: 'Shreya Kaulgud',
+    studentUsername: 'shreya.kaulgud',
+    submittedAt: '2026-10-25 10:15 IST',
+    status: 'Under Review',
+    approvalStatus: 'Pending Approval',
+    documents: [fileForReq1],
+  };
+
+  const sub2: StudentRequestSubmission = {
+    ...sub1,
+    id: 'SUB-2',
+    requestId: 'REQ-TYPE-INTERNSHIP',
+    submittedAt: '2026-10-25 10:20 IST',
+    documents: [fileForReq2],
+  };
+
+  // Repository status mapping when Demo Verification completes:
+  // issuerVerificationStatus is 'Verified', but humanReviewStatus MUST remain 'Pending' (never auto-approved)
+  const initialRepoStatus = resolveRepositoryStatusesFromSubmission(fileForReq1);
+  assert.equal(initialRepoStatus.verificationStatusLabel, 'Verified in demo');
+  assert.equal(initialRepoStatus.issuerVerificationStatus, 'Verified');
+  assert.equal(initialRepoStatus.humanReviewStatus, 'Pending');
+  assert.equal(initialRepoStatus.approvalStatusLabel, 'Under Review');
+
+  // Reviewer approves Request 1 (sub1)
+  const updatedSubmissions = applyReviewerDecisionToSubmission(
+    [sub1, sub2],
+    'SUB-1',
+    'Approved',
+    { fullName: 'Dr. Shravani Salunkhe', role: 'faculty' },
+    'Verified against department roll list.'
+  );
+
+  const approvedSub1 = updatedSubmissions.find((s) => s.id === 'SUB-1')!;
+  const untouchedSub2 = updatedSubmissions.find((s) => s.id === 'SUB-2')!;
+
+  assert.equal(approvedSub1.status, 'Approved');
+  assert.equal(approvedSub1.approvalStatus, 'Approved');
+  assert.equal(approvedSub1.documents[0].approvalStatus, 'Approved');
+
+  // Request 2 (sub2) and the Vault record remain completely unaffected by Request 1's approval
+  assert.equal(untouchedSub2.status, 'Under Review');
+  assert.equal(untouchedSub2.approvalStatus, 'Pending Approval');
+  assert.equal(untouchedSub2.documents[0].approvalStatus, 'Pending Approval');
+  assert.equal(vaultDoc.approvalStatus, 'Not Submitted');
+});
+
+
+
 

@@ -1,25 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   FileText,
   Clock,
   CheckCircle2,
   AlertCircle,
-  Users,
   Eye,
   Plus,
   Calendar,
   X,
-  FileCheck2,
   ExternalLink,
   ChevronRight,
-  UserCheck,
+  ShieldCheck,
+  Database,
+  XCircle,
 } from 'lucide-react';
 import {
   DocumentSubmissionRequest,
   StudentRequestSubmission,
   UserAccount,
 } from '../types/portal';
+import { createVaultBlobObjectUrl } from '../lib/vaultStorage';
 
 interface RequestManagementSectionProps {
   currentUser: UserAccount;
@@ -27,21 +28,69 @@ interface RequestManagementSectionProps {
   requests: DocumentSubmissionRequest[];
   submissions: StudentRequestSubmission[];
   onCreateNewRequest?: () => void;
+  onReviewSubmissionDecision?: (
+    submissionId: string,
+    decision: 'Approved' | 'Rejected' | 'Needs Review',
+    note: string
+  ) => void;
 }
 
 interface StudentSubmissionDetailModalProps {
+  currentUser: UserAccount;
   student: UserAccount;
   request: DocumentSubmissionRequest;
   submission: StudentRequestSubmission | null;
   onClose: () => void;
+  onReviewSubmissionDecision?: (
+    submissionId: string,
+    decision: 'Approved' | 'Rejected' | 'Needs Review',
+    note: string
+  ) => void;
 }
 
 export const StudentSubmissionDetailModal: React.FC<StudentSubmissionDetailModalProps> = ({
+  currentUser,
   student,
   request,
   submission,
   onClose,
+  onReviewSubmissionDecision,
 }) => {
+  const [decisionNote, setDecisionNote] = useState(submission?.reviewerDecisionNote || '');
+  const [vaultPreviewUrls, setVaultPreviewUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const revokers: Array<() => void> = [];
+    let cancelled = false;
+
+    async function loadVaultPreviews() {
+      if (!submission?.documents) return;
+      const nextUrls: Record<string, string> = {};
+      for (const doc of submission.documents) {
+        if (doc.vaultDocumentId) {
+          const handle = await createVaultBlobObjectUrl(doc.vaultDocumentId);
+          if (handle) {
+            if (cancelled) {
+              handle.revoke();
+            } else {
+              revokers.push(handle.revoke);
+              nextUrls[doc.vaultDocumentId] = handle.url;
+            }
+          }
+        }
+      }
+      if (!cancelled) {
+        setVaultPreviewUrls(nextUrls);
+      }
+    }
+
+    loadVaultPreviews();
+    return () => {
+      cancelled = true;
+      revokers.forEach((r) => r());
+    };
+  }, [submission]);
+
   const initials = student.fullName
     .split(/\s+/)
     .slice(0, 2)
@@ -49,10 +98,37 @@ export const StudentSubmissionDetailModal: React.FC<StudentSubmissionDetailModal
     .join('')
     .toUpperCase();
 
-  const isVerified = submission?.status === 'Verified in demo';
-  const isNeedsReview = submission?.status === 'Needs review in demo';
+  const verificationLabel =
+    submission?.verificationStatusLabel ||
+    (submission?.status === 'Verified in demo'
+      ? 'Verified in demo'
+      : submission?.status === 'Needs review in demo' || submission?.status === 'Needs Review'
+        ? 'Needs Review'
+        : 'Pending Verification');
+
+  const approvalLabel =
+    submission?.approvalStatus ||
+    submission?.approvalStatusLabel ||
+    (submission?.status === 'Approved'
+      ? 'Approved'
+      : submission?.status === 'Rejected'
+        ? 'Rejected'
+        : submission?.status === 'Needs Review'
+          ? 'Needs Review'
+          : submission && submission.documents.length > 0
+            ? 'Pending Approval'
+            : 'Pending');
+
+  const isVerified = verificationLabel === 'Verified in demo';
+  const isNeedsReview =
+    verificationLabel === 'Needs Review' || submission?.status === 'Needs review in demo';
   const isPending = !submission || submission.status === 'Pending';
-  const isSubmitted = submission?.status === 'Submitted' || submission?.status === 'Verifying';
+
+  const canReview =
+    Boolean(submission && submission.documents.length > 0 && onReviewSubmissionDecision) &&
+    (currentUser.role === 'admin' ||
+      currentUser.role === 'institutional_rep' ||
+      currentUser.role === 'faculty');
 
   return (
     <div
@@ -129,41 +205,68 @@ export const StudentSubmissionDetailModal: React.FC<StudentSubmissionDetailModal
             </div>
           </div>
 
-          {/* Overall Submission Status */}
-          <div className="p-3.5 rounded-xl bg-white dark:bg-stone-900 border border-[#C2410C]/25 flex items-center justify-between gap-3">
-            <div>
-              <span className="text-stone-500 text-[11px] block">Overall Submission Status</span>
-              <span className="font-bold text-stone-900 dark:text-white text-sm">
-                {submission?.status || 'Pending Submission'}
+          {/* Separate Verification Status and Reviewer Approval Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-[#C2410C]/25 space-y-1">
+              <span className="text-stone-500 text-[10px] font-mono-tabular uppercase font-bold block">
+                1. Demo Verification Status
+              </span>
+              <span
+                className={`px-2.5 py-1 rounded-full text-xs font-bold font-mono-tabular inline-flex items-center gap-1.5 ${
+                  isVerified
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                    : isNeedsReview
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                      : 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
+                }`}
+              >
+                {isVerified && <CheckCircle2 className="w-3.5 h-3.5" />}
+                {isNeedsReview && <AlertCircle className="w-3.5 h-3.5" />}
+                {isPending && <Clock className="w-3.5 h-3.5" />}
+                <span>{verificationLabel}</span>
               </span>
             </div>
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-bold font-mono-tabular inline-flex items-center gap-1.5 ${
-                isVerified
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                  : isNeedsReview
-                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                    : isSubmitted
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                      : 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
-              }`}
-            >
-              {isVerified && <CheckCircle2 className="w-4 h-4" />}
-              {isNeedsReview && <AlertCircle className="w-4 h-4" />}
-              {isPending && <Clock className="w-4 h-4" />}
-              <span>{submission?.status || 'Pending'}</span>
-            </span>
+
+            <div className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-[#C2410C]/25 space-y-1">
+              <span className="text-stone-500 text-[10px] font-mono-tabular uppercase font-bold block">
+                2. Reviewer Approval Status
+              </span>
+              <span
+                data-testid="modal-reviewer-approval-badge"
+                className={`px-2.5 py-1 rounded-full text-xs font-bold font-mono-tabular inline-flex items-center gap-1.5 ${
+                  approvalLabel === 'Approved'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                    : approvalLabel === 'Rejected'
+                      ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                      : approvalLabel === 'Needs Review'
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                        : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                }`}
+              >
+                {approvalLabel === 'Approved' && <ShieldCheck className="w-3.5 h-3.5" />}
+                {approvalLabel === 'Rejected' && <XCircle className="w-3.5 h-3.5" />}
+                {approvalLabel !== 'Approved' && approvalLabel !== 'Rejected' && (
+                  <Clock className="w-3.5 h-3.5" />
+                )}
+                <span>{approvalLabel}</span>
+              </span>
+            </div>
           </div>
 
           {/* Verification Feedback (if simulated) */}
           {submission?.verificationFeedback && (
             <div className="p-3 rounded-xl bg-stone-100 dark:bg-stone-900 border border-stone-300 dark:border-stone-800 space-y-1">
               <span className="font-bold text-stone-800 dark:text-stone-200 block text-[11px]">
-                Simulated Verification Engine Feedback
+                Verification &amp; Reviewer Notes
               </span>
               <p className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed">
                 {submission.verificationFeedback}
               </p>
+              {submission.reviewedByName && (
+                <p className="text-[11px] font-mono-tabular text-[#046A38] dark:text-emerald-400 pt-1">
+                  Reviewed by {submission.reviewedByName} at {submission.reviewedAt}
+                </p>
+              )}
             </div>
           )}
 
@@ -178,6 +281,10 @@ export const StudentSubmissionDetailModal: React.FC<StudentSubmissionDetailModal
                 const matchedSubmittedDoc = submission?.documents.find(
                   (d) => d.requirementId === reqDoc.id || d.requirementName === reqDoc.name
                 );
+                const resolvedPreviewUrl =
+                  (matchedSubmittedDoc?.vaultDocumentId &&
+                    vaultPreviewUrls[matchedSubmittedDoc.vaultDocumentId]) ||
+                  matchedSubmittedDoc?.previewUrl;
 
                 return (
                   <div
@@ -199,15 +306,25 @@ export const StudentSubmissionDetailModal: React.FC<StudentSubmissionDetailModal
                         </p>
                       </div>
 
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono-tabular shrink-0 ${
-                          matchedSubmittedDoc
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                        }`}
-                      >
-                        {matchedSubmittedDoc ? 'Submitted' : 'Missing'}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {matchedSubmittedDoc?.vaultDocumentId && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono-tabular bg-[#046A38]/15 text-[#046A38] dark:text-emerald-300 inline-flex items-center gap-1">
+                            <Database className="w-2.5 h-2.5" />
+                            <span>Vault Linked</span>
+                          </span>
+                        )}
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono-tabular ${
+                            matchedSubmittedDoc
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                          }`}
+                        >
+                          {matchedSubmittedDoc
+                            ? matchedSubmittedDoc.approvalStatus || 'Submitted'
+                            : 'Missing'}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Submitted File Metadata */}
@@ -221,9 +338,9 @@ export const StudentSubmissionDetailModal: React.FC<StudentSubmissionDetailModal
                             ({matchedSubmittedDoc.fileSize})
                           </span>
                         </div>
-                        {matchedSubmittedDoc.previewUrl ? (
+                        {resolvedPreviewUrl ? (
                           <a
-                            href={matchedSubmittedDoc.previewUrl}
+                            href={resolvedPreviewUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[#046A38] font-bold hover:underline flex items-center gap-1 cursor-pointer"
@@ -233,7 +350,7 @@ export const StudentSubmissionDetailModal: React.FC<StudentSubmissionDetailModal
                           </a>
                         ) : (
                           <span className="text-stone-400 italic">
-                            Session preview stored
+                            Metadata record (no binary blob in current browser)
                           </span>
                         )}
                       </div>
@@ -248,8 +365,71 @@ export const StudentSubmissionDetailModal: React.FC<StudentSubmissionDetailModal
             </div>
           </div>
 
+          {/* Authorized Reviewer Approval Decision Panel */}
+          {canReview && submission && (
+            <div className="p-3.5 rounded-xl bg-[#FCF9F2] dark:bg-stone-900 border-2 border-[#046A38]/40 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-stone-900 dark:text-white flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-[#046A38]" />
+                  <span>Authorized Reviewer Decision (Separate from Demo Verification)</span>
+                </span>
+              </div>
+              <input
+                type="text"
+                value={decisionNote}
+                onChange={(e) => setDecisionNote(e.target.value)}
+                placeholder="Optional reviewer decision note..."
+                className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-xs"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="reviewer-approve-submission-btn"
+                  onClick={() =>
+                    onReviewSubmissionDecision?.(
+                      submission.id,
+                      'Approved',
+                      decisionNote.trim() || 'Reviewer verified and approved submitted documents.'
+                    )
+                  }
+                  className="px-3 py-1.5 rounded-lg bg-[#046A38] hover:bg-[#03542C] text-white text-xs font-semibold cursor-pointer"
+                >
+                  Approve Submission
+                </button>
+                <button
+                  type="button"
+                  data-testid="reviewer-needs-review-submission-btn"
+                  onClick={() =>
+                    onReviewSubmissionDecision?.(
+                      submission.id,
+                      'Needs Review',
+                      decisionNote.trim() || 'Reviewer requested clarification or replacement.'
+                    )
+                  }
+                  className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold cursor-pointer"
+                >
+                  Mark Needs Review
+                </button>
+                <button
+                  type="button"
+                  data-testid="reviewer-reject-submission-btn"
+                  onClick={() =>
+                    onReviewSubmissionDecision?.(
+                      submission.id,
+                      'Rejected',
+                      decisionNote.trim() || 'Submission rejected by reviewer.'
+                    )
+                  }
+                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer"
+                >
+                  Reject Submission
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="p-3 rounded-xl bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-[11px] text-stone-600 dark:text-stone-400">
-            <strong>Client-Side Demo Storage Notice:</strong> Document submission metadata, verification statuses, and timestamps are persisted in browser localStorage. Real file binaries are not uploaded to any remote server or external storage service.
+            <strong>Client-Side Demo Storage Notice:</strong> Document submission metadata, verification statuses, and reviewer decisions are persisted in browser localStorage. Personal Document Vault files are stored in browser IndexedDB on this device.
           </div>
         </div>
 
@@ -274,6 +454,7 @@ export const RequestManagementSection: React.FC<RequestManagementSectionProps> =
   requests,
   submissions,
   onCreateNewRequest,
+  onReviewSubmissionDecision,
 }) => {
   const [selectedRequestId, setSelectedRequestId] = useState<string>(
     requests[0]?.id || ''
@@ -311,7 +492,11 @@ export const RequestManagementSection: React.FC<RequestManagementSectionProps> =
       sub &&
       (sub.status === 'Submitted' ||
         sub.status === 'Verified in demo' ||
-        sub.status === 'Needs review in demo')
+        sub.status === 'Needs review in demo' ||
+        sub.status === 'Approved' ||
+        sub.status === 'Rejected' ||
+        sub.status === 'Needs Review' ||
+        sub.documents.length > 0)
     );
   }).length;
 
@@ -319,7 +504,11 @@ export const RequestManagementSection: React.FC<RequestManagementSectionProps> =
 
   const verifiedCount = recipientStudents.filter((student) => {
     const sub = requestSubmissions.find((s) => s.studentId === student.id);
-    return sub && sub.status === 'Verified in demo';
+    return (
+      sub &&
+      (sub.status === 'Verified in demo' ||
+        sub.verificationStatusLabel === 'Verified in demo')
+    );
   }).length;
 
   return (
@@ -487,18 +676,32 @@ export const RequestManagementSection: React.FC<RequestManagementSectionProps> =
                   <th className="py-2.5 px-3 font-semibold font-mono-tabular">Roll / PRN</th>
                   <th className="py-2.5 px-3 font-semibold">Class / Dept</th>
                   <th className="py-2.5 px-3 font-semibold font-mono-tabular">Submitted Docs</th>
-                  <th className="py-2.5 px-3 font-semibold">Current Status</th>
+                  <th className="py-2.5 px-3 font-semibold">Verification &amp; Approval</th>
                   <th className="py-2.5 px-3 font-semibold text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-200/80 dark:divide-stone-800 bg-white/60 dark:bg-stone-950/60 font-mono-tabular">
                 {recipientStudents.map((student) => {
                   const studentSub = requestSubmissions.find((s) => s.studentId === student.id);
-                  const isVerifiedSub = studentSub?.status === 'Verified in demo';
-                  const isNeedsReviewSub = studentSub?.status === 'Needs review in demo';
+                  const isVerifiedSub =
+                    studentSub?.status === 'Verified in demo' ||
+                    studentSub?.verificationStatusLabel === 'Verified in demo';
+                  const isNeedsReviewSub =
+                    studentSub?.status === 'Needs review in demo' ||
+                    studentSub?.verificationStatusLabel === 'Needs Review';
                   const isPendingSub = !studentSub || studentSub.status === 'Pending';
                   const submittedDocsCount = studentSub ? studentSub.documents.length : 0;
                   const totalRequired = activeRequest.requiredDocuments.length;
+                  const approvalStatusText =
+                    studentSub?.approvalStatus ||
+                    studentSub?.approvalStatusLabel ||
+                    (studentSub?.status === 'Approved'
+                      ? 'Approved'
+                      : studentSub?.status === 'Rejected'
+                        ? 'Rejected'
+                        : submittedDocsCount > 0
+                          ? 'Pending Approval'
+                          : null);
 
                   return (
                     <tr
@@ -531,20 +734,39 @@ export const RequestManagementSection: React.FC<RequestManagementSectionProps> =
                         files
                       </td>
                       <td className="py-3 px-3 font-sans">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono-tabular inline-flex items-center gap-1 ${
-                            isVerifiedSub
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                              : isNeedsReviewSub
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                                : 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
-                          }`}
-                        >
-                          {isVerifiedSub && <CheckCircle2 className="w-3 h-3" />}
-                          {isNeedsReviewSub && <AlertCircle className="w-3 h-3" />}
-                          {isPendingSub && <Clock className="w-3 h-3" />}
-                          <span>{studentSub?.status || 'Pending'}</span>
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono-tabular inline-flex items-center gap-1 ${
+                              isVerifiedSub
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                : isNeedsReviewSub
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                  : 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
+                            }`}
+                          >
+                            {isVerifiedSub && <CheckCircle2 className="w-3 h-3" />}
+                            {isNeedsReviewSub && <AlertCircle className="w-3 h-3" />}
+                            {isPendingSub && <Clock className="w-3 h-3" />}
+                            <span>
+                              {studentSub?.verificationStatusLabel ||
+                                studentSub?.status ||
+                                'Pending'}
+                            </span>
+                          </span>
+                          {approvalStatusText && (
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono-tabular inline-flex items-center gap-1 ${
+                                approvalStatusText === 'Approved'
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                  : approvalStatusText === 'Rejected'
+                                    ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                              }`}
+                            >
+                              <span>{approvalStatusText}</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-3 text-right">
                         <span className="text-[#C2410C] dark:text-amber-400 font-semibold hover:underline flex items-center justify-end gap-1 font-sans">
@@ -565,10 +787,18 @@ export const RequestManagementSection: React.FC<RequestManagementSectionProps> =
       <AnimatePresence>
         {inspectStudentSubmission && (
           <StudentSubmissionDetailModal
+            currentUser={currentUser}
             student={inspectStudentSubmission.student}
             request={inspectStudentSubmission.request}
-            submission={inspectStudentSubmission.submission}
+            submission={
+              submissions.find(
+                (s) =>
+                  s.requestId === inspectStudentSubmission.request.id &&
+                  s.studentId === inspectStudentSubmission.student.id
+              ) || inspectStudentSubmission.submission
+            }
             onClose={() => setInspectStudentSubmission(null)}
+            onReviewSubmissionDecision={onReviewSubmissionDecision}
           />
         )}
       </AnimatePresence>

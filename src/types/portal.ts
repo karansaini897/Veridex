@@ -216,9 +216,13 @@ export interface DocumentRecord {
   fileSize: string;
   mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
   previewUrl?: string;
+  vaultDocumentId?: string;
+  hasStoredFileBlob?: boolean;
+  ocrStatus?: OcrProcessingStatus;
+  ocrExtractedText?: string;
   // Unified Status Tracking
-  verificationStatusLabel?: 'Pending Verification' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review';
-  approvalStatusLabel?: 'Pending Verification' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review';
+  verificationStatusLabel?: 'Pending Verification' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review' | 'Verified in demo';
+  approvalStatusLabel?: 'Pending Verification' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review' | 'Pending Approval';
   statusUpdatedAt?: string;
   // 6-pillar statuses
   completenessStatus: 'Complete' | 'Missing Pages/Fields' | 'Pending Review';
@@ -362,6 +366,7 @@ export type SubmissionStatus =
   | 'Needs review in demo'
   | 'Submission incomplete'
   | 'Approved'
+  | 'Rejected'
   | 'Needs Review';
 
 export interface SubmittedDocumentFile {
@@ -372,7 +377,12 @@ export interface SubmittedDocumentFile {
   mimeType: string;
   submittedAt: string;
   previewUrl?: string;
-  verificationOutcome?: 'Verified in demo' | 'Needs review in demo' | 'Pending' | 'Approved' | 'Needs Review';
+  vaultDocumentId?: string;
+  sourceType?: 'upload' | 'vault';
+  hasStoredFileBlob?: boolean;
+  ocrExtractedText?: string;
+  verificationOutcome?: 'Verified in demo' | 'Needs review in demo' | 'Pending' | 'Pending Verification' | 'Approved' | 'Needs Review';
+  approvalStatus?: 'Pending Approval' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review';
   verificationFeedback?: string;
 }
 
@@ -386,8 +396,12 @@ export interface StudentRequestSubmission {
   studentEmail?: string;
   status: SubmissionStatus;
   submittedAt?: string;
-  verificationStatus?: 'Verified in demo' | 'Needs review in demo' | 'Pending' | 'Approved' | 'Needs Review';
+  verificationStatus?: 'Verified in demo' | 'Needs review in demo' | 'Pending' | 'Pending Verification' | 'Approved' | 'Needs Review';
+  approvalStatus?: 'Pending Approval' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review';
   verificationFeedback?: string;
+  reviewedByName?: string;
+  reviewedAt?: string;
+  reviewerNote?: string;
   documents: SubmittedDocumentFile[];
 }
 
@@ -408,4 +422,59 @@ export interface DocumentSubmissionRequest {
   createdAt: string;
   status: 'Active' | 'Closed';
 }
+
+export type OcrProcessingStatus =
+  | 'Not Run'
+  | 'Processing'
+  | 'Completed'
+  | 'Failed'
+  | 'Cancelled'
+  | 'Unsupported';
+
+export type VaultVerificationStatus =
+  | 'Uploaded'
+  | 'Pending Verification'
+  | 'Verified in demo'
+  | 'Needs Review';
+
+export type VaultApprovalStatus =
+  | 'Not Submitted'
+  | 'Approval Pending'
+  | 'Under Review'
+  | 'Approved'
+  | 'Rejected';
+
+export interface VaultEditableDetails {
+  title: string;
+  certificateNumber: string;
+  holderName: string;
+  issuingAuthority: string;
+  issueDate: string;
+  expiryDate?: string;
+  notes?: string;
+}
+
+export interface VaultDocumentRecord {
+  id: string;
+  ownerUserId: string;
+  ownerName: string;
+  institutionId?: string;
+  institutionName?: string;
+  originalFileName: string;
+  mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
+  fileSizeBytes: number;
+  fileSizeLabel: string;
+  category: DocumentCategory;
+  dateAdded: string;
+  updatedAt: string;
+  hasStoredBlob: boolean;
+  ocrStatus: OcrProcessingStatus;
+  ocrExtractedText: string;
+  ocrEngineUsed?: 'tesseract-image-ocr' | 'pdf-text-layer' | 'manual';
+  editableDetails: VaultEditableDetails;
+  verificationStatus: VaultVerificationStatus;
+  approvalStatus: VaultApprovalStatus;
+  linkedRepositoryDocId?: string;
+}
+
 

@@ -99,9 +99,11 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
 
     // Checklist & Document & Account Approval statuses
     case 'Verified':
+    case 'Verified in demo':
     case 'Passed':
     case 'Reviewed':
     case 'Complete':
+    case 'Completed':
     case 'Consistent':
     case 'No Anomaly Detected':
     case 'Valid':
@@ -120,6 +122,8 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
     case 'Pending':
     case 'Pending Activation':
     case 'Pending Approval':
+    case 'Approval Pending':
+    case 'Processing':
       return {
         tone: 'review',
         label: normalized,
@@ -131,6 +135,7 @@ export function resolveStatusVisual(rawStatus: string): StatusVisualConfig {
     case 'Correction Requested':
     case 'No Approver Assigned':
     case 'Needs Review':
+    case 'Needs review in demo':
       return {
         tone: 'warning',
         label: normalized,

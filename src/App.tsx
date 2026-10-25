@@ -18,6 +18,7 @@ import {
   PortalNotification,
   StudentRequestSubmission,
   UserAccount,
+  VaultDocumentRecord,
 } from './types/portal';
 import {
   SEED_APPLICATIONS,
@@ -33,12 +34,12 @@ import {
 } from './data/seedData';
 import {
   addDaysToLocalDate,
+  applyReviewerDecisionToSubmission,
   buildApprovedUserAccountFromRequest,
   buildCategoryChecklist,
   canUserAccessApplication,
   canUserActionApprovalRequest,
   canUserPerformAdminAction,
-  computeCredentialDigest,
   createRecordId,
   formatRoleDisplayName,
   formatTimestampForDisplay,
@@ -46,8 +47,14 @@ import {
   getCurrentIsoTimestamp,
   getLocalTodayDate,
   resolveApprovalRouting,
-  sanitizeUserForStorage,
+  resolveRepositoryStatusesFromSubmission,
 } from './lib/domain';
+import {
+  STORAGE_KEYS,
+  loadUsersPreservingSeedAccounts,
+  loadValidatedArrayFromStorage,
+  persistPortalStateToStorage,
+} from './lib/storage';
 import { LoginView } from './components/LoginView';
 import { SignUpView } from './components/SignUpView';
 import { LandingPageView } from './components/LandingPageView';
@@ -61,46 +68,6 @@ import { ExpiryCalendarView } from './components/ExpiryCalendarView';
 import { ReportsAndAccountsView } from './components/ReportsAndAccountsView';
 import { ProfileAndSettingsView } from './components/ProfileAndSettingsView';
 import { GeminiChatbotWidget } from './components/GeminiChatbotWidget';
-
-const STORAGE_KEYS = {
-  theme: 'veridex_portal_theme_v7',
-  currentUserId: 'veridex_portal_current_user_v7',
-  users: 'veridex_portal_users_v7',
-  approvalRequests: 'veridex_portal_approval_reqs_v7',
-  applications: 'veridex_portal_apps_v7',
-  documents: 'veridex_portal_docs_v7',
-  rules: 'veridex_portal_rules_v7',
-  notifications: 'veridex_portal_notifs_v7',
-  audit: 'veridex_portal_audit_v7',
-  documentRequests: 'veridex_portal_doc_requests_v7',
-  studentSubmissions: 'veridex_portal_student_submissions_v7',
-};
-
-function loadFromStorage<T>(key: string, fallback: T): T {
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function loadUsersFromStorage(): UserAccount[] {
-  const stored = loadFromStorage<UserAccount[]>(STORAGE_KEYS.users, SEED_USERS);
-  return stored.map((u) => {
-    const seedMatch = SEED_USERS.find((s) => s.id === u.id || s.username === u.username);
-    const fallbackPassword = u.password ?? seedMatch?.password;
-    return {
-      ...u,
-      password: fallbackPassword,
-      credentialDigest:
-        u.credentialDigest ??
-        seedMatch?.credentialDigest ??
-        (fallbackPassword ? computeCredentialDigest(u.username, fallbackPassword) : undefined),
-    };
-  });
-}
 
 export default function App() {
   // Light theme is default; Dark mode is optional and persistent
@@ -127,30 +94,64 @@ export default function App() {
     }
   }, [darkMode]);
 
-  const [users, setUsers] = useState<UserAccount[]>(loadUsersFromStorage);
+  const [users, setUsers] = useState<UserAccount[]>(() =>
+    loadUsersPreservingSeedAccounts(SEED_USERS)
+  );
   const [approvalRequests, setApprovalRequests] = useState<AccountApprovalRequest[]>(() =>
-    loadFromStorage(STORAGE_KEYS.approvalRequests, SEED_APPROVAL_REQUESTS)
+    loadValidatedArrayFromStorage(
+      STORAGE_KEYS.approvalRequests,
+      SEED_APPROVAL_REQUESTS,
+      (x): x is AccountApprovalRequest => Boolean(x && typeof x === 'object' && 'id' in x && 'username' in x)
+    )
   );
   const [applications, setApplications] = useState<ApplicationRecord[]>(() =>
-    loadFromStorage(STORAGE_KEYS.applications, SEED_APPLICATIONS)
+    loadValidatedArrayFromStorage(
+      STORAGE_KEYS.applications,
+      SEED_APPLICATIONS,
+      (x): x is ApplicationRecord => Boolean(x && typeof x === 'object' && 'id' in x && 'institutionId' in x)
+    )
   );
   const [documents, setDocuments] = useState<DocumentRecord[]>(() =>
-    loadFromStorage(STORAGE_KEYS.documents, SEED_DOCUMENTS)
+    loadValidatedArrayFromStorage(
+      STORAGE_KEYS.documents,
+      SEED_DOCUMENTS,
+      (x): x is DocumentRecord => Boolean(x && typeof x === 'object' && 'id' in x && 'internalCode' in x)
+    )
   );
   const [complianceRules, setComplianceRules] = useState<ComplianceRule[]>(() =>
-    loadFromStorage(STORAGE_KEYS.rules, SEED_COMPLIANCE_RULES)
+    loadValidatedArrayFromStorage(
+      STORAGE_KEYS.rules,
+      SEED_COMPLIANCE_RULES,
+      (x): x is ComplianceRule => Boolean(x && typeof x === 'object' && 'id' in x && 'code' in x)
+    )
   );
   const [notifications, setNotifications] = useState<PortalNotification[]>(() =>
-    loadFromStorage(STORAGE_KEYS.notifications, SEED_NOTIFICATIONS)
+    loadValidatedArrayFromStorage(
+      STORAGE_KEYS.notifications,
+      SEED_NOTIFICATIONS,
+      (x): x is PortalNotification => Boolean(x && typeof x === 'object' && 'id' in x && 'title' in x)
+    )
   );
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(() =>
-    loadFromStorage(STORAGE_KEYS.audit, SEED_AUDIT_EVENTS)
+    loadValidatedArrayFromStorage(
+      STORAGE_KEYS.audit,
+      SEED_AUDIT_EVENTS,
+      (x): x is AuditEvent => Boolean(x && typeof x === 'object' && 'id' in x && 'action' in x)
+    )
   );
   const [documentRequests, setDocumentRequests] = useState<DocumentSubmissionRequest[]>(() =>
-    loadFromStorage(STORAGE_KEYS.documentRequests, SEED_DOCUMENT_REQUESTS)
+    loadValidatedArrayFromStorage(
+      STORAGE_KEYS.documentRequests,
+      SEED_DOCUMENT_REQUESTS,
+      (x): x is DocumentSubmissionRequest => Boolean(x && typeof x === 'object' && 'id' in x && 'title' in x)
+    )
   );
   const [studentSubmissions, setStudentSubmissions] = useState<StudentRequestSubmission[]>(() =>
-    loadFromStorage(STORAGE_KEYS.studentSubmissions, SEED_STUDENT_SUBMISSIONS)
+    loadValidatedArrayFromStorage(
+      STORAGE_KEYS.studentSubmissions,
+      SEED_STUDENT_SUBMISSIONS,
+      (x): x is StudentRequestSubmission => Boolean(x && typeof x === 'object' && 'id' in x && 'requestId' in x)
+    )
   );
 
   // Restore saved session if present; never silently auto-login unauthenticated visitors
@@ -170,27 +171,20 @@ export default function App() {
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
 
-  // Sync state to localStorage (omitting plaintext passwords from persisted user records)
+  // Sync state to localStorage (omitting plaintext passwords and transient blob URLs)
   useEffect(() => {
-    try {
-      const sanitizedUsers = users.map(sanitizeUserForStorage);
-      window.localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(sanitizedUsers));
-      window.localStorage.setItem(STORAGE_KEYS.approvalRequests, JSON.stringify(approvalRequests));
-      window.localStorage.setItem(STORAGE_KEYS.applications, JSON.stringify(applications));
-      window.localStorage.setItem(STORAGE_KEYS.documents, JSON.stringify(documents));
-      window.localStorage.setItem(STORAGE_KEYS.rules, JSON.stringify(complianceRules));
-      window.localStorage.setItem(STORAGE_KEYS.notifications, JSON.stringify(notifications));
-      window.localStorage.setItem(STORAGE_KEYS.audit, JSON.stringify(auditEvents));
-      window.localStorage.setItem(STORAGE_KEYS.documentRequests, JSON.stringify(documentRequests));
-      window.localStorage.setItem(STORAGE_KEYS.studentSubmissions, JSON.stringify(studentSubmissions));
-      if (currentUserId) {
-        window.localStorage.setItem(STORAGE_KEYS.currentUserId, currentUserId);
-      } else {
-        window.localStorage.removeItem(STORAGE_KEYS.currentUserId);
-      }
-    } catch {
-      // ignore storage errors
-    }
+    persistPortalStateToStorage({
+      users,
+      approvalRequests,
+      applications,
+      documents,
+      complianceRules,
+      notifications,
+      auditEvents,
+      documentRequests,
+      studentSubmissions,
+      currentUserId,
+    });
   }, [
     users,
     approvalRequests,
@@ -1222,7 +1216,144 @@ export default function App() {
     }
   };
 
-  // Submit Student Documents & Simulated Verification
+  // Synchronize a Personal Document Vault record into the user's Document Repository
+  const handleSyncVaultToRepository = (vaultDoc: VaultDocumentRecord) => {
+    const todayStr = getLocalTodayDate();
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+    const stableDocId = `DOC-VAULT-${vaultDoc.id}`;
+
+    setDocuments((prevDocs) => {
+      const existingIdx = prevDocs.findIndex((d) => d.id === stableDocId || d.vaultDocumentId === vaultDoc.id);
+      const mimeType: DocumentRecord['mimeType'] = (['application/pdf', 'image/jpeg', 'image/png'].includes(
+        vaultDoc.mimeType
+      )
+        ? vaultDoc.mimeType
+        : 'application/pdf') as DocumentRecord['mimeType'];
+
+      const mappedCategory: DocumentRecord['category'] =
+        vaultDoc.documentCategory === 'Identity Proofs' ||
+        vaultDoc.documentCategory === 'Marksheets & Transcripts' ||
+        vaultDoc.documentCategory === 'Admission & Fee Receipts' ||
+        vaultDoc.documentCategory === 'Event & Competition Certificates' ||
+        vaultDoc.documentCategory === 'Medical & Fitness Certificates' ||
+        vaultDoc.documentCategory === 'Custom / Other'
+          ? 'Student Records'
+          : vaultDoc.documentCategory;
+
+      if (existingIdx >= 0) {
+        const existingDoc = prevDocs[existingIdx];
+        const copy = [...prevDocs];
+        copy[existingIdx] = {
+          ...existingDoc,
+          name: vaultDoc.title,
+          category: mappedCategory,
+          certificateNumber:
+            vaultDoc.editableDetails.documentNumber || existingDoc.certificateNumber,
+          issuingAuthority:
+            vaultDoc.editableDetails.issuingAuthority || existingDoc.issuingAuthority,
+          issueDate: vaultDoc.editableDetails.issueDate || existingDoc.issueDate,
+          expiryDate: vaultDoc.editableDetails.expiryDate || existingDoc.expiryDate,
+          fileName: vaultDoc.fileName,
+          fileSize: vaultDoc.fileSizeLabel,
+          mimeType,
+          vaultDocumentId: vaultDoc.id,
+          hasStoredFileBlob: vaultDoc.hasStoredFileBlob,
+          ocrStatus: vaultDoc.ocrStatus,
+          ocrExtractedText: vaultDoc.ocrExtractedText,
+          verificationStatusLabel: vaultDoc.verificationStatus,
+          statusUpdatedAt: nowDisplay,
+          extractedSummary: {
+            ...existingDoc.extractedSummary,
+            'Document Title': vaultDoc.title,
+            'Holder / Signatory': vaultDoc.editableDetails.holderName || vaultDoc.ownerName,
+            'Certificate Number':
+              vaultDoc.editableDetails.documentNumber || existingDoc.certificateNumber,
+            'OCR Status': vaultDoc.ocrStatus,
+          },
+        };
+        return copy;
+      }
+
+      const internalCode = generateInternalDocumentCode(
+        mappedCategory,
+        vaultDoc.ownerName,
+        prevDocs.map((d) => d.internalCode)
+      );
+
+      const newDoc: DocumentRecord = {
+        id: stableDocId,
+        internalCode,
+        name: vaultDoc.title,
+        category: mappedCategory,
+        suggestedAiCategory: mappedCategory,
+        suggestedFolder: `/Repository/Personal-Vault/${mappedCategory.replace(/\s+/g, '-')}`,
+        categoryConfirmed: true,
+        institutionId: vaultDoc.institutionId || currentUser?.institutionId || 'INST-VESIT-104',
+        institutionName: currentUser?.institutionName || 'VESIT',
+        uploadedFromSection: 'Personal Document Vault',
+        personName: vaultDoc.editableDetails.holderName || vaultDoc.ownerName,
+        personUserId: vaultDoc.ownerUserId,
+        uploadedByUserId: vaultDoc.ownerUserId,
+        certificateNumber:
+          vaultDoc.editableDetails.documentNumber || `VLT-${vaultDoc.id.slice(-6).toUpperCase()}`,
+        issuingAuthority:
+          vaultDoc.editableDetails.issuingAuthority || 'Personal Document Vault Record',
+        issueDate: vaultDoc.editableDetails.issueDate || todayStr,
+        expiryDate: vaultDoc.editableDetails.expiryDate || undefined,
+        uploadDate: todayStr,
+        fileName: vaultDoc.fileName,
+        fileSize: vaultDoc.fileSizeLabel,
+        mimeType,
+        vaultDocumentId: vaultDoc.id,
+        hasStoredFileBlob: vaultDoc.hasStoredFileBlob,
+        ocrStatus: vaultDoc.ocrStatus,
+        ocrExtractedText: vaultDoc.ocrExtractedText,
+        verificationStatusLabel: vaultDoc.verificationStatus,
+        approvalStatusLabel: 'Under Review',
+        statusUpdatedAt: nowDisplay,
+        completenessStatus: 'Complete',
+        consistencyStatus: 'Consistent',
+        anomalyStatus: 'No Anomaly Detected',
+        issuerVerificationStatus: 'Pending',
+        humanReviewStatus: 'Pending',
+        extractedSummary: {
+          'Document Title': vaultDoc.title,
+          'Holder / Signatory': vaultDoc.editableDetails.holderName || vaultDoc.ownerName,
+          'Certificate Number':
+            vaultDoc.editableDetails.documentNumber || `VLT-${vaultDoc.id.slice(-6).toUpperCase()}`,
+          'Storage Location': 'Browser IndexedDB (Personal Document Vault)',
+          'OCR Status': vaultDoc.ocrStatus,
+        },
+        findings: [
+          {
+            id: createRecordId('F-VLT'),
+            pillar: 'Completeness',
+            status: 'Advisory',
+            affectedFieldOrPage: 'Personal Document Vault File',
+            explanation:
+              'Saved in browser IndexedDB Personal Document Vault. Available for reuse across document requests.',
+            evidenceComparison: `${vaultDoc.fileName} (${vaultDoc.fileSizeLabel})`,
+            suggestedNextAction: 'Can be attached directly to any document submission request.',
+          },
+        ],
+        versions: [
+          {
+            versionNumber: 1,
+            fileName: vaultDoc.fileName,
+            fileSize: vaultDoc.fileSizeLabel,
+            mimeType,
+            uploadedAt: nowDisplay,
+            uploadedBy: vaultDoc.ownerName,
+            changeNote: 'Saved in Personal Document Vault (IndexedDB).',
+          },
+        ],
+      };
+
+      return [newDoc, ...prevDocs];
+    });
+  };
+
+  // Submit Student Documents & Simulated Verification (keeps Demo Verification separate from Reviewer Approval)
   const handleSubmitStudentDocuments = (updatedSub: StudentRequestSubmission) => {
     setStudentSubmissions((prev) => {
       const targetSubStudentId = updatedSub.studentId || updatedSub.studentUserId;
@@ -1241,30 +1372,17 @@ export default function App() {
     const todayStr = getLocalTodayDate();
     const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
 
-    // Synchronize submitted files directly into the documents repository so the student can view all their uploaded documents
+    // Synchronize submitted files into the documents repository with independent per-request statuses
     if (updatedSub.documents && updatedSub.documents.length > 0) {
       setDocuments((prevDocs) => {
         let updatedDocs = [...prevDocs];
 
         updatedSub.documents.forEach((docFile, idx) => {
           const stableDocId = `DOC-SUB-${updatedSub.id}-${docFile.requirementId || idx}`;
-
-          let verifLabel: 'Pending Verification' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review' = 'Pending Verification';
-          let apprvLabel: 'Pending Verification' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review' = 'Under Review';
-          let issuerStatus: DocumentRecord['issuerVerificationStatus'] = 'Pending';
-          let humanStatus: DocumentRecord['humanReviewStatus'] = 'Pending';
-
-          if (docFile.verificationOutcome === 'Verified in demo') {
-            verifLabel = 'Approved';
-            apprvLabel = 'Approved';
-            issuerStatus = 'Verified';
-            humanStatus = 'Reviewed';
-          } else if (docFile.verificationOutcome === 'Needs review in demo') {
-            verifLabel = 'Needs Review';
-            apprvLabel = 'Needs Review';
-            issuerStatus = 'Pending';
-            humanStatus = 'Action Required';
-          }
+          const resolvedStatuses = resolveRepositoryStatusesFromSubmission(
+            docFile.verificationOutcome || updatedSub.status,
+            docFile.approvalStatus || updatedSub.approvalStatus
+          );
 
           const existingIndex = updatedDocs.findIndex((d) => d.id === stableDocId);
           if (existingIndex >= 0) {
@@ -1279,10 +1397,12 @@ export default function App() {
                 ? docFile.mimeType
                 : 'application/pdf') as any,
               previewUrl: docFile.previewUrl || existingDoc.previewUrl,
-              verificationStatusLabel: verifLabel,
-              approvalStatusLabel: apprvLabel,
-              issuerVerificationStatus: issuerStatus,
-              humanReviewStatus: humanStatus,
+              vaultDocumentId: docFile.vaultDocumentId ?? existingDoc.vaultDocumentId,
+              hasStoredFileBlob: docFile.hasStoredFileBlob ?? existingDoc.hasStoredFileBlob,
+              verificationStatusLabel: resolvedStatuses.verificationStatusLabel,
+              approvalStatusLabel: resolvedStatuses.approvalStatusLabel,
+              issuerVerificationStatus: resolvedStatuses.issuerVerificationStatus,
+              humanReviewStatus: resolvedStatuses.humanReviewStatus,
               statusUpdatedAt: nowDisplay,
               versions: [
                 ...existingDoc.versions,
@@ -1329,19 +1449,24 @@ export default function App() {
                 ? docFile.mimeType
                 : 'application/pdf') as any,
               previewUrl: docFile.previewUrl,
-              verificationStatusLabel: verifLabel,
-              approvalStatusLabel: apprvLabel,
+              vaultDocumentId: docFile.vaultDocumentId,
+              hasStoredFileBlob: docFile.hasStoredFileBlob,
+              verificationStatusLabel: resolvedStatuses.verificationStatusLabel,
+              approvalStatusLabel: resolvedStatuses.approvalStatusLabel,
               statusUpdatedAt: nowDisplay,
               completenessStatus: docFile.verificationOutcome === 'Needs review in demo' ? 'Pending Review' : 'Complete',
               consistencyStatus: 'Consistent',
               anomalyStatus: 'No Anomaly Detected',
-              issuerVerificationStatus: issuerStatus,
-              humanReviewStatus: humanStatus,
+              issuerVerificationStatus: resolvedStatuses.issuerVerificationStatus,
+              humanReviewStatus: resolvedStatuses.humanReviewStatus,
               extractedSummary: {
                 'Document Title': docFile.requirementName || 'Submitted Document',
                 'Student Name': updatedSub.studentName,
                 'Roll Number': updatedSub.studentRollNumber,
                 'Document Request': request?.title || updatedSub.requestId,
+                'Submission Source': docFile.vaultDocumentId
+                  ? `Linked from Personal Document Vault (${docFile.vaultDocumentId})`
+                  : 'Uploaded directly to request',
                 'Submission Date': todayStr,
               },
               findings: [
@@ -1352,12 +1477,12 @@ export default function App() {
                   affectedFieldOrPage: 'Submitted Document',
                   explanation:
                     docFile.verificationFeedback ||
-                    'Document successfully submitted and registered in repository.',
+                    'Document submitted for request; awaiting reviewer approval.',
                   evidenceComparison: `File: ${docFile.fileName} (${docFile.fileSize})`,
                   suggestedNextAction:
                     docFile.verificationOutcome === 'Needs review in demo'
                       ? 'Review feedback and provide amendment if requested.'
-                      : 'Verified.',
+                      : 'Awaiting reviewer approval decision.',
                 },
               ],
               versions: [
@@ -1390,7 +1515,7 @@ export default function App() {
         userId: request.creatorUserId,
         type: 'status_change',
         title: `Documents Submitted: ${updatedSub.studentName}`,
-        message: `${updatedSub.studentName} has submitted documents for "${request.title}". Current status: ${updatedSub.status}.`,
+        message: `${updatedSub.studentName} has submitted documents for "${request.title}". Verification: ${updatedSub.status} · Approval: ${updatedSub.approvalStatus || 'Pending Approval'}.`,
         targetView: 'dashboard',
         targetRecordId: request.id,
         read: false,
@@ -1405,9 +1530,53 @@ export default function App() {
         'Submitted Required Documents',
         'Document',
         updatedSub.requestId,
-        `${updatedSub.studentName} submitted files for request "${request?.title || updatedSub.requestId}" (${updatedSub.status})`
+        `${updatedSub.studentName} submitted files for request "${request?.title || updatedSub.requestId}" (Verification: ${updatedSub.status}, Approval: ${updatedSub.approvalStatus || 'Pending Approval'})`
       );
     }
+  };
+
+  // Explicit Reviewer Approval Decision on a Student Request Submission (independent per request)
+  const handleReviewStudentSubmission = (
+    submissionId: string,
+    decision: 'Approved' | 'Rejected' | 'Needs Review',
+    note: string
+  ) => {
+    if (!currentUser) return;
+    const targetSub = studentSubmissions.find((s) => s.id === submissionId);
+    if (!targetSub) return;
+
+    const updatedSub = applyReviewerDecisionToSubmission(targetSub, decision, currentUser, note);
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+
+    setStudentSubmissions((prev) =>
+      prev.map((s) => (s.id === submissionId ? updatedSub : s))
+    );
+
+    // Update only the repository records belonging to THIS specific submission (DOC-SUB-${submissionId}-...)
+    setDocuments((prevDocs) =>
+      prevDocs.map((doc) => {
+        if (!doc.id.startsWith(`DOC-SUB-${submissionId}-`)) return doc;
+        return {
+          ...doc,
+          approvalStatusLabel: decision,
+          humanReviewStatus:
+            decision === 'Approved'
+              ? 'Reviewed'
+              : decision === 'Needs Review' || decision === 'Rejected'
+                ? 'Action Required'
+                : doc.humanReviewStatus,
+          statusUpdatedAt: nowDisplay,
+        };
+      })
+    );
+
+    appendAudit(
+      currentUser,
+      `Student Submission ${decision}`,
+      'Document',
+      targetSub.requestId,
+      `${currentUser.fullName} marked submission ${submissionId} (${targetSub.studentName}) as ${decision}: ${note}`
+    );
   };
 
   // If not authenticated, render LandingPageView by default, LoginView, or SignUpView
@@ -1547,6 +1716,7 @@ export default function App() {
             documentRequests={documentRequests}
             studentSubmissions={studentSubmissions}
             onCreateDocumentRequest={handleCreateDocumentRequest}
+            onReviewSubmissionDecision={handleReviewStudentSubmission}
             onOpenApplication={(appId) => setSelectedApplicationId(appId)}
             onOpenDocument={(docId) => {
               setActiveView('documents');
@@ -1567,6 +1737,7 @@ export default function App() {
             studentSubmissions={studentSubmissions}
             onCreateDocumentRequest={handleCreateDocumentRequest}
             onSubmitStudentDocuments={handleSubmitStudentDocuments}
+            onReviewSubmissionDecision={handleReviewStudentSubmission}
             onOpenApplication={(appId) => setSelectedApplicationId(appId)}
             onOpenDocument={(docId) => {
               setActiveView('documents');
@@ -1623,6 +1794,7 @@ export default function App() {
           onUploadDocument={handleUploadDocument}
           onReplaceDocumentVersion={handleReplaceDocumentVersion}
           onUpdateDocumentHumanReview={handleUpdateDocumentHumanReview}
+          onSyncVaultToRepository={handleSyncVaultToRepository}
         />
       )}
 
@@ -1802,6 +1974,7 @@ export default function App() {
           darkMode={darkMode}
           onToggleDarkMode={() => setDarkMode((prev) => !prev)}
           onResetRegistryData={handleResetRegistryData}
+          onSyncVaultToRepository={handleSyncVaultToRepository}
         />
       )}
 

@@ -8,11 +8,15 @@ import {
   ChecklistItem,
   DocumentCategory,
   DocumentRecord,
+  DocumentRequirement,
   ExpiryStatus,
   Institution,
   Role,
   SignupRole,
+  StudentRequestSubmission,
+  SubmittedDocumentFile,
   UserAccount,
+  VaultDocumentRecord,
 } from '../types/portal';
 
 export const ACADEMIC_DEPARTMENTS: readonly AcademicDepartment[] = [
@@ -1472,3 +1476,124 @@ export function computeInstitutionChartData(
     expirySummary,
   };
 }
+
+/**
+ * Links an existing Personal Document Vault record to a specific document requirement
+ * on a request without duplicating the vault document record.
+ * Keeps verification status and approval status strictly separate.
+ */
+export function buildSubmittedFileFromVaultDocument(
+  requirement: DocumentRequirement,
+  vaultDoc: VaultDocumentRecord,
+  submittedAt: string,
+  simulatedDemoVerification: 'Verified in demo' | 'Needs review in demo' = 'Verified in demo'
+): SubmittedDocumentFile {
+  return {
+    requirementId: requirement.id,
+    requirementName: requirement.name,
+    fileName: vaultDoc.originalFileName,
+    fileSize: vaultDoc.fileSizeLabel,
+    mimeType: vaultDoc.mimeType,
+    submittedAt,
+    vaultDocumentId: vaultDoc.id,
+    sourceType: 'vault',
+    hasStoredFileBlob: vaultDoc.hasStoredBlob,
+    ocrExtractedText: vaultDoc.ocrExtractedText || undefined,
+    verificationOutcome: simulatedDemoVerification,
+    approvalStatus: 'Pending Approval',
+    verificationFeedback:
+      simulatedDemoVerification === 'Verified in demo'
+        ? `Linked saved vault document (${vaultDoc.id}). Simulated format check completed; awaiting reviewer approval.`
+        : `Linked saved vault document (${vaultDoc.id}); flagged for reviewer attention.`,
+  };
+}
+
+/**
+ * Maps a SubmittedDocumentFile to its corresponding DocumentRecord verification and approval statuses.
+ * Enforces Section 4.2:
+ * - Demo verification ('Verified in demo') NEVER automatically marks a document as 'Approved'.
+ * - Approval only becomes 'Approved' or 'Rejected' when an authorized reviewer explicitly records a decision.
+ */
+export function resolveRepositoryStatusesFromSubmission(docFile: SubmittedDocumentFile): {
+  verificationStatusLabel: NonNullable<DocumentRecord['verificationStatusLabel']>;
+  approvalStatusLabel: NonNullable<DocumentRecord['approvalStatusLabel']>;
+  issuerVerificationStatus: DocumentRecord['issuerVerificationStatus'];
+  humanReviewStatus: DocumentRecord['humanReviewStatus'];
+} {
+  let verificationStatusLabel: NonNullable<DocumentRecord['verificationStatusLabel']> =
+    'Pending Verification';
+  let issuerVerificationStatus: DocumentRecord['issuerVerificationStatus'] = 'Pending';
+
+  if (docFile.verificationOutcome === 'Verified in demo') {
+    verificationStatusLabel = 'Verified in demo';
+    issuerVerificationStatus = 'Verified';
+  } else if (
+    docFile.verificationOutcome === 'Needs review in demo' ||
+    docFile.verificationOutcome === 'Needs Review'
+  ) {
+    verificationStatusLabel = 'Needs Review';
+    issuerVerificationStatus = 'Pending';
+  } else if (docFile.verificationOutcome === 'Approved') {
+    verificationStatusLabel = 'Verified in demo';
+    issuerVerificationStatus = 'Verified';
+  }
+
+  let approvalStatusLabel: NonNullable<DocumentRecord['approvalStatusLabel']> = 'Under Review';
+  let humanReviewStatus: DocumentRecord['humanReviewStatus'] = 'Pending';
+
+  if (docFile.approvalStatus === 'Approved') {
+    approvalStatusLabel = 'Approved';
+    humanReviewStatus = 'Reviewed';
+  } else if (docFile.approvalStatus === 'Rejected') {
+    approvalStatusLabel = 'Rejected';
+    humanReviewStatus = 'Action Required';
+  } else if (docFile.approvalStatus === 'Needs Review') {
+    approvalStatusLabel = 'Needs Review';
+    humanReviewStatus = 'Action Required';
+  } else {
+    // Default for newly uploaded or demo-verified submissions: Pending Approval / Under Review
+    approvalStatusLabel = 'Under Review';
+    humanReviewStatus = 'Pending';
+  }
+
+  return {
+    verificationStatusLabel,
+    approvalStatusLabel,
+    issuerVerificationStatus,
+    humanReviewStatus,
+  };
+}
+
+/**
+ * Applies an authorized reviewer's approval or rejection decision to a single request submission.
+ * Guarantees per-request independence (Section 7.2):
+ * If the same saved vault document was submitted to multiple requests, approving or rejecting
+ * one request submission never alters the status of any other request submission or deletes the vault record.
+ */
+export function applyReviewerDecisionToSubmission(
+  submissions: StudentRequestSubmission[],
+  targetSubmissionId: string,
+  decision: 'Approved' | 'Rejected' | 'Needs Review',
+  reviewer: Pick<UserAccount, 'fullName' | 'role'>,
+  reviewerNote: string,
+  timestamp: string = formatTimestampForDisplay(getCurrentIsoTimestamp())
+): StudentRequestSubmission[] {
+  return submissions.map((sub) => {
+    if (sub.id !== targetSubmissionId) {
+      return sub;
+    }
+    return {
+      ...sub,
+      status: decision,
+      approvalStatus: decision,
+      reviewedByName: reviewer.fullName,
+      reviewedAt: timestamp,
+      reviewerNote: reviewerNote.trim() || `Marked ${decision} by ${reviewer.fullName}.`,
+      documents: sub.documents.map((doc) => ({
+        ...doc,
+        approvalStatus: decision,
+      })),
+    };
+  });
+}
+

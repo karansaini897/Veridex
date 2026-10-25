@@ -68,6 +68,11 @@ interface InstitutionalDashboardViewProps {
   studentSubmissions?: StudentRequestSubmission[];
   onCreateDocumentRequest?: (newReq: DocumentSubmissionRequest) => void;
   onSubmitStudentDocuments?: (sub: StudentRequestSubmission) => void;
+  onReviewSubmissionDecision?: (
+    submissionId: string,
+    decision: 'Approved' | 'Rejected' | 'Needs Review',
+    note: string
+  ) => void;
   onOpenApplication: (appId: string) => void;
   onOpenDocument: (docId: string) => void;
   onCreateApplication: (params: {
@@ -136,6 +141,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
   studentSubmissions = [],
   onCreateDocumentRequest,
   onSubmitStudentDocuments,
+  onReviewSubmissionDecision,
   onOpenApplication,
   onOpenDocument,
   onCreateApplication,
@@ -289,9 +295,23 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                   const sub = studentSubmissions.find(
                     (s) => s.requestId === req.id && s.studentId === currentUser.id
                   );
-                  const isVerified = sub?.status === 'Verified in demo';
-                  const isNeedsReview = sub?.status === 'Needs review in demo';
+                  const isVerified =
+                    sub?.status === 'Verified in demo' ||
+                    sub?.verificationStatusLabel === 'Verified in demo';
+                  const isNeedsReview =
+                    sub?.status === 'Needs review in demo' ||
+                    sub?.verificationStatusLabel === 'Needs Review';
                   const isPending = !sub || sub.status === 'Pending';
+                  const approvalStatusText =
+                    sub?.approvalStatus ||
+                    sub?.approvalStatusLabel ||
+                    (sub?.status === 'Approved'
+                      ? 'Approved'
+                      : sub?.status === 'Rejected'
+                        ? 'Rejected'
+                        : sub && sub.documents.length > 0
+                          ? 'Pending Approval'
+                          : null);
 
                   return (
                     <div
@@ -320,20 +340,35 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
                             <Clock className="w-3.5 h-3.5 text-[#046A38]" />
                             <span>Deadline: <strong>{req.deadline}</strong></span>
                           </span>
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-mono-tabular inline-flex items-center gap-1 ${
-                              isVerified
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                : isNeedsReview
-                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                                  : 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
-                            }`}
-                          >
-                            {isVerified && <CheckCircle2 className="w-3.5 h-3.5" />}
-                            {isNeedsReview && <AlertCircle className="w-3.5 h-3.5" />}
-                            {isPending && <Clock className="w-3.5 h-3.5" />}
-                            <span>{sub?.status || 'Pending Submission'}</span>
-                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-mono-tabular inline-flex items-center gap-1 ${
+                                isVerified
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                  : isNeedsReview
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                    : 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
+                              }`}
+                            >
+                              {isVerified && <CheckCircle2 className="w-3.5 h-3.5" />}
+                              {isNeedsReview && <AlertCircle className="w-3.5 h-3.5" />}
+                              {isPending && <Clock className="w-3.5 h-3.5" />}
+                              <span>{sub?.verificationStatusLabel || sub?.status || 'Pending Submission'}</span>
+                            </span>
+                            {approvalStatusText && (
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-mono-tabular inline-flex items-center gap-1 ${
+                                  approvalStatusText === 'Approved'
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                    : approvalStatusText === 'Rejected'
+                                      ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                                      : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                }`}
+                              >
+                                <span>Approval: {approvalStatusText}</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -669,6 +704,7 @@ export const InstitutionalDashboardView: React.FC<InstitutionalDashboardViewProp
             }
             submissions={studentSubmissions}
             onCreateNewRequest={() => setCreateRequestModalOpen(true)}
+            onReviewSubmissionDecision={onReviewSubmissionDecision}
           />
         </motion.div>
       )}

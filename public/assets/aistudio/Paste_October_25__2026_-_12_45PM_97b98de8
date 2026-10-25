@@ -1,0 +1,815 @@
+# VERIDEX MASTER IMPLEMENTATION PROMPT
+## Code Quality, Existing Feature Preservation, Login Protection, OCR and Personal Document Vault
+
+You are working on my EXISTING Veridex project, a React and TypeScript application.
+
+Your task is to improve the existing codebase, correct inconsistencies, and implement an OCR-powered Personal Document Vault that integrates with the existing document submission workflow.
+
+This is a FRONTEND-ONLY DEMO AND PROTOTYPE.
+
+I do not want to rebuild the website, redesign it, replace its existing functionality, or convert it into a production application.
+
+Read this entire prompt before modifying any files.
+
+==================================================
+SECTION 1: ABSOLUTE PROJECT REQUIREMENTS
+==================================================
+
+## 1.1 Preserve the existing website design
+
+This requirement is mandatory.
+
+Do not redesign, restyle, reconstruct, or visually replace the existing website.
+
+Preserve:
+- The existing color palette, typography, spacing, layouts, and visual hierarchy.
+- The existing branding, logos, text, and visual identity.
+- Existing dashboards, navigation, sidebars, headers, cards, tables, forms, modals, and buttons.
+- Existing page layouts and responsive behavior.
+- Existing animations, loading states, and interactions.
+- Existing role-specific interfaces for students, faculty, institution managers, and administrators.
+- Existing document repository and profile layouts.
+- Existing chatbot interface.
+- Existing login and signup interfaces.
+
+Do not introduce a new design system or replace the current component library.
+
+For the new OCR and Personal Document Vault features, reuse the existing design language and components. Integrate them into the current interface without unnecessarily rearranging existing pages.
+
+Only make a visual change when it is essential to the requested functionality or to correct a specific existing problem. Keep such changes minimal and consistent with the existing design.
+
+## 1.2 Preserve existing functionality
+
+Do not recreate the application from scratch.
+
+Do not remove working features, routes, components, user journeys, or role-specific functionality simply because the code could be organized differently.
+
+Before modifying a feature, inspect how it works and identify its dependencies.
+
+If a feature works correctly, preserve its behavior while improving its internal implementation.
+
+If you discover a bug, correct it with the smallest safe change and explain what changed.
+
+If an improvement might unintentionally alter the intended behavior, preserve the existing behavior and report the concern instead of making an unapproved change.
+
+## 1.3 This must remain frontend-only
+
+Veridex is currently a frontend demo. Keep it that way.
+
+Do not create or connect:
+- A backend application.
+- A database server or backend database.
+- New server endpoints or server functions.
+- Supabase or Firebase.
+- Cloud document storage.
+- External authentication services.
+- External OCR APIs.
+- External AI services for document processing.
+- Any new backend infrastructure.
+
+Use the existing React and TypeScript architecture, client-side state, mock data, and browser storage.
+
+Use browser-native functionality and client-side libraries where appropriate.
+
+Browser APIs such as IndexedDB, File, Blob, URL.createObjectURL, and supported camera interfaces are permitted.
+
+A client-side library that runs in the browser is also permitted when necessary.
+
+Do not introduce unnecessary dependencies.
+
+The project may contain existing server-related code or an existing chatbot endpoint. Inspect these dependencies before changing anything. Do not expand the backend or blindly delete existing server files. If an existing feature depends on a server endpoint, preserve its current behavior where possible and report the limitation honestly.
+
+Do not claim that the application is completely independent of backend services if an existing feature still requires one.
+
+## 1.4 Preserve all existing user accounts and login credentials
+
+THIS IS A CRITICAL REQUIREMENT.
+
+Do not change, reset, replace, regenerate, or delete the existing login credentials of any currently created demo user.
+
+Preserve:
+- Every existing user account.
+- Every existing login identifier.
+- Every existing password.
+- Every existing account ID.
+- Every existing user role.
+- Existing demo-account data.
+- Existing login and signup behavior.
+- Existing account relationships and associated data.
+
+Do not modify seed credentials or change credential verification in a way that invalidates existing accounts.
+
+Do not reset the user database represented by the current frontend data.
+
+Do not clear existing localStorage records as part of a migration or refactor.
+
+Do not replace existing users with newly generated sample users.
+
+Before changing authentication-related code, inspect how credentials are created, stored, loaded, and verified.
+
+If an improvement to credential storage or authentication could break existing logins, do not implement that change automatically. Preserve the current working implementation and report the proposed improvement separately.
+
+Preserving access to existing accounts takes priority over credential-related refactoring.
+
+Do not claim that all existing accounts have been tested unless you actually tested them.
+
+## 1.5 Preserve existing data
+
+Do not unnecessarily delete or overwrite:
+- Existing users.
+- Existing demo credentials.
+- Existing document records.
+- Existing institution records.
+- Existing faculty and student records.
+- Existing requests and submissions.
+- Existing notifications.
+- Existing user preferences.
+- Existing mock data required by the application.
+
+Keep existing storage keys and data formats compatible wherever possible.
+
+If a migration is genuinely necessary, preserve existing data and make the migration safe and backward-compatible.
+
+Do not introduce unnecessary new sample records.
+
+==================================================
+SECTION 2: INSPECT THE PROJECT BEFORE EDITING
+==================================================
+
+Before modifying the project:
+
+1. Inspect the complete project structure.
+2. Read package.json and the relevant project configuration.
+3. Inspect the current application architecture and shared utilities.
+4. Identify how users, roles, documents, requests, and submissions are represented.
+5. Trace the current document upload and submission workflows.
+6. Identify how document repository records are created and updated.
+7. Inspect existing localStorage operations.
+8. Inspect authentication and credential handling.
+9. Inspect the current student and faculty directories.
+10. Inspect the chatbot and its existing dependencies.
+11. Inspect the current test files.
+12. Identify which files and components can be safely modified.
+
+Previously reviewed files included App.tsx, AppShell.tsx, src/lib/domain.ts, src/data/seedData.ts, DocumentRepositoryView.tsx, StudentDocumentSubmissionModal.tsx, SignUpView.tsx, InstitutionalDashboardView.tsx, ReportsAndAccountsView.tsx, LandingPageView.tsx, AdminDashboardView.tsx, GeminiChatbotWidget.tsx, and src/lib/chatbotData.ts.
+
+Verify the actual paths and responsibilities in the current project before using this list. Do not assume that every file still exists at the same location.
+
+Do not blindly replace large files.
+
+Implement changes in small, logically grouped stages.
+
+==================================================
+SECTION 3: CODE QUALITY AND RELIABILITY
+==================================================
+
+## 3.1 Refactor oversized files carefully
+
+Identify files that contain too many unrelated responsibilities.
+
+Where useful and safe:
+- Separate reusable domain logic from large React components.
+- Move shared helper functions into appropriate modules.
+- Organize shared types consistently.
+- Reduce duplicated business logic.
+- Keep components focused on their existing responsibilities.
+- Avoid circular imports.
+- Preserve existing public exports and component interfaces.
+- Avoid creating excessive numbers of tiny files.
+
+For App.tsx, inspect whether application state, persistence, document workflows, notifications, and role-specific logic can be separated safely.
+
+Do not refactor a component merely to reduce its line count.
+
+Preserve the existing UI and intended functionality.
+
+## 3.2 Improve localStorage handling
+
+The application currently uses browser storage for parts of its demo state.
+
+Improve storage reliability without adding a backend.
+
+Requirements:
+- Handle missing or malformed JSON.
+- Validate stored data structures instead of relying only on TypeScript type assertions.
+- Provide safe defaults for missing or invalid data.
+- Handle storage read and write failures gracefully.
+- Avoid unnecessary repeated serialization.
+- Preserve existing storage keys and data formats wherever possible.
+- Avoid resetting existing users or document records.
+- Prevent corrupted storage data from crashing the application.
+- Do not silently erase valid data when a storage operation fails.
+
+Use backward-compatible changes wherever possible.
+
+Do not move every existing record to a different storage mechanism without a clear technical reason.
+
+## 3.3 Improve TypeScript and error handling
+
+Review existing types for:
+- Users.
+- Documents.
+- Document submissions.
+- Document requests.
+- Notifications.
+- Institutions.
+- Faculty and student records.
+
+Reduce unnecessary use of any where practical.
+
+Avoid duplicated type definitions.
+
+Validate untrusted stored data before treating it as a valid typed record.
+
+Avoid broad catch blocks that hide errors.
+
+Preserve existing behavior while improving genuine reliability issues.
+
+## 3.4 Review seed data
+
+Inspect existing mock data and preserve all records required by the current application.
+
+Improve organization where useful.
+
+Check identifiers and relationships between users, institutions, requests, documents, and submissions.
+
+Remove unused records only after confirming that no existing feature depends on them.
+
+Do not create new sample users just to populate the interface.
+
+Do not remove meaningful existing sample data simply because the seed-data file is large.
+
+## 3.5 Review project configuration
+
+Inspect package.json, .gitignore, metadata, generated artifacts, and npm scripts.
+
+Check whether the package metadata identifies the project appropriately.
+
+Do not change dependency versions unnecessarily.
+
+Do not delete assets or generated files without verifying that they are unused.
+
+Distinguish TypeScript type checking from actual linting when reporting validation results.
+
+Keep the project runnable through its existing supported workflow.
+
+==================================================
+SECTION 4: DOCUMENT UPLOAD AND STATUS CONSISTENCY
+==================================================
+
+Review the existing document upload, repository, verification, approval, and submission workflows before introducing the new vault.
+
+Preserve existing screens and workflows wherever possible.
+
+## 4.1 Distinguish file contents from file metadata
+
+A filename, MIME type, and file size do not constitute the actual document.
+
+Inspect whether the existing application creates document records without retaining the actual selected File object.
+
+Correct this inconsistency.
+
+The frontend should distinguish between:
+- The original document file.
+- Document metadata.
+- OCR-extracted text.
+- Verification status.
+- Approval status.
+- Submission records associated with individual requests.
+
+Do not claim that a document's contents have been stored when only its metadata has been saved.
+
+## 4.2 Separate verification from approval
+
+Keep these concepts distinct:
+
+- Uploaded: The user submitted a file through the demo.
+- Verification pending: The verification workflow has not been completed.
+- Verified: The defined verification step has actually completed.
+- Approval pending: The document is awaiting the appropriate reviewer decision.
+- Approved: The appropriate approval action has been completed.
+- Rejected: A reviewer has explicitly rejected the document.
+
+Preserve existing status names and visual components wherever possible.
+
+Do not automatically mark a document as approved when a timer finishes.
+
+Do not treat OCR success as document verification.
+
+Do not treat a successful file upload as approval.
+
+Do not imply that a real-world authority or institution verified a document when no such service exists.
+
+If verification is simulated, represent it honestly as a demo operation.
+
+Ensure that status changes are consistent across the student profile, document repository, and institution-facing review screens.
+
+==================================================
+SECTION 5: NEW FEATURE - PERSONAL DOCUMENT VAULT
+==================================================
+
+Implement a Personal Document Vault that integrates with the existing Veridex profile and document-management workflows.
+
+This is a new feature, but it must not require redesigning the existing website.
+
+The purpose is to let each user save documents in their personal collection, organize them, and reuse them when responding to document requests.
+
+The vault should be part of the existing application, not a separate standalone application.
+
+## 5.1 User experience
+
+A user should be able to:
+
+1. Open their existing profile or the appropriate document-management area.
+2. Access their Personal Document Vault.
+3. View documents they have saved.
+4. Upload a new document or scan a document.
+5. Extract text using OCR when supported.
+6. Review and correct the extracted information.
+7. Save the document.
+8. Search and filter their saved documents.
+9. Open a document to view its details.
+10. Preview or download the original file where supported.
+11. Select a saved document when responding to an existing document request.
+
+Use existing cards, tables, forms, buttons, modals, and styling wherever appropriate.
+
+Do not create an entirely new dashboard just for this feature.
+
+Do not duplicate the existing document repository unnecessarily. Reuse existing document-management components and utilities where possible.
+
+## 5.2 Document categories and metadata
+
+Reuse existing document categories if they already exist.
+
+Allow the user to organize documents using the existing category structure.
+
+Where appropriate, retain the following metadata:
+- Unique document ID.
+- Owner's existing user ID.
+- Original filename.
+- MIME type.
+- File size.
+- Document category.
+- Date added.
+- Extracted OCR text.
+- Editable document details.
+- OCR processing status.
+- Existing verification status, if applicable.
+- Existing approval status, if applicable.
+
+Do not invent verification or approval results.
+
+Do not assume that OCR-extracted names, dates, or document types are correct.
+
+Allow the user to correct extracted information before saving.
+
+Keep the original document separate from the editable metadata and extracted text.
+
+## 5.3 Save documents using browser storage
+
+Use IndexedDB for storing document blobs and associated structured records when appropriate.
+
+Use the existing localStorage implementation for small pieces of application state where suitable.
+
+Do not store large document contents directly in localStorage.
+
+Requirements:
+- Create a consistent client-side storage utility for vault records.
+- Store the original File or Blob in IndexedDB.
+- Associate the stored file with its metadata through a stable document ID.
+- Keep the document owner's existing user ID.
+- Avoid duplicate records when a document is edited or reused.
+- Handle unavailable or full browser storage gracefully.
+- Handle missing file blobs without crashing the application.
+- Avoid storing large Base64 strings in localStorage.
+- Release temporary object URLs when they are no longer required.
+- Avoid unnecessary file conversions or duplicate copies.
+
+Use backward-compatible changes to the existing document workflow.
+
+If a selected file has not been saved successfully, do not display it as a permanently saved vault document.
+
+## 5.4 Persistence limitations
+
+This is a frontend-only prototype.
+
+Documents stored in IndexedDB should normally remain available after a page refresh or browser restart, provided the browser retains the site's data.
+
+However:
+- Browser storage can be cleared.
+- Browser storage is not a guaranteed backup.
+- Saved documents will not automatically synchronize between separate browsers or devices.
+- Separate users do not automatically share IndexedDB records.
+- A browser-local document vault is not a production document-storage service.
+
+Do not claim that files are permanently stored or synchronized across users.
+
+Explain these limitations in the final report.
+
+==================================================
+SECTION 6: NEW FEATURE - OCR DOCUMENT SCANNING
+==================================================
+
+Implement client-side OCR so users can extract readable text from supported documents without creating a backend.
+
+Prefer a browser-based OCR library such as Tesseract.js if it can be integrated safely into the existing project.
+
+Official documentation:
+https://tesseract.projectnaptha.com/
+
+Do not call external OCR APIs or upload document contents to external services.
+
+Do not add API keys or credentials.
+
+Do not create a backend OCR endpoint.
+
+## 6.1 Supported document inputs
+
+Support the existing application's compatible upload formats and, where practical:
+- JPG and JPEG images.
+- PNG images.
+- PDFs containing selectable text.
+- Scanned PDFs, if reliable browser-side page rendering and OCR can be implemented without destabilizing the project.
+
+Do not promise support for a format unless it is actually implemented.
+
+If scanned PDF processing requires an additional library, evaluate the dependency and its browser compatibility before adding it.
+
+Avoid unnecessary packages.
+
+## 6.2 Upload workflow
+
+The user should be able to select a supported document from their device.
+
+The application should:
+1. Validate the selected file type.
+2. Validate the file size against a sensible configurable limit.
+3. Display the filename and relevant file details.
+4. Allow the user to preview the document where supported.
+5. Provide an OCR action or initiate OCR according to the existing interface.
+6. Display a clear processing state.
+7. Display extracted text when processing finishes.
+8. Allow the user to correct extracted information.
+9. Allow the user to save the original file and associated metadata in their vault.
+
+Handle unsupported files and unreadable documents gracefully.
+
+Do not crash when OCR fails.
+
+## 6.3 OCR processing
+
+For images, use browser-based OCR.
+
+For text-based PDFs, extract embedded text when possible instead of running OCR unnecessarily.
+
+For scanned PDFs, implement page rendering and OCR only if this can be done reliably in the browser with an appropriate dependency.
+
+Requirements:
+- Display processing progress where practical.
+- Prevent accidental duplicate OCR jobs.
+- Allow the user to cancel processing where practical.
+- Avoid blocking the entire interface during long-running OCR operations.
+- Handle large files and unreadable images gracefully.
+- Release temporary resources when processing finishes.
+- Do not save extracted data as verified facts.
+- Do not mark a document as approved when OCR succeeds.
+
+OCR may misread names, numbers, dates, and other information.
+
+Display extracted information for user review and correction.
+
+Do not silently assume that the extracted information is correct.
+
+## 6.4 Camera-based scanning
+
+If browser camera access can be implemented safely without changing the existing design, support a scan option using the browser's camera interface.
+
+Requirements:
+- Request camera permission only when the user explicitly chooses to scan.
+- Handle denied permissions and unavailable cameras gracefully.
+- Allow the user to capture an image.
+- Provide a preview before saving.
+- Support basic image adjustments, such as rotation or cropping, if they can be implemented without adding excessive complexity.
+- Allow the user to retake a scan.
+- Process the resulting image through the existing client-side OCR workflow.
+
+Camera access must be optional.
+
+If reliable camera scanning cannot be implemented safely in the current task, implement file upload and OCR first, and clearly report that camera scanning remains incomplete.
+
+Do not falsely describe ordinary file uploads as camera-based scanning.
+
+## 6.5 Review and correction
+
+After OCR completes, show the extracted text or structured fields in the existing design language.
+
+Allow users to correct relevant information before saving.
+
+Do not automatically infer sensitive document information beyond what is reasonably required by the existing workflow.
+
+Do not treat the OCR result as proof of identity, authenticity, or institutional approval.
+
+Keep OCR status separate from document verification and approval status.
+
+## 6.6 OCR failure handling
+
+Handle:
+- Unsupported file types.
+- Empty OCR results.
+- Unreadable images.
+- Corrupted files.
+- Failed PDF parsing.
+- Browser storage errors.
+- OCR processing failures.
+- Missing browser capabilities.
+
+Display understandable messages consistent with the current design.
+
+Do not expose internal stack traces to ordinary users.
+
+Do not fabricate extracted text when OCR fails.
+
+Allow the user to retry or save a document without OCR where appropriate.
+
+==================================================
+SECTION 7: REUSE SAVED DOCUMENTS IN EXISTING REQUESTS
+==================================================
+
+This is a core requirement.
+
+Integrate the Personal Document Vault into the existing document request and submission workflow.
+
+Do not replace the existing workflow.
+
+When a user needs to submit a document in response to a request, allow them to choose between:
+
+1. Upload New Document.
+2. Choose from My Saved Documents.
+
+Use the existing form, modal, or submission interface wherever possible.
+
+## 7.1 Selecting a saved document
+
+When the user chooses the saved-document option:
+
+- Display documents belonging to the current demo user.
+- Provide search or filtering if appropriate.
+- Show relevant metadata and existing statuses.
+- Allow the user to select a document.
+- Show which document they selected.
+- Require a clear confirmation before submission.
+
+Do not display another user's documents in the current user's personal vault.
+
+Do not introduce additional demo users or fabricate document records to populate the selector.
+
+## 7.2 Submission relationships
+
+When a saved document is selected for a request:
+
+- Associate the existing document ID with the relevant request.
+- Create or update the appropriate submission record.
+- Retain the request ID and document ID relationship.
+- Preserve the document's original metadata and contents.
+- Record the submission date using the existing data conventions.
+- Update the relevant student-facing and institution-facing views.
+- Avoid creating a duplicate vault document unnecessarily.
+
+One saved document may be submitted in response to multiple requests.
+
+Each request must maintain its own submission status and history.
+
+For example, if a student uses the same marksheet for two different requests, rejecting it for one request must not automatically change the submission status of the other request or delete the original document from the vault.
+
+Do not conflate the original document's metadata with the status of an individual submission.
+
+## 7.3 Institution-facing views
+
+Preserve the existing institution manager, faculty, and administrator workflows.
+
+Where the existing application permits an authorized demo user to review submissions, make the selected document and its associated request visible through the existing interface.
+
+Preserve existing profile and repository views.
+
+Do not invent new roles or change the existing role-specific experience.
+
+Do not introduce a new backend-based sharing mechanism.
+
+If the application uses separate browser storage for different users, do not pretend that a document selected in one browser has been physically delivered to another browser.
+
+Keep the demo's current data-flow limitations clear.
+
+==================================================
+SECTION 8: EXISTING DIRECTORY AND ROLE BEHAVIOR
+==================================================
+
+Preserve the existing faculty and student directory behavior.
+
+The intended experience is:
+- Show four profiles initially.
+- Preserve the existing search functionality.
+- Keep the See All or equivalent control beside the search area.
+- Display the full list when the user selects See All.
+- Preserve the existing profile cards and details.
+
+Do not rebuild the directories or change their layout.
+
+Inspect existing role-switching and account-switching controls.
+
+If a demo-only role switcher exists and is not part of the intended user experience, remove or hide only that control.
+
+Do not remove normal login, logout, account management, or role-specific dashboards.
+
+Do not delete a callback or component without checking all its usages.
+
+Remember that frontend role checks are for demonstrating the experience, not enforcing production security.
+
+==================================================
+SECTION 9: CHATBOT PRESERVATION
+==================================================
+
+Review the existing chatbot component, chatbot data utilities, role-specific prompts, and server-endpoint dependencies.
+
+Preserve the existing chatbot interface and intended behavior.
+
+Do not add a chatbot backend, API keys, external services, or new endpoints.
+
+Avoid duplicated prompt definitions and unnecessary fallback logic.
+
+If the chatbot currently depends on an existing endpoint, inspect the dependency before changing it.
+
+Do not silently remove the chatbot or replace a working feature with a nonfunctional placeholder.
+
+If a frontend-only fallback already exists, reuse it where appropriate.
+
+If the existing chatbot cannot operate without an endpoint, report that limitation instead of pretending the dependency has been eliminated.
+
+Do not allow the OCR or document vault implementation to break the chatbot.
+
+==================================================
+SECTION 10: TESTING AND VALIDATION
+==================================================
+
+After implementing the changes, validate the existing application.
+
+Run the project's existing checks when the environment permits.
+
+Do not install unnecessary dependencies merely to run optional checks.
+
+Test the following areas where practical.
+
+### Existing login and user data
+- Existing demo accounts remain present.
+- Existing login identifiers remain unchanged.
+- Existing passwords remain unchanged.
+- Existing roles and account relationships remain unchanged.
+- Existing users can still sign in using their previously working credentials, where the test environment permits.
+- Existing data is not reset or unnecessarily overwritten.
+
+Never report a credential test as successful unless it was actually performed.
+
+### Existing website behavior
+- Navigation remains functional.
+- Existing dashboards remain available.
+- Role-specific screens remain intact.
+- The existing visual design remains unchanged apart from minimal changes required by the new feature.
+- Directory search and See All still work.
+- Existing document workflows remain functional.
+- The chatbot interface remains intact.
+
+### Personal Document Vault
+- A user can add a supported document.
+- The original file and metadata are associated correctly.
+- The saved document appears in the vault.
+- Saved documents remain available after a page refresh when browser storage retains the data.
+- Search and selection work.
+- Storage failures are handled gracefully.
+- Missing document blobs do not crash the application.
+
+### OCR
+- Image OCR works with a suitable test image.
+- Extracted text is displayed.
+- The user can correct extracted information.
+- OCR failures are handled gracefully.
+- OCR results do not automatically produce verification or approval.
+- PDF support is tested only for formats actually implemented.
+
+### Document requests
+- A user can select a saved document for an existing request.
+- The submission references the correct document and request.
+- Reusing a document does not unnecessarily duplicate the original vault record.
+- Different requests maintain independent submission statuses.
+- The original document remains in the vault after submission.
+- Existing repository and profile views remain consistent.
+
+### Project integrity
+- Imports and exports are correct.
+- TypeScript checks pass where possible.
+- Existing tests pass where possible.
+- The production build completes where possible.
+- No unnecessary backend dependency has been introduced.
+
+Report failures honestly.
+
+Do not claim that a build or test passed unless it was actually executed successfully.
+
+==================================================
+SECTION 11: IMPLEMENTATION ORDER
+==================================================
+
+Implement the work in the following order.
+
+STAGE 1: INSPECTION AND PROTECTION
+Inspect the project, map dependencies, and identify existing account data and login behavior. Preserve the current project state.
+
+STAGE 2: DOCUMENT WORKFLOW CORRECTNESS
+Correct document metadata handling, record consistency, and verification-versus-approval logic.
+
+STAGE 3: BROWSER STORAGE
+Improve existing localStorage handling and implement the IndexedDB functionality required for actual document-file storage.
+
+STAGE 4: PERSONAL DOCUMENT VAULT
+Integrate the saved-document collection into the existing profile or document-management interface.
+
+STAGE 5: OCR
+Implement client-side image OCR, PDF text extraction where supported, and scanned-PDF OCR where practical and reliable.
+
+STAGE 6: REQUEST INTEGRATION
+Integrate saved-document selection into the existing document submission workflow.
+
+STAGE 7: SAFE CODE REFACTORING
+Refactor oversized files, improve TypeScript types, reduce duplicated logic, and clean up error handling where safe.
+
+STAGE 8: AUTHENTICATION, DIRECTORIES, AND CHATBOT REVIEW
+Verify that existing credentials, account behavior, directory interactions, and chatbot functionality remain intact.
+
+STAGE 9: VALIDATION
+Run the available tests, type checks, and production build. Review the application for regressions.
+
+You do not need to stop after every stage to ask permission.
+
+Complete the safe work that can be finished in the current run.
+
+If the entire scope cannot be completed in one run, finish the highest-priority safe changes first and report precisely what remains.
+
+Do not mark incomplete functionality as complete.
+
+Do not make destructive changes simply to finish the task.
+
+==================================================
+SECTION 12: FINAL REPORT
+==================================================
+
+After implementation, provide a clear report explaining:
+
+1. Which files were changed.
+2. What was changed in each file.
+3. Which existing bugs were corrected.
+4. Which refactoring improvements were made.
+5. How existing login credentials and user records were preserved.
+6. How the Personal Document Vault works.
+7. Which browser storage mechanism is used for the original documents.
+8. Which document formats support OCR.
+9. Whether camera scanning was implemented.
+10. How saved documents are selected for existing requests.
+11. How document and submission statuses are kept separate.
+12. Whether any existing backend or external-service dependencies remain.
+13. What limitations remain because this is a frontend-only demo.
+14. Which tests were actually run and their results.
+15. Whether the production build completed successfully.
+16. Any changes that could not be safely implemented.
+
+Explain technical details in simple language.
+
+Clearly distinguish implemented features from partially implemented features and future suggestions.
+
+Do not claim that documents are permanently stored, synchronized across devices, genuinely verified, or securely shared unless the implementation actually supports those claims.
+
+==================================================
+FINAL NON-NEGOTIABLE PRIORITIES
+==================================================
+
+Priority 1: Preserve the existing Veridex website design.
+
+Priority 2: Preserve every existing user's login credentials and account access.
+
+Priority 3: Preserve existing features, navigation, user records, and intended workflows.
+
+Priority 4: Keep the project frontend-only without adding backend infrastructure.
+
+Priority 5: Implement the Personal Document Vault and OCR using browser-side functionality.
+
+Priority 6: Make document reuse work with the existing request and submission workflow.
+
+Priority 7: Improve code quality and reliability without destabilizing the application.
+
+Priority 8: Test the changes and report limitations honestly.
+
+Do not sacrifice existing functionality for code cleanliness.
+
+Do not sacrifice account access for authentication refactoring.
+
+Do not sacrifice the existing design to accommodate the new features.
+
+The final result must remain the existing Veridex application, improved internally and extended with a frontend-only OCR and Personal Document Vault feature.
