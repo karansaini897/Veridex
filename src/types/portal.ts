@@ -182,6 +182,7 @@ export interface VerificationFinding {
     | 'Expiry'
     | 'Consistency'
     | 'Anomaly Indicators'
+    | 'Anomaly'
     | 'Issuer Verification'
     | 'Human Review';
   status: VerificationPillarStatus;
@@ -355,6 +356,7 @@ export interface DocumentRequirement {
   id: string;
   name: string;
   description: string;
+  required?: boolean;
   allowedFormats?: string[];
 }
 
@@ -365,6 +367,7 @@ export type SubmissionStatus =
   | 'Verified in demo'
   | 'Needs review in demo'
   | 'Submission incomplete'
+  | 'Under Review'
   | 'Approved'
   | 'Rejected'
   | 'Needs Review';
@@ -392,16 +395,20 @@ export interface StudentRequestSubmission {
   studentId: string;
   studentUserId?: string;
   studentName: string;
-  studentRollNumber: string;
+  studentUsername?: string;
+  studentRollNumber?: string;
   studentEmail?: string;
   status: SubmissionStatus;
   submittedAt?: string;
   verificationStatus?: 'Verified in demo' | 'Needs review in demo' | 'Pending' | 'Pending Verification' | 'Approved' | 'Needs Review';
+  verificationStatusLabel?: string;
   approvalStatus?: 'Pending Approval' | 'Under Review' | 'Approved' | 'Rejected' | 'Needs Review';
+  approvalStatusLabel?: string;
   verificationFeedback?: string;
   reviewedByName?: string;
   reviewedAt?: string;
   reviewerNote?: string;
+  reviewerDecisionNote?: string;
   documents: SubmittedDocumentFile[];
 }
 
@@ -446,7 +453,10 @@ export type VaultApprovalStatus =
 
 export interface VaultEditableDetails {
   title: string;
+  documentType?: string;
+  category?: DocumentCategory;
   certificateNumber: string;
+  documentNumber?: string;
   holderName: string;
   issuingAuthority: string;
   issueDate: string;
@@ -458,23 +468,32 @@ export interface VaultDocumentRecord {
   id: string;
   ownerUserId: string;
   ownerName: string;
+  ownerRole?: Role;
   institutionId?: string;
   institutionName?: string;
   originalFileName: string;
+  fileName?: string;
+  title?: string;
+  documentType?: string;
+  captureSource?: 'upload' | 'camera' | 'file_upload' | 'camera_capture';
   mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
   fileSizeBytes: number;
   fileSizeLabel: string;
   category: DocumentCategory;
+  documentCategory?: DocumentCategory | string;
   dateAdded: string;
   updatedAt: string;
   hasStoredBlob: boolean;
+  hasStoredFileBlob?: boolean;
   ocrStatus: OcrProcessingStatus;
   ocrExtractedText: string;
   ocrEngineUsed?: 'tesseract-image-ocr' | 'pdf-text-layer' | 'manual';
   editableDetails: VaultEditableDetails;
   verificationStatus: VaultVerificationStatus;
   approvalStatus: VaultApprovalStatus;
+  notes?: string;
   linkedRepositoryDocId?: string;
 }
+
 
 

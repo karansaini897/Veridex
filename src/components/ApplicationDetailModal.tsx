@@ -13,11 +13,13 @@ import {
   ApplicationRecord,
   DocumentRecord,
   UserAccount,
+  VaultDocumentRecord,
 } from '../types/portal';
 import {
   addDaysToLocalDate,
   calculateExpiryDetails,
   canUserPerformAdminAction,
+  extractDocumentPrefillSuggestion,
   getLocalTodayDate,
 } from '../lib/domain';
 import {
@@ -26,6 +28,7 @@ import {
   slideOverDrawerVariants,
 } from '../lib/motion';
 import { FileTypeMarker, StatusBadge } from './StatusPrimitives';
+import { getVaultDocumentsForUser } from '../lib/vaultStorage';
 
 interface ApplicationDetailModalProps {
   application: ApplicationRecord;
@@ -70,6 +73,14 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCertNo, setUploadCertNo] = useState('');
   const [uploadExpiry, setUploadExpiry] = useState(() => addDaysToLocalDate(todayStr, 365));
+  const [vaultDocs, setVaultDocs] = useState<VaultDocumentRecord[]>([]);
+  const [selectedVaultPrefillId, setSelectedVaultPrefillId] = useState<string>('');
+
+  React.useEffect(() => {
+    getVaultDocumentsForUser(currentUser.id)
+      .then((docs) => setVaultDocs(docs))
+      .catch(() => setVaultDocs([]));
+  }, [currentUser.id]);
 
   // Draft submission state & incomplete checklist override note
   const [draftSubmitConfirmOpen, setDraftSubmitConfirmOpen] = useState(false);
@@ -514,6 +525,47 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                           <div className="text-xs font-semibold text-slate-900 dark:text-white">
                             Register Supporting Document Metadata for "{item.title}"
                           </div>
+
+                          {vaultDocs.length > 0 && (
+                            <div className="p-2.5 rounded-lg bg-white/80 dark:bg-stone-900/80 border border-[#C7A56A]/45 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <select
+                                aria-label="Select a saved Vault document to prefill checklist fields"
+                                value={selectedVaultPrefillId}
+                                onChange={(e) => setSelectedVaultPrefillId(e.target.value)}
+                                className="flex-1 px-2.5 py-1 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
+                              >
+                                <option value="">
+                                  Prefill from Personal Document Vault ({vaultDocs.length} saved)...
+                                </option>
+                                {vaultDocs.map((vd) => (
+                                  <option key={vd.id} value={vd.id}>
+                                    {vd.editableDetails.title} — Cert #{vd.editableDetails.certificateNumber}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                disabled={!selectedVaultPrefillId}
+                                onClick={() => {
+                                  const chosen = vaultDocs.find((v) => v.id === selectedVaultPrefillId);
+                                  if (!chosen) return;
+                                  const prefill = extractDocumentPrefillSuggestion(
+                                    chosen,
+                                    currentUser.fullName
+                                  );
+                                  setUploadTitle(prefill.title);
+                                  setUploadCertNo(prefill.certificateNumber);
+                                  if (prefill.expiryDate) {
+                                    setUploadExpiry(prefill.expiryDate);
+                                  }
+                                }}
+                                className="btn-secondary !py-1 !px-2.5 text-[11px] whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50"
+                              >
+                                Prefill Fields from Vault
+                              </button>
+                            </div>
+                          )}
+
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                               <label className="block text-[11px] text-slate-500 mb-1">

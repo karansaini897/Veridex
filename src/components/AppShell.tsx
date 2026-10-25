@@ -30,6 +30,7 @@ import {
 import { canUserAccessApplication, canUserAccessDocument } from '../lib/domain';
 import { SPRING_LINUX_SIDEBAR, REDUCED_MOTION_TRANSITION } from '../lib/motion';
 import { EmptyStateCard, FileTypeMarker, StatusBadge } from './StatusPrimitives';
+import { HeritageAmbientPattern, HeritageEmbroideredBorder } from './HeritageOrnaments';
 
 interface AppShellProps {
   currentUser: UserAccount;
@@ -293,7 +294,8 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   return (
     <MotionConfig reducedMotion="user">
-    <div className="min-h-screen flex liquid-canvas text-stone-900 dark:text-stone-100">
+    <div className="min-h-screen flex liquid-canvas text-stone-900 dark:text-stone-100 relative">
+      <HeritageAmbientPattern />
       {/* Desktop Sidebar — Linux-window-inspired horizontal fold/expand from left */}
       <motion.aside
         id="veridex-desktop-sidebar"
@@ -525,10 +527,13 @@ export const AppShell: React.FC<AppShellProps> = ({
       </AnimatePresence>
 
       {/* Right Main Column */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
         <div className="h-1 w-full tricolour-bar sticky top-0 z-40" />
         {/* Compact Top Bar */}
-        <header className="h-16 px-3 sm:px-6 liquid-glass-elevated border-x-0 border-t-0 flex items-center justify-between gap-2 sm:gap-4 sticky top-1 z-30">
+        <header className="h-16 px-3 sm:px-6 liquid-glass-elevated border-x-0 border-t-0 flex items-center justify-between gap-2 sm:gap-4 sticky top-1 z-30 relative">
+          <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
+            <HeritageEmbroideredBorder />
+          </div>
           {/* Left: Dynamic Sidebar Hamburger Control + VERIDEX Brand + Tagline + Breadcrumb */}
           <div className="flex items-center gap-2.5 min-w-0">
             <button

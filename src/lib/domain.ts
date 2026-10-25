@@ -17,7 +17,9 @@ import {
   SubmittedDocumentFile,
   UserAccount,
   VaultDocumentRecord,
+  VerificationFinding,
 } from '../types/portal';
+
 
 export const ACADEMIC_DEPARTMENTS: readonly AcademicDepartment[] = [
   'CMPN',
@@ -1509,31 +1511,44 @@ export function buildSubmittedFileFromVaultDocument(
 }
 
 /**
- * Maps a SubmittedDocumentFile to its corresponding DocumentRecord verification and approval statuses.
+ * Maps a SubmittedDocumentFile (or raw verification/approval status pair) to its corresponding
+ * DocumentRecord verification and approval statuses.
  * Enforces Section 4.2:
  * - Demo verification ('Verified in demo') NEVER automatically marks a document as 'Approved'.
  * - Approval only becomes 'Approved' or 'Rejected' when an authorized reviewer explicitly records a decision.
  */
-export function resolveRepositoryStatusesFromSubmission(docFile: SubmittedDocumentFile): {
+export function resolveRepositoryStatusesFromSubmission(
+  docFileOrOutcome: SubmittedDocumentFile | string | undefined,
+  maybeApprovalStatus?: string
+): {
   verificationStatusLabel: NonNullable<DocumentRecord['verificationStatusLabel']>;
   approvalStatusLabel: NonNullable<DocumentRecord['approvalStatusLabel']>;
   issuerVerificationStatus: DocumentRecord['issuerVerificationStatus'];
   humanReviewStatus: DocumentRecord['humanReviewStatus'];
 } {
+  const rawVerification =
+    typeof docFileOrOutcome === 'object' && docFileOrOutcome !== null
+      ? docFileOrOutcome.verificationOutcome
+      : docFileOrOutcome;
+  const rawApproval =
+    typeof docFileOrOutcome === 'object' && docFileOrOutcome !== null
+      ? docFileOrOutcome.approvalStatus
+      : maybeApprovalStatus;
+
   let verificationStatusLabel: NonNullable<DocumentRecord['verificationStatusLabel']> =
     'Pending Verification';
   let issuerVerificationStatus: DocumentRecord['issuerVerificationStatus'] = 'Pending';
 
-  if (docFile.verificationOutcome === 'Verified in demo') {
+  if (rawVerification === 'Verified in demo') {
     verificationStatusLabel = 'Verified in demo';
     issuerVerificationStatus = 'Verified';
   } else if (
-    docFile.verificationOutcome === 'Needs review in demo' ||
-    docFile.verificationOutcome === 'Needs Review'
+    rawVerification === 'Needs review in demo' ||
+    rawVerification === 'Needs Review'
   ) {
     verificationStatusLabel = 'Needs Review';
     issuerVerificationStatus = 'Pending';
-  } else if (docFile.verificationOutcome === 'Approved') {
+  } else if (rawVerification === 'Approved') {
     verificationStatusLabel = 'Verified in demo';
     issuerVerificationStatus = 'Verified';
   }
@@ -1541,13 +1556,13 @@ export function resolveRepositoryStatusesFromSubmission(docFile: SubmittedDocume
   let approvalStatusLabel: NonNullable<DocumentRecord['approvalStatusLabel']> = 'Under Review';
   let humanReviewStatus: DocumentRecord['humanReviewStatus'] = 'Pending';
 
-  if (docFile.approvalStatus === 'Approved') {
+  if (rawApproval === 'Approved') {
     approvalStatusLabel = 'Approved';
     humanReviewStatus = 'Reviewed';
-  } else if (docFile.approvalStatus === 'Rejected') {
+  } else if (rawApproval === 'Rejected') {
     approvalStatusLabel = 'Rejected';
     humanReviewStatus = 'Action Required';
-  } else if (docFile.approvalStatus === 'Needs Review') {
+  } else if (rawApproval === 'Needs Review') {
     approvalStatusLabel = 'Needs Review';
     humanReviewStatus = 'Action Required';
   } else {
@@ -1565,19 +1580,66 @@ export function resolveRepositoryStatusesFromSubmission(docFile: SubmittedDocume
 }
 
 /**
- * Applies an authorized reviewer's approval or rejection decision to a single request submission.
+ * Applies an authorized reviewer's approval or rejection decision to a single request submission
+ * or an array of request submissions.
  * Guarantees per-request independence (Section 7.2):
  * If the same saved vault document was submitted to multiple requests, approving or rejecting
  * one request submission never alters the status of any other request submission or deletes the vault record.
  */
+export function applyReviewerDecisionToSubmission(
+  submission: StudentRequestSubmission,
+  decision: 'Approved' | 'Rejected' | 'Needs Review',
+  reviewer: Pick<UserAccount, 'fullName' | 'role'>,
+  reviewerNote: string,
+  timestamp?: string
+): StudentRequestSubmission;
 export function applyReviewerDecisionToSubmission(
   submissions: StudentRequestSubmission[],
   targetSubmissionId: string,
   decision: 'Approved' | 'Rejected' | 'Needs Review',
   reviewer: Pick<UserAccount, 'fullName' | 'role'>,
   reviewerNote: string,
-  timestamp: string = formatTimestampForDisplay(getCurrentIsoTimestamp())
-): StudentRequestSubmission[] {
+  timestamp?: string
+): StudentRequestSubmission[];
+export function applyReviewerDecisionToSubmission(
+  submissionsOrSingle: StudentRequestSubmission[] | StudentRequestSubmission,
+  targetIdOrDecision: string,
+  decisionOrReviewer:
+    | 'Approved'
+    | 'Rejected'
+    | 'Needs Review'
+    | Pick<UserAccount, 'fullName' | 'role'>,
+  reviewerOrNote: Pick<UserAccount, 'fullName' | 'role'> | string,
+  noteOrTimestamp?: string,
+  maybeTimestamp?: string
+): StudentRequestSubmission[] | StudentRequestSubmission {
+  if (!Array.isArray(submissionsOrSingle)) {
+    const singleSub = submissionsOrSingle;
+    const decision = targetIdOrDecision as 'Approved' | 'Rejected' | 'Needs Review';
+    const reviewer = decisionOrReviewer as Pick<UserAccount, 'fullName' | 'role'>;
+    const reviewerNote = String(reviewerOrNote || '');
+    const ts = noteOrTimestamp || formatTimestampForDisplay(getCurrentIsoTimestamp());
+    return {
+      ...singleSub,
+      status: decision,
+      approvalStatus: decision,
+      reviewedByName: reviewer.fullName,
+      reviewedAt: ts,
+      reviewerNote: reviewerNote.trim() || `Marked ${decision} by ${reviewer.fullName}.`,
+      documents: singleSub.documents.map((doc) => ({
+        ...doc,
+        approvalStatus: decision,
+      })),
+    };
+  }
+
+  const submissions = submissionsOrSingle;
+  const targetSubmissionId = targetIdOrDecision;
+  const decision = decisionOrReviewer as 'Approved' | 'Rejected' | 'Needs Review';
+  const reviewer = reviewerOrNote as Pick<UserAccount, 'fullName' | 'role'>;
+  const reviewerNote = String(noteOrTimestamp || '');
+  const timestamp = maybeTimestamp || formatTimestampForDisplay(getCurrentIsoTimestamp());
+
   return submissions.map((sub) => {
     if (sub.id !== targetSubmissionId) {
       return sub;
@@ -1596,4 +1658,492 @@ export function applyReviewerDecisionToSubmission(
     };
   });
 }
+
+/**
+ * 5.4 Document-to-Form Prefill Suggestion Builder
+ * Extracts structured, user-reviewable form prefill values from a saved VaultDocumentRecord
+ * or OCR-extracted metadata without automatically submitting the target form.
+ */
+export interface DocumentFormPrefillSuggestion {
+  title: string;
+  docTitle: string;
+  holderName: string;
+  personName: string;
+  certificateNumber: string;
+  issuingAuthority: string;
+  issueDate: string;
+  expiryDate: string;
+  category: DocumentCategory;
+  fileName: string;
+  mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
+  fileSize: string;
+  sourceLabel: string;
+  notes?: string;
+  vaultDocumentId?: string;
+  hasStoredBlob?: boolean;
+  ocrExtractedText?: string;
+}
+
+export type DocumentPrefillSuggestion = DocumentFormPrefillSuggestion;
+
+export function extractDocumentPrefillSuggestion(
+  vaultDoc: VaultDocumentRecord,
+  fallbackHolderName: string = ''
+): DocumentFormPrefillSuggestion {
+  const editable = vaultDoc.editableDetails || ({} as VaultDocumentRecord['editableDetails']);
+  const title =
+    (editable.title && editable.title.trim()) ||
+    (vaultDoc.title && vaultDoc.title.trim()) ||
+    vaultDoc.originalFileName.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');
+  const certNo =
+    (editable.certificateNumber && editable.certificateNumber.trim()) ||
+    (editable.documentNumber && editable.documentNumber.trim()) ||
+    `VLT-${vaultDoc.id.slice(-6).toUpperCase()}`;
+  const holder =
+    (editable.holderName && editable.holderName.trim()) ||
+    vaultDoc.ownerName ||
+    fallbackHolderName;
+  const authority =
+    (editable.issuingAuthority && editable.issuingAuthority.trim()) ||
+    'University of Mumbai & Statutory Authority';
+  const issueDate =
+    (editable.issueDate && editable.issueDate.trim()) ||
+    vaultDoc.dateAdded ||
+    getLocalTodayDate();
+  const expiryDate = (editable.expiryDate && editable.expiryDate.trim()) || '';
+  const fileName = vaultDoc.originalFileName || vaultDoc.fileName || `${title.replace(/\s+/g, '_')}.pdf`;
+  const suggestion = suggestDocumentCategory(fileName, title);
+  const category: DocumentCategory = vaultDoc.category || suggestion.category;
+
+  return {
+    title,
+    docTitle: title,
+    holderName: holder,
+    personName: holder,
+    certificateNumber: certNo,
+    issuingAuthority: authority,
+    issueDate,
+    expiryDate,
+    category,
+    fileName,
+    mimeType: vaultDoc.mimeType || 'application/pdf',
+    fileSize: vaultDoc.fileSizeLabel || '1.00 MB',
+    sourceLabel: `Personal Vault · ${fileName} (OCR: ${vaultDoc.ocrStatus})`,
+    notes: editable.notes || vaultDoc.notes || '',
+    vaultDocumentId: vaultDoc.id,
+    hasStoredBlob: Boolean(vaultDoc.hasStoredBlob ?? vaultDoc.hasStoredFileBlob),
+    ocrExtractedText: vaultDoc.ocrExtractedText || undefined,
+  };
+}
+
+/**
+ * 5.5 Document Completeness Check Engine (Browser-Side Rule Evaluation)
+ * Inspects required metadata fields, category-specific validity dates, and annexure signals.
+ */
+export function evaluateDocumentCompleteness(doc: {
+  id?: string;
+  internalCode?: string;
+  name: string;
+  category: DocumentCategory;
+  personName: string;
+  certificateNumber: string;
+  issuingAuthority: string;
+  issueDate: string;
+  expiryDate?: string;
+  fileName: string;
+  ocrExtractedText?: string;
+  extractedSummary?: Record<string, string>;
+}): {
+  completenessStatus: DocumentRecord['completenessStatus'];
+  findings: VerificationFinding[];
+} {
+  const missingFields: string[] = [];
+  const findings: VerificationFinding[] = [];
+  const codeLabel = doc.internalCode || doc.id || 'DOC';
+
+  if (!doc.name || doc.name.trim().length < 4) {
+    missingFields.push('Document Title');
+  }
+  if (!doc.personName || doc.personName.trim().length < 3) {
+    missingFields.push('Holder / Signatory Name');
+  }
+  if (!doc.certificateNumber || doc.certificateNumber.trim().length < 3) {
+    missingFields.push('Official Certificate / Reference Number');
+  }
+  if (!doc.issuingAuthority || doc.issuingAuthority.trim().length < 3) {
+    missingFields.push('Issuing Authority');
+  }
+  if (!doc.issueDate || !/^\d{4}-\d{2}-\d{2}$/.test(doc.issueDate.trim())) {
+    missingFields.push('Valid Issue Date (YYYY-MM-DD)');
+  }
+  if (!doc.fileName || !/\.(pdf|jpe?g|png)$/i.test(doc.fileName.trim())) {
+    missingFields.push('Supported Attachment File (.pdf, .jpg, .png)');
+  }
+
+  // Time-bound regulatory approvals and campus safety clearances require an explicit validity/expiry date
+  if (
+    (doc.category === 'Approvals' || doc.category === 'Infrastructure') &&
+    (!doc.expiryDate || !/^\d{4}-\d{2}-\d{2}$/.test(doc.expiryDate.trim()))
+  ) {
+    missingFields.push(`Mandatory Statutory Validity / Expiry Date for ${doc.category}`);
+  }
+
+  const combinedText = `${doc.name} ${doc.ocrExtractedText || ''} ${Object.values(
+    doc.extractedSummary || {}
+  ).join(' ')}`.toLowerCase();
+
+  const hasMissingPageSignal =
+    combinedText.includes('missing page') ||
+    combinedText.includes('missing annexure') ||
+    combinedText.includes('unsigned annexure') ||
+    combinedText.includes('incomplete scan');
+
+  if (missingFields.length > 0 || hasMissingPageSignal) {
+    const detailList =
+      missingFields.length > 0
+        ? `Missing required field(s): ${missingFields.join(', ')}.`
+        : 'Annexure or signature completeness signal detected in document summary/OCR text.';
+    findings.push({
+      id: createRecordId('F-COMP'),
+      pillar: 'Completeness',
+      status: 'Flagged',
+      affectedFieldOrPage:
+        missingFields.length > 0 ? missingFields.join(', ') : 'Annexure / Page Completeness',
+      explanation: `[Rule COMP-REQ-01] ${detailList}`,
+      evidenceComparison: `Record ${codeLabel} (${doc.fileName || 'Unnamed'}) vs. mandatory ${doc.category} schema.`,
+      suggestedNextAction:
+        'Provide the missing metadata fields or upload the complete signed multi-page PDF version.',
+    });
+    return {
+      completenessStatus: 'Missing Pages/Fields',
+      findings,
+    };
+  }
+
+  findings.push({
+    id: createRecordId('F-COMP'),
+    pillar: 'Completeness',
+    status: 'Passed',
+    affectedFieldOrPage: 'Mandatory Metadata & Attachment Schema',
+    explanation: `[Rule COMP-REQ-01] All mandatory metadata fields (Title, Holder, Certificate #${doc.certificateNumber.trim()}, Issuing Authority, Issue Date) and file format checks passed for ${doc.category}.`,
+    evidenceComparison: `${codeLabel} · Cert #${doc.certificateNumber.trim()} · Issued ${doc.issueDate} by ${doc.issuingAuthority}.`,
+    suggestedNextAction: 'Proceed to cross-document consistency and human reviewer inspection.',
+  });
+
+  return {
+    completenessStatus: 'Complete',
+    findings,
+  };
+}
+
+function stripHonorificsAndNormalizeName(raw: string): string {
+  return raw
+    .replace(/\b(Dr|Prof|Mr|Ms|Mrs|Shri|Smt|Er)\b\.?/gi, '')
+    .replace(/[^a-zA-Z\s]/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+/**
+ * 5.7 Cross-Document Consistency Check Engine
+ * Compares normalized holder names, certificate references, dates, and institution IDs
+ * across related documents and linked applications.
+ */
+export function runCrossDocumentConsistencyChecks(
+  targetDoc: {
+    id?: string;
+    internalCode?: string;
+    name: string;
+    category: DocumentCategory;
+    institutionId: string;
+    institutionName: string;
+    relatedApplicationId?: string;
+    personName: string;
+    personUserId?: string;
+    certificateNumber: string;
+    issueDate: string;
+    expiryDate?: string;
+  },
+  existingDocs: DocumentRecord[],
+  applications: ApplicationRecord[] = []
+): {
+  consistencyStatus: DocumentRecord['consistencyStatus'];
+  findings: VerificationFinding[];
+} {
+  const findings: VerificationFinding[] = [];
+  const targetCode = targetDoc.internalCode || targetDoc.id || 'NEW-DOC';
+  const normTargetName = stripHonorificsAndNormalizeName(targetDoc.personName);
+  const targetTokens = normTargetName.split(' ').filter(Boolean);
+
+  // 1. Check against linked application institution
+  if (targetDoc.relatedApplicationId) {
+    const linkedApp = applications.find((a) => a.id === targetDoc.relatedApplicationId);
+    if (linkedApp && linkedApp.institutionId !== targetDoc.institutionId) {
+      findings.push({
+        id: createRecordId('F-CONS-INST'),
+        pillar: 'Consistency',
+        status: 'Flagged',
+        affectedFieldOrPage: 'Institution ID / Dossier Ownership',
+        explanation: `[Rule CONS-INST-01] Document institution (${targetDoc.institutionId}) does not match linked application ${linkedApp.id} institution (${linkedApp.institutionId}).`,
+        evidenceComparison: `${targetCode} (${targetDoc.institutionId}) ≠ ${linkedApp.id} (${linkedApp.institutionId})`,
+        suggestedNextAction:
+          'Verify institutional ownership or link the document to the correct institutional dossier.',
+      });
+    }
+  }
+
+  // 2. Compare holder/signatory name spelling across other documents belonging to the same person or linked application
+  const peerDocs = existingDocs.filter(
+    (d) =>
+      d.id !== targetDoc.id &&
+      d.internalCode !== targetDoc.internalCode &&
+      ((targetDoc.personUserId && d.personUserId === targetDoc.personUserId) ||
+        (targetDoc.relatedApplicationId &&
+          d.relatedApplicationId === targetDoc.relatedApplicationId &&
+          d.category === targetDoc.category))
+  );
+
+  for (const peer of peerDocs) {
+    const normPeerName = stripHonorificsAndNormalizeName(peer.personName);
+    if (!normPeerName || !normTargetName) continue;
+
+    if (normPeerName !== normTargetName) {
+      const peerTokens = normPeerName.split(' ').filter(Boolean);
+      const sharesFirstToken =
+        targetTokens.length > 0 &&
+        peerTokens.length > 0 &&
+        targetTokens[0] === peerTokens[0];
+      if (sharesFirstToken || (targetDoc.personUserId && peer.personUserId === targetDoc.personUserId)) {
+        findings.push({
+          id: createRecordId('F-CONS-NAME'),
+          pillar: 'Consistency',
+          status: 'Flagged',
+          affectedFieldOrPage: 'Holder / Signatory Name Spelling',
+          explanation: `[Rule CONS-NAME-02] Name variation detected across related records for the same individual/category: "${targetDoc.personName}" on ${targetCode} vs. "${peer.personName}" on ${peer.internalCode}.`,
+          evidenceComparison: `${targetCode}: "${targetDoc.personName}" ↔ ${peer.internalCode}: "${peer.personName}"`,
+          suggestedNextAction:
+            'Inspect original scroll/affidavit for spelling equivalence (review signal only, not automatic proof of fraud).',
+        });
+        break;
+      }
+    }
+  }
+
+  if (findings.length > 0) {
+    return {
+      consistencyStatus: 'Mismatch Flagged',
+      findings,
+    };
+  }
+
+  findings.push({
+    id: createRecordId('F-CONS-OK'),
+    pillar: 'Consistency',
+    status: 'Passed',
+    affectedFieldOrPage: 'Cross-Document Holder & Institution Alignment',
+    explanation: `[Rule CONS-ALIGN-01] Holder identity ("${targetDoc.personName}") and institutional code (${targetDoc.institutionId}) are consistent across linked repository records.`,
+    evidenceComparison: `${targetCode} aligned with ${peerDocs.length} related institutional record(s).`,
+    suggestedNextAction: 'No cross-document discrepancy detected.',
+  });
+
+  return {
+    consistencyStatus: 'Consistent',
+    findings,
+  };
+}
+
+/**
+ * 5.8 Rule-Based Anomaly Screening Engine
+ * Transparently checks for contradictory dates, duplicate certificate numbers across records,
+ * and suspicious/placeholder reference codes.
+ */
+export function runRuleBasedAnomalyScreening(
+  targetDoc: {
+    id?: string;
+    internalCode?: string;
+    name: string;
+    personName: string;
+    certificateNumber: string;
+    issueDate: string;
+    expiryDate?: string;
+  },
+  existingDocs: DocumentRecord[],
+  referenceToday: string = getLocalTodayDate()
+): {
+  anomalyStatus: DocumentRecord['anomalyStatus'];
+  findings: VerificationFinding[];
+} {
+  const findings: VerificationFinding[] = [];
+  const targetCode = targetDoc.internalCode || targetDoc.id || 'NEW-DOC';
+  const cleanCert = targetDoc.certificateNumber.trim().toUpperCase();
+
+  // Rule ANOM-DATE-01: Expiry date precedes issue date
+  if (
+    targetDoc.issueDate &&
+    targetDoc.expiryDate &&
+    /^\d{4}-\d{2}-\d{2}$/.test(targetDoc.issueDate) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(targetDoc.expiryDate) &&
+    targetDoc.expiryDate < targetDoc.issueDate
+  ) {
+    findings.push({
+      id: createRecordId('F-ANOM-DATE1'),
+      pillar: 'Anomaly',
+      status: 'Flagged',
+      affectedFieldOrPage: 'Issue Date vs. Expiry Date Window',
+      explanation: `[Rule ANOM-DATE-01] Contradictory date sequence: Expiry Date (${targetDoc.expiryDate}) is earlier than Issue Date (${targetDoc.issueDate}).`,
+      evidenceComparison: `Issue Date: ${targetDoc.issueDate} > Expiry Date: ${targetDoc.expiryDate} on ${targetCode}.`,
+      suggestedNextAction:
+        'Verify certificate dates against the original document scan and correct any typographical entry.',
+    });
+  }
+
+  // Rule ANOM-DATE-02: Issue date is in the future relative to reference today
+  if (
+    targetDoc.issueDate &&
+    /^\d{4}-\d{2}-\d{2}$/.test(targetDoc.issueDate) &&
+    targetDoc.issueDate > referenceToday
+  ) {
+    findings.push({
+      id: createRecordId('F-ANOM-DATE2'),
+      pillar: 'Anomaly',
+      status: 'Flagged',
+      affectedFieldOrPage: 'Future Issue Date',
+      explanation: `[Rule ANOM-DATE-02] Certificate Issue Date (${targetDoc.issueDate}) is post-dated relative to today (${referenceToday}).`,
+      evidenceComparison: `${targetCode} Issue Date (${targetDoc.issueDate}) > Current Date (${referenceToday}).`,
+      suggestedNextAction:
+        'Inspect whether the issue date was mistyped during OCR/manual entry.',
+    });
+  }
+
+  // Rule ANOM-DUP-01: Duplicate certificate number across another document record
+  if (cleanCert.length >= 3) {
+    const duplicateDoc = existingDocs.find(
+      (d) =>
+        d.id !== targetDoc.id &&
+        d.internalCode !== targetDoc.internalCode &&
+        d.certificateNumber.trim().toUpperCase() === cleanCert
+    );
+    if (duplicateDoc) {
+      findings.push({
+        id: createRecordId('F-ANOM-DUP'),
+        pillar: 'Anomaly',
+        status: 'Flagged',
+        affectedFieldOrPage: 'Certificate Reference Number Uniqueness',
+        explanation: `[Rule ANOM-DUP-01] Duplicate Certificate Reference #${targetDoc.certificateNumber.trim()} is already registered on document ${duplicateDoc.internalCode} ("${duplicateDoc.name}", Holder: ${duplicateDoc.personName}).`,
+        evidenceComparison: `${targetCode} (Cert #${cleanCert}) duplicates ${duplicateDoc.internalCode} (Cert #${duplicateDoc.certificateNumber}).`,
+        suggestedNextAction:
+          'Verify whether this is a duplicate upload or an erroneously reused reference number.',
+      });
+    }
+  }
+
+  // Rule ANOM-META-01: Placeholder or dummy reference string
+  if (/^(TEST|DUMMY|SAMPLE|XXXX|0000|12345?)$/i.test(cleanCert)) {
+    findings.push({
+      id: createRecordId('F-ANOM-META'),
+      pillar: 'Anomaly',
+      status: 'Flagged',
+      affectedFieldOrPage: 'Certificate Reference Format',
+      explanation: `[Rule ANOM-META-01] Certificate number "${targetDoc.certificateNumber}" matches a non-official placeholder pattern.`,
+      evidenceComparison: `Entered value "${targetDoc.certificateNumber}" vs. statutory reference format.`,
+      suggestedNextAction: 'Enter the exact alphanumeric certificate number printed on the document.',
+    });
+  }
+
+  if (findings.length > 0) {
+    return {
+      anomalyStatus: 'Suspected Alteration / Duplicate',
+      findings,
+    };
+  }
+
+  findings.push({
+    id: createRecordId('F-ANOM-OK'),
+    pillar: 'Anomaly',
+    status: 'Passed',
+    affectedFieldOrPage: 'Rule-Based Date & Duplicate Screening',
+    explanation: `[Rule ANOM-SCR-01] Passed chronological date validation and duplicate certificate number screening across ${existingDocs.length} repository record(s).`,
+    evidenceComparison: `Cert #${targetDoc.certificateNumber} is unique; Issue Date ${targetDoc.issueDate} is valid.`,
+    suggestedNextAction: 'No rule-based anomaly signal triggered.',
+  });
+
+  return {
+    anomalyStatus: 'No Anomaly Detected',
+    findings,
+  };
+}
+
+/**
+ * Evaluates all browser-verifiable pillars (Completeness, Expiry, Consistency, Rule-Based Anomaly)
+ * while keeping Issuer Verification and Human Review honest and separate.
+ */
+export function evaluateDocumentSixPillars(
+  targetDoc: DocumentRecord,
+  allDocs: DocumentRecord[],
+  applications: ApplicationRecord[] = [],
+  referenceToday: string = getLocalTodayDate()
+): {
+  completenessStatus: DocumentRecord['completenessStatus'];
+  consistencyStatus: DocumentRecord['consistencyStatus'];
+  anomalyStatus: DocumentRecord['anomalyStatus'];
+  issuerVerificationStatus: DocumentRecord['issuerVerificationStatus'];
+  humanReviewStatus: DocumentRecord['humanReviewStatus'];
+  expiryDetails: ReturnType<typeof calculateExpiryDetails>;
+  findings: VerificationFinding[];
+} {
+  const completeness = evaluateDocumentCompleteness(targetDoc);
+  const expiryDetails = calculateExpiryDetails(targetDoc.expiryDate, referenceToday);
+  const consistency = runCrossDocumentConsistencyChecks(targetDoc, allDocs, applications);
+  const anomaly = runRuleBasedAnomalyScreening(targetDoc, allDocs, referenceToday);
+
+  const expiryFinding: VerificationFinding =
+    expiryDetails.status === 'Expired'
+      ? {
+          id: createRecordId('F-EXP'),
+          pillar: 'Expiry',
+          status: 'Flagged',
+          affectedFieldOrPage: 'Validity / Expiry Date',
+          explanation: `[Rule EXP-WIN-01] Document validity period has lapsed (${expiryDetails.label}; Expiry Date: ${targetDoc.expiryDate}).`,
+          evidenceComparison: `Expiry Date ${targetDoc.expiryDate} < Reference Date ${referenceToday}.`,
+          suggestedNextAction: 'Upload renewed statutory certificate version to clear expiry flag.',
+        }
+      : expiryDetails.status === 'Expiring Soon'
+        ? {
+            id: createRecordId('F-EXP'),
+            pillar: 'Expiry',
+            status: 'Advisory',
+            affectedFieldOrPage: 'Validity / Expiry Date (45-Day Window)',
+            explanation: `[Rule EXP-WIN-45] Certificate expires within the 45-day renewal advisory window (${expiryDetails.label}; Expiry Date: ${targetDoc.expiryDate}).`,
+            evidenceComparison: `Expiry Date ${targetDoc.expiryDate} vs. Reference Date ${referenceToday}.`,
+            suggestedNextAction: 'Initiate renewal with issuing authority prior to committee sign-off.',
+          }
+        : {
+            id: createRecordId('F-EXP'),
+            pillar: 'Expiry',
+            status: 'Passed',
+            affectedFieldOrPage: 'Validity / Expiry Date',
+            explanation: `[Rule EXP-WIN-01] Validity status is ${expiryDetails.label}.`,
+            evidenceComparison: `Expiry Date: ${targetDoc.expiryDate || 'Permanent / No Expiry'}.`,
+            suggestedNextAction: 'No renewal action required at this time.',
+          };
+
+  const combinedFindings: VerificationFinding[] = [
+    ...completeness.findings,
+    expiryFinding,
+    ...consistency.findings,
+    ...anomaly.findings,
+  ];
+
+  return {
+    completenessStatus: completeness.completenessStatus,
+    consistencyStatus: consistency.consistencyStatus,
+    anomalyStatus: anomaly.anomalyStatus,
+    issuerVerificationStatus: targetDoc.issuerVerificationStatus || 'Not Checked',
+    humanReviewStatus: targetDoc.humanReviewStatus || 'Pending',
+    expiryDetails,
+    findings: combinedFindings,
+  };
+}
+
 

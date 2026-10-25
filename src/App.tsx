@@ -41,6 +41,7 @@ import {
   canUserActionApprovalRequest,
   canUserPerformAdminAction,
   createRecordId,
+  evaluateDocumentSixPillars,
   formatRoleDisplayName,
   formatTimestampForDisplay,
   generateInternalDocumentCode,
@@ -55,6 +56,7 @@ import {
   loadValidatedArrayFromStorage,
   persistPortalStateToStorage,
 } from './lib/storage';
+import { normalizeVaultDocumentRecord } from './lib/vaultStorage';
 import { LoginView } from './components/LoginView';
 import { SignUpView } from './components/SignUpView';
 import { LandingPageView } from './components/LandingPageView';
@@ -780,7 +782,23 @@ export default function App() {
       ],
     };
 
-    setDocuments((prev) => [newDoc, ...prev]);
+    const evaluated = evaluateDocumentSixPillars(
+      newDoc,
+      [newDoc, ...documents],
+      applications,
+      todayStr
+    );
+    const evaluatedDoc: DocumentRecord = {
+      ...newDoc,
+      completenessStatus: evaluated.completenessStatus,
+      consistencyStatus: evaluated.consistencyStatus,
+      anomalyStatus: evaluated.anomalyStatus,
+      issuerVerificationStatus: evaluated.issuerVerificationStatus,
+      humanReviewStatus: evaluated.humanReviewStatus,
+      findings: evaluated.findings,
+    };
+
+    setDocuments((prev) => [evaluatedDoc, ...prev]);
     setApplications((prev) =>
       prev.map((app) => {
         if (app.id !== params.appId) return app;
@@ -1086,15 +1104,36 @@ export default function App() {
     const todayStr = getLocalTodayDate();
     const newDocId = createRecordId('DOC');
     const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
-    const fullDoc: DocumentRecord = {
+    const baseDoc: DocumentRecord = {
       ...newDocData,
       id: newDocId,
-      uploadedFromSection: newDocData.uploadedFromSection || (newDocData.relatedApplicationId ? `Application: ${newDocData.relatedApplicationId}` : 'Document Repository'),
+      uploadedFromSection:
+        newDocData.uploadedFromSection ||
+        (newDocData.relatedApplicationId
+          ? `Application: ${newDocData.relatedApplicationId}`
+          : 'Document Repository'),
       uploadedByUserId: currentUser.id,
       verificationStatusLabel: newDocData.verificationStatusLabel || 'Pending Verification',
       approvalStatusLabel: newDocData.approvalStatusLabel || 'Under Review',
       statusUpdatedAt: newDocData.statusUpdatedAt || nowDisplay,
     };
+
+    const evaluated = evaluateDocumentSixPillars(
+      baseDoc,
+      [baseDoc, ...documents],
+      applications,
+      todayStr
+    );
+    const fullDoc: DocumentRecord = {
+      ...baseDoc,
+      completenessStatus: evaluated.completenessStatus,
+      consistencyStatus: evaluated.consistencyStatus,
+      anomalyStatus: evaluated.anomalyStatus,
+      issuerVerificationStatus: evaluated.issuerVerificationStatus,
+      humanReviewStatus: evaluated.humanReviewStatus,
+      findings: evaluated.findings,
+    };
+
     setDocuments((prev) => [fullDoc, ...prev]);
 
     if (fullDoc.relatedApplicationId) {
@@ -1112,7 +1151,7 @@ export default function App() {
       'Document Record Registered in Repository',
       'Document',
       newDocId,
-      `Registered ${fullDoc.internalCode} (${fullDoc.name}).`
+      `Registered ${fullDoc.internalCode} (${fullDoc.name}) — Completeness: ${fullDoc.completenessStatus}, Consistency: ${fullDoc.consistencyStatus}.`
     );
   };
 
@@ -1133,14 +1172,14 @@ export default function App() {
       prev.map((doc) => {
         if (doc.id !== params.docId) return doc;
         const nextVersionNumber = doc.versions.length + 1;
-        return {
+        const updatedDraft: DocumentRecord = {
           ...doc,
           fileName: params.fileName,
           fileSize: params.fileSize,
           mimeType: params.mimeType,
           expiryDate: params.newExpiryDate || doc.expiryDate,
           uploadDate: todayStr,
-          completenessStatus: 'Pending Review',
+          statusUpdatedAt: nowDisplay,
           humanReviewStatus: 'Pending',
           versions: [
             ...doc.versions,
@@ -1154,6 +1193,19 @@ export default function App() {
               changeNote: params.changeNote,
             },
           ],
+        };
+        const evaluated = evaluateDocumentSixPillars(
+          updatedDraft,
+          prev.map((d) => (d.id === params.docId ? updatedDraft : d)),
+          applications,
+          todayStr
+        );
+        return {
+          ...updatedDraft,
+          completenessStatus: evaluated.completenessStatus,
+          consistencyStatus: evaluated.consistencyStatus,
+          anomalyStatus: evaluated.anomalyStatus,
+          findings: evaluated.findings,
         };
       })
     );
@@ -1173,10 +1225,53 @@ export default function App() {
     note: string
   ) => {
     if (!currentUser || !canUserPerformAdminAction(currentUser)) return;
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
     setDocuments((prev) =>
-      prev.map((doc) => (doc.id === docId ? { ...doc, humanReviewStatus: status } : doc))
+      prev.map((doc) =>
+        doc.id === docId
+          ? {
+              ...doc,
+              humanReviewStatus: status,
+              approvalStatusLabel:
+                status === 'Reviewed'
+                  ? 'Approved'
+                  : status === 'Action Required'
+                    ? 'Needs Review'
+                    : 'Under Review',
+              statusUpdatedAt: nowDisplay,
+            }
+          : doc
+      )
     );
     appendAudit(currentUser, `Document Marked ${status}`, 'Document', docId, note);
+  };
+
+  const handleRunAllVerificationChecks = () => {
+    if (!currentUser) return;
+    const todayStr = getLocalTodayDate();
+    const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
+    setDocuments((prevDocs) =>
+      prevDocs.map((doc) => {
+        const evaluated = evaluateDocumentSixPillars(doc, prevDocs, applications, todayStr);
+        return {
+          ...doc,
+          completenessStatus: evaluated.completenessStatus,
+          consistencyStatus: evaluated.consistencyStatus,
+          anomalyStatus: evaluated.anomalyStatus,
+          issuerVerificationStatus: evaluated.issuerVerificationStatus,
+          humanReviewStatus: evaluated.humanReviewStatus,
+          findings: evaluated.findings,
+          statusUpdatedAt: nowDisplay,
+        };
+      })
+    );
+    appendAudit(
+      currentUser,
+      'Executed 6-Pillar Verification & Consistency Screening',
+      'Document',
+      'ALL-AUTHORIZED-DOCS',
+      'Evaluated completeness, expiry windows, cross-document consistency, and anomaly rules across repository records.'
+    );
   };
 
   // Create Document Request (Admin, Institution Manager, Faculty)
@@ -1217,59 +1312,95 @@ export default function App() {
   };
 
   // Synchronize a Personal Document Vault record into the user's Document Repository
-  const handleSyncVaultToRepository = (vaultDoc: VaultDocumentRecord) => {
+  const handleSyncVaultToRepository = (rawVaultDoc: VaultDocumentRecord, previewUrl?: string) => {
+    const vaultDoc = normalizeVaultDocumentRecord(rawVaultDoc);
     const todayStr = getLocalTodayDate();
     const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
     const stableDocId = `DOC-VAULT-${vaultDoc.id}`;
 
+    const docTitle =
+      vaultDoc.editableDetails?.title || vaultDoc.title || vaultDoc.originalFileName || 'Vault Document';
+    const certNo =
+      vaultDoc.editableDetails?.certificateNumber ||
+      vaultDoc.editableDetails?.documentNumber ||
+      `VLT-${vaultDoc.id.slice(-6).toUpperCase()}`;
+    const holderName = vaultDoc.editableDetails?.holderName || vaultDoc.ownerName;
+    const issuingAuth =
+      vaultDoc.editableDetails?.issuingAuthority || 'Authorized Issuing Authority';
+    const issueDateVal = vaultDoc.editableDetails?.issueDate || todayStr;
+    const expiryDateVal = vaultDoc.editableDetails?.expiryDate || undefined;
+    const fileNameVal = vaultDoc.originalFileName || vaultDoc.fileName || 'Document.pdf';
+    const hasBlob = Boolean(vaultDoc.hasStoredBlob ?? vaultDoc.hasStoredFileBlob);
+
     setDocuments((prevDocs) => {
-      const existingIdx = prevDocs.findIndex((d) => d.id === stableDocId || d.vaultDocumentId === vaultDoc.id);
+      const existingIdx = prevDocs.findIndex(
+        (d) => d.id === stableDocId || d.vaultDocumentId === vaultDoc.id
+      );
       const mimeType: DocumentRecord['mimeType'] = (['application/pdf', 'image/jpeg', 'image/png'].includes(
         vaultDoc.mimeType
       )
         ? vaultDoc.mimeType
         : 'application/pdf') as DocumentRecord['mimeType'];
 
+      const rawCat = String(vaultDoc.category || vaultDoc.documentCategory || 'Student Records');
       const mappedCategory: DocumentRecord['category'] =
-        vaultDoc.documentCategory === 'Identity Proofs' ||
-        vaultDoc.documentCategory === 'Marksheets & Transcripts' ||
-        vaultDoc.documentCategory === 'Admission & Fee Receipts' ||
-        vaultDoc.documentCategory === 'Event & Competition Certificates' ||
-        vaultDoc.documentCategory === 'Medical & Fitness Certificates' ||
-        vaultDoc.documentCategory === 'Custom / Other'
+        rawCat === 'Identity Proofs' ||
+        rawCat === 'Marksheets & Transcripts' ||
+        rawCat === 'Admission & Fee Receipts' ||
+        rawCat === 'Event & Competition Certificates' ||
+        rawCat === 'Medical & Fitness Certificates' ||
+        rawCat === 'Custom / Other'
           ? 'Student Records'
-          : vaultDoc.documentCategory;
+          : (rawCat as DocumentRecord['category']);
+
+      const mappedVerifLabel: DocumentRecord['verificationStatusLabel'] =
+        vaultDoc.verificationStatus === 'Uploaded' || !vaultDoc.verificationStatus
+          ? 'Pending Verification'
+          : (vaultDoc.verificationStatus as DocumentRecord['verificationStatusLabel']);
 
       if (existingIdx >= 0) {
         const existingDoc = prevDocs[existingIdx];
-        const copy = [...prevDocs];
-        copy[existingIdx] = {
+        const updatedDraft: DocumentRecord = {
           ...existingDoc,
-          name: vaultDoc.title,
+          name: docTitle,
           category: mappedCategory,
-          certificateNumber:
-            vaultDoc.editableDetails.documentNumber || existingDoc.certificateNumber,
-          issuingAuthority:
-            vaultDoc.editableDetails.issuingAuthority || existingDoc.issuingAuthority,
-          issueDate: vaultDoc.editableDetails.issueDate || existingDoc.issueDate,
-          expiryDate: vaultDoc.editableDetails.expiryDate || existingDoc.expiryDate,
-          fileName: vaultDoc.fileName,
+          personName: holderName,
+          certificateNumber: certNo || existingDoc.certificateNumber,
+          issuingAuthority: issuingAuth || existingDoc.issuingAuthority,
+          issueDate: issueDateVal || existingDoc.issueDate,
+          expiryDate: expiryDateVal ?? existingDoc.expiryDate,
+          fileName: fileNameVal,
           fileSize: vaultDoc.fileSizeLabel,
           mimeType,
+          previewUrl: previewUrl || existingDoc.previewUrl,
           vaultDocumentId: vaultDoc.id,
-          hasStoredFileBlob: vaultDoc.hasStoredFileBlob,
+          hasStoredFileBlob: hasBlob,
           ocrStatus: vaultDoc.ocrStatus,
           ocrExtractedText: vaultDoc.ocrExtractedText,
-          verificationStatusLabel: vaultDoc.verificationStatus,
+          verificationStatusLabel: mappedVerifLabel,
           statusUpdatedAt: nowDisplay,
           extractedSummary: {
             ...existingDoc.extractedSummary,
-            'Document Title': vaultDoc.title,
-            'Holder / Signatory': vaultDoc.editableDetails.holderName || vaultDoc.ownerName,
-            'Certificate Number':
-              vaultDoc.editableDetails.documentNumber || existingDoc.certificateNumber,
+            'Document Title': docTitle,
+            'Holder / Signatory': holderName,
+            'Certificate Number': certNo || existingDoc.certificateNumber,
+            'Issuing Authority': issuingAuth,
             'OCR Status': vaultDoc.ocrStatus,
           },
+        };
+        const evaluated = evaluateDocumentSixPillars(
+          updatedDraft,
+          prevDocs.map((d, i) => (i === existingIdx ? updatedDraft : d)),
+          applications,
+          todayStr
+        );
+        const copy = [...prevDocs];
+        copy[existingIdx] = {
+          ...updatedDraft,
+          completenessStatus: evaluated.completenessStatus,
+          consistencyStatus: evaluated.consistencyStatus,
+          anomalyStatus: evaluated.anomalyStatus,
+          findings: evaluated.findings,
         };
         return copy;
       }
@@ -1280,35 +1411,34 @@ export default function App() {
         prevDocs.map((d) => d.internalCode)
       );
 
-      const newDoc: DocumentRecord = {
+      const draftDoc: DocumentRecord = {
         id: stableDocId,
         internalCode,
-        name: vaultDoc.title,
+        name: docTitle,
         category: mappedCategory,
         suggestedAiCategory: mappedCategory,
         suggestedFolder: `/Repository/Personal-Vault/${mappedCategory.replace(/\s+/g, '-')}`,
         categoryConfirmed: true,
         institutionId: vaultDoc.institutionId || currentUser?.institutionId || 'INST-VESIT-104',
-        institutionName: currentUser?.institutionName || 'VESIT',
+        institutionName: vaultDoc.institutionName || currentUser?.institutionName || 'VESIT',
         uploadedFromSection: 'Personal Document Vault',
-        personName: vaultDoc.editableDetails.holderName || vaultDoc.ownerName,
+        personName: holderName,
         personUserId: vaultDoc.ownerUserId,
         uploadedByUserId: vaultDoc.ownerUserId,
-        certificateNumber:
-          vaultDoc.editableDetails.documentNumber || `VLT-${vaultDoc.id.slice(-6).toUpperCase()}`,
-        issuingAuthority:
-          vaultDoc.editableDetails.issuingAuthority || 'Personal Document Vault Record',
-        issueDate: vaultDoc.editableDetails.issueDate || todayStr,
-        expiryDate: vaultDoc.editableDetails.expiryDate || undefined,
+        certificateNumber: certNo,
+        issuingAuthority: issuingAuth,
+        issueDate: issueDateVal,
+        expiryDate: expiryDateVal,
         uploadDate: todayStr,
-        fileName: vaultDoc.fileName,
+        fileName: fileNameVal,
         fileSize: vaultDoc.fileSizeLabel,
         mimeType,
+        previewUrl,
         vaultDocumentId: vaultDoc.id,
-        hasStoredFileBlob: vaultDoc.hasStoredFileBlob,
+        hasStoredFileBlob: hasBlob,
         ocrStatus: vaultDoc.ocrStatus,
         ocrExtractedText: vaultDoc.ocrExtractedText,
-        verificationStatusLabel: vaultDoc.verificationStatus,
+        verificationStatusLabel: mappedVerifLabel,
         approvalStatusLabel: 'Under Review',
         statusUpdatedAt: nowDisplay,
         completenessStatus: 'Complete',
@@ -1317,29 +1447,18 @@ export default function App() {
         issuerVerificationStatus: 'Pending',
         humanReviewStatus: 'Pending',
         extractedSummary: {
-          'Document Title': vaultDoc.title,
-          'Holder / Signatory': vaultDoc.editableDetails.holderName || vaultDoc.ownerName,
-          'Certificate Number':
-            vaultDoc.editableDetails.documentNumber || `VLT-${vaultDoc.id.slice(-6).toUpperCase()}`,
+          'Document Title': docTitle,
+          'Holder / Signatory': holderName,
+          'Certificate Number': certNo,
+          'Issuing Authority': issuingAuth,
           'Storage Location': 'Browser IndexedDB (Personal Document Vault)',
           'OCR Status': vaultDoc.ocrStatus,
         },
-        findings: [
-          {
-            id: createRecordId('F-VLT'),
-            pillar: 'Completeness',
-            status: 'Advisory',
-            affectedFieldOrPage: 'Personal Document Vault File',
-            explanation:
-              'Saved in browser IndexedDB Personal Document Vault. Available for reuse across document requests.',
-            evidenceComparison: `${vaultDoc.fileName} (${vaultDoc.fileSizeLabel})`,
-            suggestedNextAction: 'Can be attached directly to any document submission request.',
-          },
-        ],
+        findings: [],
         versions: [
           {
             versionNumber: 1,
-            fileName: vaultDoc.fileName,
+            fileName: fileNameVal,
             fileSize: vaultDoc.fileSizeLabel,
             mimeType,
             uploadedAt: nowDisplay,
@@ -1349,8 +1468,32 @@ export default function App() {
         ],
       };
 
+      const evaluated = evaluateDocumentSixPillars(
+        draftDoc,
+        [draftDoc, ...prevDocs],
+        applications,
+        todayStr
+      );
+      const newDoc: DocumentRecord = {
+        ...draftDoc,
+        completenessStatus: evaluated.completenessStatus,
+        consistencyStatus: evaluated.consistencyStatus,
+        anomalyStatus: evaluated.anomalyStatus,
+        findings: evaluated.findings,
+      };
+
       return [newDoc, ...prevDocs];
     });
+
+    if (currentUser) {
+      appendAudit(
+        currentUser,
+        'Synced Personal Vault Document to Repository',
+        'Document',
+        stableDocId,
+        `Synchronized "${docTitle}" (${fileNameVal}) from Personal Document Vault.`
+      );
+    }
   };
 
   // Submit Student Documents & Simulated Verification (keeps Demo Verification separate from Reviewer Approval)
@@ -1462,7 +1605,7 @@ export default function App() {
               extractedSummary: {
                 'Document Title': docFile.requirementName || 'Submitted Document',
                 'Student Name': updatedSub.studentName,
-                'Roll Number': updatedSub.studentRollNumber,
+                'Roll Number': updatedSub.studentRollNumber || 'N/A',
                 'Document Request': request?.title || updatedSub.requestId,
                 'Submission Source': docFile.vaultDocumentId
                   ? `Linked from Personal Document Vault (${docFile.vaultDocumentId})`
@@ -1584,7 +1727,11 @@ export default function App() {
     if (authScreenMode === 'landing') {
       return (
         <>
-          <LandingPageView onOpenLogin={() => setAuthScreenMode('login')} />
+          <LandingPageView
+            onOpenLogin={() => setAuthScreenMode('login')}
+            darkMode={darkMode}
+            onToggleDarkMode={() => setDarkMode((prev) => !prev)}
+          />
           <GeminiChatbotWidget
             currentUser={null}
             applications={applications}
@@ -1656,6 +1803,8 @@ export default function App() {
           onOpenLogin={() => setShowPublicOverview(false)}
           isAuthenticated
           onReturnToWorkspace={() => setShowPublicOverview(false)}
+          darkMode={darkMode}
+          onToggleDarkMode={() => setDarkMode((prev) => !prev)}
         />
         <GeminiChatbotWidget
           currentUser={currentUser}
@@ -1803,6 +1952,7 @@ export default function App() {
           currentUser={currentUser}
           documents={documents}
           complianceRules={complianceRules}
+          onRunAllVerificationChecks={handleRunAllVerificationChecks}
           onOpenDocument={(docId) => {
             setActiveView('documents');
             setSelectedDocumentId(docId);

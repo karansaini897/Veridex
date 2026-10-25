@@ -32,6 +32,7 @@ interface VerificationComplianceViewProps {
   currentUser: UserAccount;
   documents: DocumentRecord[];
   complianceRules: ComplianceRule[];
+  onRunAllVerificationChecks?: () => void;
   onOpenDocument: (docId: string) => void;
   onToggleRuleActive: (ruleId: string) => void;
   onAddComplianceRule: (newRule: Omit<ComplianceRule, 'id'>) => void;
@@ -46,6 +47,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
   currentUser,
   documents,
   complianceRules,
+  onRunAllVerificationChecks,
   onOpenDocument,
   onToggleRuleActive,
   onAddComplianceRule,
@@ -53,6 +55,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'pillars' | 'rules' | 'infrastructure'>('pillars');
   const [pillarFilter, setPillarFilter] = useState<'all' | 'flagged' | 'pending_human'>('all');
+  const [screeningBanner, setScreeningBanner] = useState<string | null>(null);
 
   // New Compliance Rule State
   const [newRuleOpen, setNewRuleOpen] = useState(false);
@@ -193,10 +196,40 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
                 </button>
               ))}
             </div>
-            <span className="text-xs text-slate-500">
-              Showing authorized institutional records across all 6 verification pillars.
-            </span>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="text-xs text-slate-500">
+                Showing authorized institutional records across all 6 verification pillars.
+              </span>
+              {onRunAllVerificationChecks && (
+                <button
+                  type="button"
+                  data-testid="rerun-six-pillar-checks-btn"
+                  onClick={() => {
+                    onRunAllVerificationChecks();
+                    setScreeningBanner(
+                      `Re-evaluated all ${authorizedDocs.length} authorized document records for completeness, expiry windows, cross-document consistency, and rule-based anomalies. Audit entry logged.`
+                    );
+                  }}
+                  className="btn-secondary !py-1.5 !px-3 text-xs cursor-pointer"
+                >
+                  Re-Run 6-Pillar Checks
+                </button>
+              )}
+            </div>
           </div>
+
+          {screeningBanner && (
+            <div className="p-3 rounded-xl glass-tint-emerald text-xs text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-3">
+              <span>{screeningBanner}</span>
+              <button
+                type="button"
+                onClick={() => setScreeningBanner(null)}
+                className="text-emerald-700 dark:text-emerald-300 font-semibold cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
           <div className="liquid-glass rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">

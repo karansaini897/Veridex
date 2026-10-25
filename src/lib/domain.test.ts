@@ -16,7 +16,14 @@ import {
   sanitizeUserForStorage,
 } from './domain';
 import { getRoleChatbotConfig, generateFallbackRoleResponse } from './chatbotData';
-import { ApplicationRecord, DocumentRecord, UserAccount } from '../types/portal';
+import {
+  ApplicationRecord,
+  DocumentRecord,
+  UserAccount,
+  VaultDocumentRecord,
+  StudentRequestSubmission,
+  DocumentRequirement,
+} from '../types/portal';
 
 test('normalizePhoneNumber normalizes formatting variants to identical canonical format', () => {
   assert.equal(normalizePhoneNumber('98201 11200'), '+919820111200');
@@ -592,8 +599,6 @@ test('Personal Document Vault stores, isolates by ownerUserId, retrieves binary 
     deleteVaultDocument,
     clearMemoryVaultForTesting,
   } = await import('./vaultStorage');
-  const { VaultDocumentRecord } = await import('../types/portal');
-
   clearMemoryVaultForTesting();
 
   const blobContent = new Uint8Array([37, 80, 68, 70, 45, 49, 46, 52]);
@@ -697,9 +702,6 @@ test('Verification vs Approval separation and independent per-request reuse of V
     resolveRepositoryStatusesFromSubmission,
     applyReviewerDecisionToSubmission,
   } = await import('./domain');
-  const { VaultDocumentRecord, StudentRequestSubmission, DocumentRequirement } = await import(
-    '../types/portal'
-  );
 
   const vaultDoc: VaultDocumentRecord = {
     id: 'VAULT-REUSE-101',
@@ -812,6 +814,105 @@ test('Verification vs Approval separation and independent per-request reuse of V
   assert.equal(untouchedSub2.approvalStatus, 'Pending Approval');
   assert.equal(untouchedSub2.documents[0].approvalStatus, 'Pending Approval');
   assert.equal(vaultDoc.approvalStatus, 'Not Submitted');
+});
+
+test('SIH PPT 6-Pillar evaluation, Document-to-Form Prefill, and Legacy Vault Record Normalization', async () => {
+  const {
+    extractDocumentPrefillSuggestion,
+    evaluateDocumentCompleteness,
+    runCrossDocumentConsistencyChecks,
+    runRuleBasedAnomalyScreening,
+    evaluateDocumentSixPillars,
+  } = await import('./domain');
+  const { normalizeVaultDocumentRecord } = await import('./vaultStorage');
+  const { SEED_DOCUMENTS, SEED_APPLICATIONS } = await import('../data/seedData');
+
+  // 1. Backward-compatible Vault record normalization
+  const legacyVaultRaw = {
+    id: 'VAULT-LEGACY-77',
+    ownerUserId: 'USR-FAC-SHRAVANI',
+    ownerName: 'Dr. Shravani Salunkhe',
+    institutionId: 'INST-VESIT-104',
+    institutionName: 'VESIT',
+    fileName: 'legacy_phd_degree.pdf',
+    title: 'Ph.D. Degree Scroll',
+    documentCategory: 'Qualifications',
+    mimeType: 'application/pdf',
+    fileSizeBytes: 124000,
+    fileSizeLabel: '121 KB',
+    hasStoredFileBlob: true,
+    editableDetails: {
+      documentNumber: 'UOM-PHD-2021-904',
+      holderName: 'Dr. Shravani Salunkhe',
+      issuingAuthority: 'University of Mumbai',
+      issueDate: '2021-08-14',
+    },
+  };
+
+  const normalized = normalizeVaultDocumentRecord(legacyVaultRaw);
+  assert.equal(normalized.originalFileName, 'legacy_phd_degree.pdf');
+  assert.equal(normalized.fileName, 'legacy_phd_degree.pdf');
+  assert.equal(normalized.category, 'Qualifications');
+  assert.equal(normalized.editableDetails.title, 'Ph.D. Degree Scroll');
+  assert.equal(normalized.editableDetails.certificateNumber, 'UOM-PHD-2021-904');
+  assert.equal(normalized.hasStoredBlob, true);
+
+  // 2. Document-to-form prefill extraction
+  const prefill = extractDocumentPrefillSuggestion(normalized, 'Dr. Shravani Salunkhe');
+  assert.equal(prefill.title, 'Ph.D. Degree Scroll');
+  assert.equal(prefill.certificateNumber, 'UOM-PHD-2021-904');
+  assert.equal(prefill.holderName, 'Dr. Shravani Salunkhe');
+  assert.equal(prefill.issuingAuthority, 'University of Mumbai');
+  assert.equal(prefill.category, 'Qualifications');
+
+  // 3. Completeness & Rule-Based Anomaly Screening (inverted dates + duplicate certificate number)
+  const sampleExistingDoc = SEED_DOCUMENTS[0];
+  const anomalousDoc = {
+    ...sampleExistingDoc,
+    id: 'DOC-ANOMALY-TEST-99',
+    internalCode: 'APR-VES-99',
+    name: 'Test Fire NOC Certificate',
+    personName: `${sampleExistingDoc.personName} MiddleName`, // Name variation across same application/category!
+    certificateNumber: sampleExistingDoc.certificateNumber, // Duplicate cert number across records!
+    issueDate: '2026-09-15',
+    expiryDate: '2026-04-01', // Expiry date earlier than issue date!
+    issuerVerificationStatus: 'Not Checked' as const,
+    humanReviewStatus: 'Pending' as const,
+    findings: [],
+  };
+
+  const completeness = evaluateDocumentCompleteness(anomalousDoc);
+  assert.equal(completeness.completenessStatus, 'Complete');
+
+  const consistency = runCrossDocumentConsistencyChecks(
+    anomalousDoc,
+    [sampleExistingDoc],
+    SEED_APPLICATIONS
+  );
+  assert.equal(consistency.consistencyStatus, 'Mismatch Flagged');
+  assert.ok(consistency.findings.some((f) => f.pillar === 'Consistency'));
+
+  const anomaly = runRuleBasedAnomalyScreening(
+    anomalousDoc,
+    [sampleExistingDoc],
+    '2026-05-15'
+  );
+  assert.equal(anomaly.anomalyStatus, 'Suspected Alteration / Duplicate');
+  assert.ok(anomaly.findings.some((f) => f.pillar === 'Anomaly'));
+
+  const sixPillars = evaluateDocumentSixPillars(
+    anomalousDoc,
+    [sampleExistingDoc],
+    SEED_APPLICATIONS,
+    '2026-05-15'
+  );
+  assert.equal(sixPillars.completenessStatus, 'Complete');
+  assert.equal(sixPillars.consistencyStatus, 'Mismatch Flagged');
+  assert.equal(sixPillars.anomalyStatus, 'Suspected Alteration / Duplicate');
+  // Strict separation: Issuer Verification remains 'Not Checked' and Human Review remains 'Pending'
+  assert.equal(sixPillars.issuerVerificationStatus, 'Not Checked');
+  assert.equal(sixPillars.humanReviewStatus, 'Pending');
+  assert.ok(sixPillars.findings.some((f) => f.pillar === 'Expiry'));
 });
 
 

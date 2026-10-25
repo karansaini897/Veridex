@@ -23,6 +23,8 @@ import {
   canUserAccessDocument,
   canUserPerformAdminAction,
   createRecordId,
+  DocumentPrefillSuggestion,
+  extractDocumentPrefillSuggestion,
   formatTimestampForDisplay,
   generateInternalDocumentCode,
   getCurrentIsoTimestamp,
@@ -44,7 +46,8 @@ import {
   StatusBadge,
 } from './StatusPrimitives';
 import { PersonalDocumentVaultSection } from './PersonalDocumentVaultSection';
-import { createVaultBlobObjectUrl } from '../lib/vaultStorage';
+import { createVaultBlobObjectUrl, getVaultDocumentsForUser } from '../lib/vaultStorage';
+import { processDocumentOcrInBrowser } from '../lib/ocrEngine';
 
 interface DocumentRepositoryViewProps {
   currentUser: UserAccount;
@@ -163,6 +166,14 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
   const [overrideCategory, setOverrideCategory] = useState<DocumentCategory | ''>('');
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Document-to-Form Prefill State (Priority 5.4)
+  const [availableVaultDocs, setAvailableVaultDocs] = useState<VaultDocumentRecord[]>([]);
+  const [selectedPrefillVaultId, setSelectedPrefillVaultId] = useState<string>('');
+  const [prefillCandidate, setPrefillCandidate] = useState<DocumentPrefillSuggestion | null>(null);
+  const [prefillStatusBanner, setPrefillStatusBanner] = useState<string | null>(null);
+  const [selectedRawFile, setSelectedRawFile] = useState<File | null>(null);
+  const [isRunningModalOcr, setIsRunningModalOcr] = useState<boolean>(false);
+
   // Replace Version State inside Detail Drawer
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [replaceFileName, setReplaceFileName] = useState('Renewed_Certificate_v2.pdf');
@@ -276,6 +287,104 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
     };
   }, [selectedDocument?.vaultDocumentId]);
 
+  useEffect(() => {
+    if (!uploadModalOpen) return;
+    getVaultDocumentsForUser(currentUser.id)
+      .then((docs) => {
+        setAvailableVaultDocs(docs);
+      })
+      .catch(() => {
+        setAvailableVaultDocs([]);
+      });
+  }, [uploadModalOpen, currentUser.id]);
+
+  const handleSelectVaultForPrefill = (vaultId: string) => {
+    setSelectedPrefillVaultId(vaultId);
+    setPrefillStatusBanner(null);
+    if (!vaultId) {
+      setPrefillCandidate(null);
+      return;
+    }
+    const found = availableVaultDocs.find((v) => v.id === vaultId);
+    if (!found) {
+      setPrefillCandidate(null);
+      return;
+    }
+    const suggestion = extractDocumentPrefillSuggestion(found, currentUser.fullName);
+    setPrefillCandidate(suggestion);
+  };
+
+  const handleConfirmApplyPrefill = () => {
+    if (!prefillCandidate) return;
+    setDocTitle(prefillCandidate.title);
+    setCertNumber(prefillCandidate.certificateNumber);
+    setPersonName(prefillCandidate.holderName);
+    setIssuingAuthority(prefillCandidate.issuingAuthority);
+    setIssueDate(prefillCandidate.issueDate || todayStr);
+    setExpiryDate(prefillCandidate.expiryDate || '');
+    setOverrideCategory(prefillCandidate.category);
+
+    const matchedVault = availableVaultDocs.find((v) => v.id === selectedPrefillVaultId);
+    if (matchedVault) {
+      setFileName(matchedVault.originalFileName || matchedVault.fileName || fileName);
+      if (['application/pdf', 'image/jpeg', 'image/png'].includes(matchedVault.mimeType)) {
+        setMimeType(matchedVault.mimeType as 'application/pdf' | 'image/jpeg' | 'image/png');
+      }
+      if (matchedVault.fileSizeLabel) {
+        setFileSize(matchedVault.fileSizeLabel);
+      }
+    }
+
+    setPrefillStatusBanner(
+      `Form fields populated from "${prefillCandidate.title}" (${prefillCandidate.sourceLabel}). Review or edit any field below before registering.`
+    );
+  };
+
+  const handleRunModalOcrPrefill = async () => {
+    if (!selectedRawFile || isRunningModalOcr) return;
+    setIsRunningModalOcr(true);
+    setPrefillStatusBanner(null);
+    try {
+      const outcome = await processDocumentOcrInBrowser({
+        file: selectedRawFile,
+        fileName: selectedRawFile.name,
+        mimeType,
+        defaultHolderName: currentUser.fullName,
+      });
+      const catSuggest = suggestDocumentCategory(
+        selectedRawFile.name,
+        outcome.suggestedFields.title || docTitle
+      );
+      const resolvedTitle = outcome.suggestedFields.title || docTitle || selectedRawFile.name;
+      const resolvedHolder = outcome.suggestedFields.holderName || currentUser.fullName;
+      setPrefillCandidate({
+        title: resolvedTitle,
+        docTitle: resolvedTitle,
+        certificateNumber:
+          outcome.suggestedFields.certificateNumber ||
+          `CERT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 8999)}`,
+        holderName: resolvedHolder,
+        personName: resolvedHolder,
+        issuingAuthority: outcome.suggestedFields.issuingAuthority || issuingAuthority,
+        issueDate: outcome.suggestedFields.issueDate || issueDate,
+        expiryDate: expiryDate || '',
+        category: catSuggest.category,
+        fileName: selectedRawFile.name,
+        mimeType,
+        fileSize: `${(selectedRawFile.size / (1024 * 1024)).toFixed(2)} MB`,
+        notes: outcome.extractedText ? outcome.extractedText.slice(0, 180) : undefined,
+        sourceLabel:
+          outcome.engineUsed === 'pdf-text-layer'
+            ? 'PDF Text Extraction'
+            : outcome.engineUsed === 'tesseract-image-ocr'
+              ? 'Browser Image OCR (Tesseract)'
+              : 'File Metadata Analysis',
+      });
+    } finally {
+      setIsRunningModalOcr(false);
+    }
+  };
+
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError(null);
     const file = e.target.files?.[0];
@@ -293,6 +402,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
       return;
     }
 
+    setSelectedRawFile(file);
     setFileName(file.name);
     setMimeType(file.type as 'application/pdf' | 'image/jpeg' | 'image/png');
     setFileSize(`${Math.max(0.15, file.size / (1024 * 1024)).toFixed(2)} MB`);
@@ -1107,6 +1217,100 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                 {uploadError}
               </div>
             )}
+
+            {/* Document-to-Form Prefill Section (SIH PPT Priority 5.4) */}
+            <div className="p-4 rounded-xl liquid-glass-subtle space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
+                    <Database className="w-3.5 h-3.5 text-[#046A38] dark:text-[#789783]" />
+                    <span>Document-to-Form Prefill (Personal Vault / Browser OCR)</span>
+                  </div>
+                  <p className="text-[11px] text-stone-600 dark:text-stone-400 mt-0.5">
+                    Select a saved Personal Vault document or run client-side OCR on a chosen file to extract and prefill form fields for review.
+                  </p>
+                </div>
+                {selectedRawFile && (
+                  <button
+                    type="button"
+                    disabled={isRunningModalOcr}
+                    onClick={handleRunModalOcrPrefill}
+                    className="btn-secondary !py-1.5 !px-3 text-[11px] whitespace-nowrap shrink-0 cursor-pointer"
+                  >
+                    {isRunningModalOcr ? 'Extracting Text...' : 'Extract Fields from Selected File'}
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <select
+                  aria-label="Select a saved Vault document to prefill form fields"
+                  value={selectedPrefillVaultId}
+                  onChange={(e) => handleSelectVaultForPrefill(e.target.value)}
+                  className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
+                >
+                  <option value="">
+                    {availableVaultDocs.length > 0
+                      ? `Select from ${availableVaultDocs.length} saved Personal Vault document(s)...`
+                      : 'No saved Personal Vault documents yet — upload in Vault or choose a file below'}
+                  </option>
+                  {availableVaultDocs.map((vdoc) => (
+                    <option key={vdoc.id} value={vdoc.id}>
+                      {vdoc.editableDetails.title} — Cert #{vdoc.editableDetails.certificateNumber} ({vdoc.category})
+                    </option>
+                  ))}
+                </select>
+                {prefillCandidate && (
+                  <button
+                    type="button"
+                    data-testid="confirm-prefill-form-btn"
+                    onClick={handleConfirmApplyPrefill}
+                    className="btn-primary !py-1.5 !px-3.5 text-xs whitespace-nowrap shrink-0 cursor-pointer"
+                  >
+                    Confirm &amp; Prefill Form Fields
+                  </button>
+                )}
+              </div>
+
+              {prefillCandidate && (
+                <div className="p-3 rounded-lg bg-white/85 dark:bg-stone-900/80 border border-[#C7A56A]/45 text-[11px] space-y-1.5">
+                  <div className="flex items-center justify-between font-semibold text-stone-900 dark:text-stone-100">
+                    <span>Extracted Field Preview ({prefillCandidate.sourceLabel})</span>
+                    <span className="font-mono-tabular text-[#046A38] dark:text-[#789783]">
+                      Ready to Populate
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-stone-700 dark:text-stone-300">
+                    <div>
+                      <strong>Title:</strong> {prefillCandidate.title}
+                    </div>
+                    <div>
+                      <strong>Certificate #:</strong>{' '}
+                      <span className="font-mono-tabular">{prefillCandidate.certificateNumber}</span>
+                    </div>
+                    <div>
+                      <strong>Holder Name:</strong> {prefillCandidate.holderName}
+                    </div>
+                    <div>
+                      <strong>Issuing Authority:</strong> {prefillCandidate.issuingAuthority}
+                    </div>
+                    <div>
+                      <strong>Issue Date:</strong>{' '}
+                      <span className="font-mono-tabular">{prefillCandidate.issueDate}</span>
+                    </div>
+                    <div>
+                      <strong>Category:</strong> {prefillCandidate.category}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {prefillStatusBanner && (
+                <div className="p-2.5 rounded-lg glass-tint-emerald text-[11px] font-medium text-emerald-900 dark:text-emerald-200">
+                  {prefillStatusBanner}
+                </div>
+              )}
+            </div>
 
             <form onSubmit={handleUploadSubmit} className="space-y-4" noValidate>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

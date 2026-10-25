@@ -41,6 +41,7 @@ import {
   validateSignupSubmission,
 } from '../lib/domain';
 import { StatusBadge } from './StatusPrimitives';
+import { HeritageAmbientPattern, HeritageEmbroideredBorder } from './HeritageOrnaments';
 
 interface SignUpViewProps {
   institutions: Institution[];
@@ -384,12 +385,16 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex flex-col liquid-canvas text-stone-900 dark:text-stone-100 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col liquid-canvas text-stone-900 dark:text-stone-100 overflow-x-hidden relative">
+      <HeritageAmbientPattern />
       {/* Tricolour Top Ribbon */}
       <div className="h-1.5 w-full tricolour-bar sticky top-0 z-50" />
 
       {/* Top Bar */}
-      <header className="flex items-center justify-between gap-4 sm:gap-8 px-4 sm:px-6 py-3.5 liquid-glass-elevated sticky top-1.5 z-30 border-b-2 border-[#C2410C]/40">
+      <header className="flex items-center justify-between gap-4 sm:gap-8 px-4 sm:px-6 py-3.5 liquid-glass-elevated sticky top-1.5 z-30 border-b border-[#C7A56A]/45 relative">
+        <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
+          <HeritageEmbroideredBorder />
+        </div>
         <div className="flex items-center gap-3">
           <img
             src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_16.59.09_2f2ed194.jpeg"

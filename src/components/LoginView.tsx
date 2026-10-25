@@ -23,6 +23,11 @@ import {
   normalizePhoneNumber,
   verifyUserCredential,
 } from '../lib/domain';
+import {
+  HeritageAmbientPattern,
+  HeritageCornerOrnament,
+  HeritageEmbroideredBorder,
+} from './HeritageOrnaments';
 
 interface LoginViewProps {
   users: UserAccount[];
@@ -134,12 +139,16 @@ export const LoginView: React.FC<LoginViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex flex-col liquid-canvas text-stone-900 dark:text-stone-100 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col liquid-canvas text-stone-900 dark:text-stone-100 overflow-x-hidden relative">
+      <HeritageAmbientPattern />
       {/* Tricolour Top Ribbon */}
       <div className="h-1.5 w-full tricolour-bar sticky top-0 z-50" />
 
       {/* Top Bar */}
-      <header className="flex items-center justify-between gap-4 sm:gap-8 px-4 sm:px-6 py-3.5 liquid-glass-elevated sticky top-1.5 z-30 border-b-2 border-[#C2410C]/40">
+      <header className="flex items-center justify-between gap-4 sm:gap-8 px-4 sm:px-6 py-3.5 liquid-glass-elevated sticky top-1.5 z-30 border-b border-[#C7A56A]/45 relative">
+        <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
+          <HeritageEmbroideredBorder />
+        </div>
         <div className="flex items-center gap-3">
           <img
             src="/assets/aistudio/WhatsApp_Image_2026-10-24_at_16.59.09_2f2ed194.jpeg"
@@ -203,14 +212,16 @@ export const LoginView: React.FC<LoginViewProps> = ({
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
         {/* Left Column: Official Sign-In Card */}
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.36, ease: SMOOTH_EASE }}
-          className="lg:col-span-5 liquid-glass rounded-2xl p-6 sm:p-8"
+          className="lg:col-span-5 liquid-glass heritage-double-frame rounded-2xl p-6 sm:p-8 relative"
         >
+          <HeritageCornerOrnament position="top-left" size="sm" />
+          <HeritageCornerOrnament position="bottom-right" size="sm" />
           <div className="mb-6">
             <p className="text-xs font-bold uppercase tracking-wider text-[#C2410C] mb-1">
               VERIDEX Official Sign-In

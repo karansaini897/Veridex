@@ -63,6 +63,7 @@ const VAULT_CATEGORIES: Array<'All' | DocumentCategory> = [
 interface PersonalDocumentVaultSectionProps {
   currentUser: UserAccount;
   onSyncVaultToRepository?: (vaultDoc: VaultDocumentRecord, previewUrl?: string) => void;
+  onSyncToRepository?: (vaultDoc: VaultDocumentRecord, previewUrl?: string) => void;
   onVaultUpdated?: (records: VaultDocumentRecord[]) => void;
   compactMode?: boolean;
 }
@@ -70,9 +71,11 @@ interface PersonalDocumentVaultSectionProps {
 export const PersonalDocumentVaultSection: React.FC<PersonalDocumentVaultSectionProps> = ({
   currentUser,
   onSyncVaultToRepository,
+  onSyncToRepository,
   onVaultUpdated,
   compactMode = false,
 }) => {
+  const syncVaultCallback = onSyncVaultToRepository || onSyncToRepository;
   const [vaultDocs, setVaultDocs] = useState<VaultDocumentRecord[]>([]);
   const [isLoadingVault, setIsLoadingVault] = useState<boolean>(true);
   const [vaultSearch, setVaultSearch] = useState<string>('');
@@ -475,8 +478,8 @@ export const PersonalDocumentVaultSection: React.FC<PersonalDocumentVaultSection
         return;
       }
 
-      if (onSyncVaultToRepository) {
-        onSyncVaultToRepository(saveRes.record, localPreviewUrl || undefined);
+      if (syncVaultCallback) {
+        syncVaultCallback(saveRes.record, localPreviewUrl || undefined);
       }
 
       const refreshed = await getVaultDocumentsForUser(currentUser.id);
@@ -556,6 +559,9 @@ export const PersonalDocumentVaultSection: React.FC<PersonalDocumentVaultSection
     if (res.ok) {
       setInspectedDoc(res.record);
       setIsEditingSavedDoc(false);
+      if (syncVaultCallback) {
+        syncVaultCallback(res.record, inspectedBlobUrl || undefined);
+      }
       const refreshed = await getVaultDocumentsForUser(currentUser.id);
       setVaultDocs(refreshed);
       onVaultUpdated?.(refreshed);
@@ -578,6 +584,9 @@ export const PersonalDocumentVaultSection: React.FC<PersonalDocumentVaultSection
     if (res.ok) {
       if (inspectedDoc?.id === doc.id) {
         setInspectedDoc(res.record);
+      }
+      if (syncVaultCallback) {
+        syncVaultCallback(res.record);
       }
       const refreshed = await getVaultDocumentsForUser(currentUser.id);
       setVaultDocs(refreshed);

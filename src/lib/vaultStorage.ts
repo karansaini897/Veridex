@@ -98,6 +98,79 @@ function removeVaultMetadataFromLocalStorage(documentId: string): void {
   }
 }
 
+const VALID_DOC_CATEGORIES = new Set<string>([
+  'Approvals',
+  'Infrastructure',
+  'Qualifications',
+  'Experience Certificates',
+  'Faculty Records',
+  'Student Records',
+  'Financial & Trust Deeds',
+]);
+
+export function normalizeVaultDocumentRecord(
+  rawInput: Record<string, any>
+): VaultDocumentRecord {
+  const raw = rawInput as VaultDocumentRecord;
+  const rawAny = rawInput as Record<string, any>;
+  const rawEditable = (raw.editableDetails || {}) as Record<string, any>;
+
+  const resolvedTitle =
+    (typeof rawEditable.title === 'string' && rawEditable.title.trim()) ||
+    (typeof raw.title === 'string' && raw.title.trim()) ||
+    (typeof raw.originalFileName === 'string' && raw.originalFileName.replace(/\.[^.]+$/, '')) ||
+    (typeof raw.fileName === 'string' && raw.fileName.replace(/\.[^.]+$/, '')) ||
+    'Saved Vault Document';
+
+  const resolvedCertNo =
+    (typeof rawEditable.certificateNumber === 'string' && rawEditable.certificateNumber.trim()) ||
+    (typeof rawEditable.documentNumber === 'string' && rawEditable.documentNumber.trim()) ||
+    `VLT-${String(raw.id || 'DOC').slice(-6).toUpperCase()}`;
+
+  const resolvedFileName =
+    (typeof raw.originalFileName === 'string' && raw.originalFileName.trim()) ||
+    (typeof raw.fileName === 'string' && raw.fileName.trim()) ||
+    `${resolvedTitle.replace(/\s+/g, '_')}.pdf`;
+
+  const candidateCat = raw.category || raw.documentCategory || rawAny.category;
+  const resolvedCategory = VALID_DOC_CATEGORIES.has(String(candidateCat))
+    ? (candidateCat as VaultDocumentRecord['category'])
+    : 'Student Records';
+
+  const hasBlob = Boolean(raw.hasStoredBlob ?? raw.hasStoredFileBlob);
+
+  return {
+    ...raw,
+    originalFileName: resolvedFileName,
+    fileName: resolvedFileName,
+    title: resolvedTitle,
+    category: resolvedCategory,
+    documentCategory: resolvedCategory,
+    hasStoredBlob: hasBlob,
+    hasStoredFileBlob: hasBlob,
+    editableDetails: {
+      title: resolvedTitle,
+      certificateNumber: resolvedCertNo,
+      documentNumber: resolvedCertNo,
+      holderName:
+        (typeof rawEditable.holderName === 'string' && rawEditable.holderName.trim()) ||
+        raw.ownerName ||
+        'Document Holder',
+      issuingAuthority:
+        (typeof rawEditable.issuingAuthority === 'string' && rawEditable.issuingAuthority.trim()) ||
+        'Competent Issuing Authority',
+      issueDate:
+        (typeof rawEditable.issueDate === 'string' && rawEditable.issueDate.trim()) ||
+        (typeof raw.dateAdded === 'string' ? raw.dateAdded.slice(0, 10) : '2026-01-01'),
+      expiryDate:
+        typeof rawEditable.expiryDate === 'string' && rawEditable.expiryDate.trim()
+          ? rawEditable.expiryDate.trim()
+          : undefined,
+      notes: typeof rawEditable.notes === 'string' ? rawEditable.notes : undefined,
+    },
+  };
+}
+
 function readBackupMetadataForUser(ownerUserId: string): VaultDocumentRecord[] {
   if (typeof window === 'undefined' || !window.localStorage) return [];
   try {
@@ -105,13 +178,15 @@ function readBackupMetadataForUser(ownerUserId: string): VaultDocumentRecord[] {
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item): item is VaultDocumentRecord =>
-        typeof item === 'object' &&
-        item !== null &&
-        typeof (item as VaultDocumentRecord).id === 'string' &&
-        (item as VaultDocumentRecord).ownerUserId === ownerUserId
-    );
+    return parsed
+      .filter(
+        (item): item is VaultDocumentRecord =>
+          typeof item === 'object' &&
+          item !== null &&
+          typeof (item as VaultDocumentRecord).id === 'string' &&
+          (item as VaultDocumentRecord).ownerUserId === ownerUserId
+      )
+      .map(normalizeVaultDocumentRecord);
   } catch {
     return [];
   }
@@ -126,10 +201,13 @@ export async function saveVaultDocumentWithBlob(
   fileOrBlob?: Blob | File | null
 ): Promise<{ ok: boolean; record: VaultDocumentRecord; error?: string }> {
   const hasBlob = Boolean(fileOrBlob && fileOrBlob.size > 0);
+  const normalizedInput = normalizeVaultDocumentRecord(record);
   const finalRecord: VaultDocumentRecord = {
-    ...record,
-    hasStoredBlob: hasBlob ? true : record.hasStoredBlob,
+    ...normalizedInput,
+    hasStoredBlob: hasBlob ? true : normalizedInput.hasStoredBlob,
+    hasStoredFileBlob: hasBlob ? true : normalizedInput.hasStoredBlob,
   };
+
 
   memoryRecords.set(finalRecord.id, finalRecord);
   if (fileOrBlob && fileOrBlob.size > 0) {
@@ -274,8 +352,9 @@ export async function getVaultDocumentsForUser(
         tx.oncomplete = () => db.close();
       });
 
-      for (const rec of idbRecords) {
-        if (rec.ownerUserId === ownerUserId) {
+      for (const rawRec of idbRecords) {
+        if (rawRec.ownerUserId === ownerUserId) {
+          const rec = normalizeVaultDocumentRecord(rawRec);
           combined.set(rec.id, rec);
           memoryRecords.set(rec.id, rec);
         }
@@ -285,9 +364,11 @@ export async function getVaultDocumentsForUser(
     }
   }
 
-  return Array.from(combined.values()).sort((a, b) =>
-    (b.updatedAt || b.dateAdded).localeCompare(a.updatedAt || a.dateAdded)
-  );
+  return Array.from(combined.values())
+    .map(normalizeVaultDocumentRecord)
+    .sort((a, b) =>
+      (b.updatedAt || b.dateAdded).localeCompare(a.updatedAt || a.dateAdded)
+    );
 }
 
 /**
