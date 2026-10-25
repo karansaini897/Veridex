@@ -72,12 +72,15 @@ import { ProfileAndSettingsView } from './components/ProfileAndSettingsView';
 import { GeminiChatbotWidget } from './components/GeminiChatbotWidget';
 
 export default function App() {
-  // Light theme is default; Dark mode is optional and persistent
+  // Dark theme is default for first-time visitors; saved theme preference ('light' or 'dark') is preserved
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try {
-      return window.localStorage.getItem(STORAGE_KEYS.theme) === 'dark';
+      const saved = window.localStorage.getItem(STORAGE_KEYS.theme);
+      if (saved === 'light') return false;
+      if (saved === 'dark') return true;
+      return true;
     } catch {
-      return false;
+      return true;
     }
   });
 

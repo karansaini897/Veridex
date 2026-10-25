@@ -15,43 +15,78 @@
     --heritage-sage: #789783;
     --heritage-ivory: #f1e8d8;
 
+    /* Universal Heritage Ornamental Border System Tokens (Light Mode — High Contrast on Warm Ivory) */
+    --heritage-border-gold: #b58946;
+    --heritage-border-gold-strong: #9e2919;
+    --heritage-border-terracotta: rgba(158, 41, 25, 0.36);
+    --heritage-border-inner-gold: rgba(181, 137, 70, 0.48);
+    --heritage-control-border: rgba(173, 128, 62, 0.88);
+    --heritage-control-inner: rgba(158, 41, 25, 0.30);
+    --heritage-table-border: rgba(173, 128, 62, 0.46);
+    --heritage-table-cell-border: rgba(173, 128, 62, 0.24);
+
+    /* 4-Corner Ornate Heritage Flourishes (TL, TR, BR, BL) — Stays Strictly on 2px-5px Perimeter */
+    --heritage-corners-ornate:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none'%3E%3Cpath d='M1.5 25 L1.5 4.5 C1.5 2.8 2.8 1.5 4.5 1.5 L25 1.5' stroke='%23C7A56A' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M4.2 18.5 L4.2 6.5 C4.2 5.2 5.2 4.2 6.5 4.2 L18.5 4.2' stroke='%239E2919' stroke-width='1.2' stroke-linecap='round'/%3E%3Cpolygon points='2.5,2.5 7.5,2 9,7 7,9 2,7.5' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.9'/%3E%3Ccircle cx='5.2' cy='5.2' r='1.3' fill='%23F1E8D8'/%3E%3Ccircle cx='13' cy='2.8' r='1.3' fill='%23789783'/%3E%3Ccircle cx='2.8' cy='13' r='1.3' fill='%23789783'/%3E%3Ccircle cx='20' cy='2.5' r='1.1' fill='%23C7A56A'/%3E%3Ccircle cx='2.5' cy='20' r='1.1' fill='%23C7A56A'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none'%3E%3Cg transform='translate(28,0) scale(-1,1)'%3E%3Cpath d='M1.5 25 L1.5 4.5 C1.5 2.8 2.8 1.5 4.5 1.5 L25 1.5' stroke='%23C7A56A' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M4.2 18.5 L4.2 6.5 C4.2 5.2 5.2 4.2 6.5 4.2 L18.5 4.2' stroke='%239E2919' stroke-width='1.2' stroke-linecap='round'/%3E%3Cpolygon points='2.5,2.5 7.5,2 9,7 7,9 2,7.5' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.9'/%3E%3Ccircle cx='5.2' cy='5.2' r='1.3' fill='%23F1E8D8'/%3E%3Ccircle cx='13' cy='2.8' r='1.3' fill='%23789783'/%3E%3Ccircle cx='2.8' cy='13' r='1.3' fill='%23789783'/%3E%3Ccircle cx='20' cy='2.5' r='1.1' fill='%23C7A56A'/%3E%3Ccircle cx='2.5' cy='20' r='1.1' fill='%23C7A56A'/%3E%3C/g%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none'%3E%3Cg transform='translate(28,28) scale(-1,-1)'%3E%3Cpath d='M1.5 25 L1.5 4.5 C1.5 2.8 2.8 1.5 4.5 1.5 L25 1.5' stroke='%23C7A56A' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M4.2 18.5 L4.2 6.5 C4.2 5.2 5.2 4.2 6.5 4.2 L18.5 4.2' stroke='%239E2919' stroke-width='1.2' stroke-linecap='round'/%3E%3Cpolygon points='2.5,2.5 7.5,2 9,7 7,9 2,7.5' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.9'/%3E%3Ccircle cx='5.2' cy='5.2' r='1.3' fill='%23F1E8D8'/%3E%3Ccircle cx='13' cy='2.8' r='1.3' fill='%23789783'/%3E%3Ccircle cx='2.8' cy='13' r='1.3' fill='%23789783'/%3E%3Ccircle cx='20' cy='2.5' r='1.1' fill='%23C7A56A'/%3E%3Ccircle cx='2.5' cy='20' r='1.1' fill='%23C7A56A'/%3E%3C/g%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none'%3E%3Cg transform='translate(0,28) scale(1,-1)'%3E%3Cpath d='M1.5 25 L1.5 4.5 C1.5 2.8 2.8 1.5 4.5 1.5 L25 1.5' stroke='%23C7A56A' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M4.2 18.5 L4.2 6.5 C4.2 5.2 5.2 4.2 6.5 4.2 L18.5 4.2' stroke='%239E2919' stroke-width='1.2' stroke-linecap='round'/%3E%3Cpolygon points='2.5,2.5 7.5,2 9,7 7,9 2,7.5' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.9'/%3E%3Ccircle cx='5.2' cy='5.2' r='1.3' fill='%23F1E8D8'/%3E%3Ccircle cx='13' cy='2.8' r='1.3' fill='%23789783'/%3E%3Ccircle cx='2.8' cy='13' r='1.3' fill='%23789783'/%3E%3Ccircle cx='20' cy='2.5' r='1.1' fill='%23C7A56A'/%3E%3Ccircle cx='2.5' cy='20' r='1.1' fill='%23C7A56A'/%3E%3C/g%3E%3C/svg%3E");
+
+    /* 4-Corner Compact Heritage Flourishes for Small Boxes, Inputs, Buttons & Badges — Stays Strictly on 1px-3px Perimeter */
+    --heritage-corners-compact:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M1.2 13.8 L1.2 3 C1.2 1.9 1.9 1.2 3 1.2 L13.8 1.2' stroke='%23C7A56A' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M3.2 9.5 L3.2 4.2 C3.2 3.5 3.5 3.2 4.2 3.2 L9.5 3.2' stroke='%239E2919' stroke-width='1.05' stroke-linecap='round'/%3E%3Cpolygon points='1.5,1.5 5.2,1.5 5.6,5.6 1.5,5.2' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.75'/%3E%3Ccircle cx='3.2' cy='3.2' r='0.9' fill='%23F1E8D8'/%3E%3Ccircle cx='8.5' cy='2' r='0.95' fill='%23789783'/%3E%3Ccircle cx='2' cy='8.5' r='0.95' fill='%23789783'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cg transform='translate(16,0) scale(-1,1)'%3E%3Cpath d='M1.2 13.8 L1.2 3 C1.2 1.9 1.9 1.2 3 1.2 L13.8 1.2' stroke='%23C7A56A' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M3.2 9.5 L3.2 4.2 C3.2 3.5 3.5 3.2 4.2 3.2 L9.5 3.2' stroke='%239E2919' stroke-width='1.05' stroke-linecap='round'/%3E%3Cpolygon points='1.5,1.5 5.2,1.5 5.6,5.6 1.5,5.2' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.75'/%3E%3Ccircle cx='3.2' cy='3.2' r='0.9' fill='%23F1E8D8'/%3E%3Ccircle cx='8.5' cy='2' r='0.95' fill='%23789783'/%3E%3Ccircle cx='2' cy='8.5' r='0.95' fill='%23789783'/%3E%3C/g%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cg transform='translate(16,16) scale(-1,-1)'%3E%3Cpath d='M1.2 13.8 L1.2 3 C1.2 1.9 1.9 1.2 3 1.2 L13.8 1.2' stroke='%23C7A56A' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M3.2 9.5 L3.2 4.2 C3.2 3.5 3.5 3.2 4.2 3.2 L9.5 3.2' stroke='%239E2919' stroke-width='1.05' stroke-linecap='round'/%3E%3Cpolygon points='1.5,1.5 5.2,1.5 5.6,5.6 1.5,5.2' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.75'/%3E%3Ccircle cx='3.2' cy='3.2' r='0.9' fill='%23F1E8D8'/%3E%3Ccircle cx='8.5' cy='2' r='0.95' fill='%23789783'/%3E%3Ccircle cx='2' cy='8.5' r='0.95' fill='%23789783'/%3E%3C/g%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cg transform='translate(0,16) scale(1,-1)'%3E%3Cpath d='M1.2 13.8 L1.2 3 C1.2 1.9 1.9 1.2 3 1.2 L13.8 1.2' stroke='%23C7A56A' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M3.2 9.5 L3.2 4.2 C3.2 3.5 3.5 3.2 4.2 3.2 L9.5 3.2' stroke='%239E2919' stroke-width='1.05' stroke-linecap='round'/%3E%3Cpolygon points='1.5,1.5 5.2,1.5 5.6,5.6 1.5,5.2' fill='%239E2919' stroke='%23C7A56A' stroke-width='0.75'/%3E%3Ccircle cx='3.2' cy='3.2' r='0.9' fill='%23F1E8D8'/%3E%3Ccircle cx='8.5' cy='2' r='0.95' fill='%23789783'/%3E%3Ccircle cx='2' cy='8.5' r='0.95' fill='%23789783'/%3E%3C/g%3E%3C/svg%3E");
+
     /* Light Theme: Warm Ivory & Antique Gold Heritage Liquid-Glass Palette */
     --bg-canvas: #f1e8d8;
-    --glass-surface: rgba(252, 248, 240, 0.86);
-    --glass-surface-elevated: rgba(254, 251, 245, 0.93);
-    --glass-surface-floating: rgba(255, 253, 248, 0.97);
-    --glass-surface-subtle: rgba(238, 227, 208, 0.76);
+    --glass-surface: rgba(252, 247, 238, 0.84);
+    --glass-surface-elevated: rgba(254, 250, 243, 0.91);
+    --glass-surface-floating: rgba(255, 252, 246, 0.96);
+    --glass-surface-subtle: rgba(242, 232, 214, 0.78);
     --glass-surface-fallback: #fcf8f0;
     --glass-tint-blue: rgba(158, 41, 25, 0.08);
     --glass-tint-emerald: rgba(120, 151, 131, 0.14);
     --glass-tint-amber: rgba(199, 165, 106, 0.16);
     --glass-tint-crimson: rgba(158, 41, 25, 0.11);
-    --glass-border: rgba(199, 165, 106, 0.55);
-    --glass-border-strong: rgba(158, 41, 25, 0.68);
+    --glass-border: rgba(181, 137, 70, 0.78);
+    --glass-border-strong: rgba(158, 41, 25, 0.85);
     --glass-border-luminous: rgba(255, 255, 255, 0.78);
     --glass-specular:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.92),
-      inset 1px 0 0 0 rgba(199, 165, 106, 0.28),
-      inset 0 -1px 0 0 rgba(158, 41, 25, 0.12);
+      inset 0 0 0 1.5px rgba(158, 41, 25, 0.28),
+      inset 0 0 0 2.5px rgba(199, 165, 106, 0.35),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.88);
     --glass-specular-elevated:
-      inset 0 1.5px 0 0 rgba(255, 255, 255, 0.96),
-      inset 0 -1px 0 0 rgba(199, 165, 106, 0.32);
+      inset 0 0 0 2px rgba(158, 41, 25, 0.32),
+      inset 0 0 0 3px rgba(199, 165, 106, 0.42),
+      inset 0 1.5px 0 0 rgba(255, 255, 255, 0.92);
     --glass-shadow:
-      0 8px 24px -6px rgba(36, 27, 18, 0.09),
-      0 2px 6px -1px rgba(36, 27, 18, 0.05);
+      0 8px 24px -6px rgba(36, 27, 18, 0.11),
+      0 2px 6px -1px rgba(36, 27, 18, 0.06);
     --glass-shadow-hover:
-      0 14px 32px -8px rgba(158, 41, 25, 0.16),
-      0 4px 12px -2px rgba(120, 151, 131, 0.12);
+      0 14px 32px -8px rgba(158, 41, 25, 0.18),
+      0 4px 12px -2px rgba(120, 151, 131, 0.14);
     --glass-modal-shadow:
-      0 24px 56px -12px rgba(36, 27, 18, 0.24),
-      0 8px 20px -6px rgba(158, 41, 25, 0.14);
-    --chart-grid-stroke: rgba(199, 165, 106, 0.28);
+      0 24px 56px -12px rgba(36, 27, 18, 0.26),
+      0 8px 20px -6px rgba(158, 41, 25, 0.16);
+    --chart-grid-stroke: rgba(181, 137, 70, 0.32);
     --chart-axis-fill: #3d2e20;
     --chart-tooltip-bg: rgba(254, 251, 245, 0.96);
     --chart-tooltip-text: #241b12;
   }
 
   .dark {
+    /* Universal Heritage Ornamental Border System Tokens (Dark Mode — Luminous Gold & Terracotta on Espresso Brown) */
+    --heritage-border-gold: #c7a56a;
+    --heritage-border-gold-strong: #e3c58e;
+    --heritage-border-terracotta: rgba(158, 41, 25, 0.58);
+    --heritage-border-inner-gold: rgba(199, 165, 106, 0.36);
+    --heritage-control-border: rgba(199, 165, 106, 0.78);
+    --heritage-control-inner: rgba(158, 41, 25, 0.46);
+    --heritage-table-border: rgba(199, 165, 106, 0.38);
+    --heritage-table-cell-border: rgba(199, 165, 106, 0.18);
+
     /* Dark Mode: Reference Espresso Brown (#241B12) with Antique Gold (#C7A56A), Terracotta (#9E2919) & Sage (#789783) */
     --bg-canvas: #241b12;
     --glass-surface: rgba(45, 34, 24, 0.82);
@@ -63,26 +98,27 @@
     --glass-tint-emerald: rgba(120, 151, 131, 0.18);
     --glass-tint-amber: rgba(199, 165, 106, 0.16);
     --glass-tint-crimson: rgba(158, 41, 25, 0.24);
-    --glass-border: rgba(199, 165, 106, 0.44);
-    --glass-border-strong: rgba(199, 165, 106, 0.82);
+    --glass-border: rgba(199, 165, 106, 0.72);
+    --glass-border-strong: rgba(227, 197, 142, 0.95);
     --glass-border-luminous: rgba(241, 232, 216, 0.24);
     --glass-specular:
-      inset 0 1px 0 0 rgba(199, 165, 106, 0.26),
-      inset 1px 0 0 0 rgba(199, 165, 106, 0.10),
-      inset 0 -1px 0 0 rgba(158, 41, 25, 0.30);
+      inset 0 0 0 1.5px rgba(158, 41, 25, 0.52),
+      inset 0 0 0 2.5px rgba(199, 165, 106, 0.28),
+      inset 0 1px 0 0 rgba(199, 165, 106, 0.32);
     --glass-specular-elevated:
-      inset 0 1.5px 0 0 rgba(199, 165, 106, 0.35),
-      inset 0 -1px 0 0 rgba(158, 41, 25, 0.35);
+      inset 0 0 0 2px rgba(158, 41, 25, 0.58),
+      inset 0 0 0 3px rgba(199, 165, 106, 0.34),
+      inset 0 1.5px 0 0 rgba(199, 165, 106, 0.42);
     --glass-shadow:
       0 12px 32px -6px rgba(12, 8, 5, 0.65),
       0 2px 8px 0 rgba(12, 8, 5, 0.48);
     --glass-shadow-hover:
-      0 16px 36px -8px rgba(199, 165, 106, 0.22),
+      0 16px 36px -8px rgba(199, 165, 106, 0.25),
       0 6px 16px -3px rgba(12, 8, 5, 0.74);
     --glass-modal-shadow:
       0 28px 64px -12px rgba(10, 7, 4, 0.86),
-      0 8px 24px -4px rgba(158, 41, 25, 0.28);
-    --chart-grid-stroke: rgba(199, 165, 106, 0.20);
+      0 8px 24px -4px rgba(158, 41, 25, 0.32);
+    --chart-grid-stroke: rgba(199, 165, 106, 0.22);
     --chart-axis-fill: #f1e8d8;
     --chart-tooltip-bg: rgba(45, 34, 24, 0.97);
     --chart-tooltip-text: #f1e8d8;
@@ -110,6 +146,30 @@
     font-family: var(--font-display);
     text-wrap: balance;
   }
+}
+
+/* Continuous 360-Degree Rotation for Top-Left & Top-Right Semicircular Ornamental Wheels */
+@keyframes heritageWheelRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.heritage-corner-wheel-spin {
+  transform-origin: 50% 50%;
+  transform-box: view-box;
+  animation: heritageWheelRotate 24s linear infinite;
+  will-change: transform;
+}
+
+.heritage-corner-wheel-spin-reverse {
+  transform-origin: 50% 50%;
+  transform-box: view-box;
+  animation: heritageWheelRotate 24s linear infinite reverse;
+  will-change: transform;
 }
 
 .font-display {
@@ -148,10 +208,10 @@
   position: relative;
   background-color: var(--bg-canvas);
   background-image:
-    radial-gradient(ellipse 55% 38% at 10% 4%, rgba(158, 41, 25, 0.08), transparent 68%),
-    radial-gradient(ellipse 50% 42% at 90% 16%, rgba(120, 151, 131, 0.11), transparent 68%),
-    radial-gradient(ellipse 60% 45% at 50% 96%, rgba(199, 165, 106, 0.12), transparent 72%),
-    linear-gradient(180deg, #f6efe2 0%, #f1e8d8 52%, #e9decb 100%);
+    radial-gradient(ellipse 58% 42% at 8% 4%, rgba(158, 41, 25, 0.14), transparent 68%),
+    radial-gradient(ellipse 54% 44% at 92% 14%, rgba(120, 151, 131, 0.18), transparent 68%),
+    radial-gradient(ellipse 64% 48% at 50% 96%, rgba(199, 165, 106, 0.22), transparent 72%),
+    linear-gradient(180deg, #f5ecdc 0%, #f1e8d8 52%, #e7dac3 100%);
 }
 
 .dark .liquid-canvas {
@@ -163,48 +223,79 @@
     linear-gradient(180deg, #241b12 0%, #2a2016 54%, #1d150e 100%);
 }
 
-/* Ornate Heritage Double-Line Frame Utility */
-.heritage-double-frame {
+/* Ornate Heritage Double-Line Frame Utility (Tier 1 Master Frame) */
+.heritage-double-frame,
+.heritage-box-lg {
   position: relative;
-  border: 2px solid #c7a56a;
+  border: 2px solid var(--heritage-border-gold) !important;
+  background-image: var(--heritage-corners-ornate);
+  background-position: top 2.5px left 2.5px, top 2.5px right 2.5px, bottom 2.5px right 2.5px, bottom 2.5px left 2.5px;
+  background-size: 18px 18px;
+  background-repeat: no-repeat;
   box-shadow:
-    inset 0 0 0 3px rgba(158, 41, 25, 0.28),
-    0 20px 50px -12px rgba(36, 27, 18, 0.22);
+    inset 0 0 0 2.5px var(--heritage-border-terracotta),
+    inset 0 0 0 3.5px var(--heritage-border-inner-gold),
+    0 20px 50px -12px rgba(36, 27, 18, 0.24);
 }
 
-.dark .heritage-double-frame {
-  border-color: #c7a56a;
+.dark .heritage-double-frame,
+.dark .heritage-box-lg {
+  border-color: #c7a56a !important;
   box-shadow:
-    inset 0 0 0 3px rgba(158, 41, 25, 0.45),
+    inset 0 0 0 2.5px rgba(158, 41, 25, 0.58),
+    inset 0 0 0 3.5px rgba(199, 165, 106, 0.36),
     0 24px 60px -12px rgba(0, 0, 0, 0.72);
 }
 
 .heritage-kicker-plaque {
-  background: linear-gradient(90deg, rgba(158, 41, 25, 0.10) 0%, rgba(199, 165, 106, 0.18) 50%, rgba(120, 151, 131, 0.12) 100%);
-  border: 1.5px solid #c7a56a;
-  box-shadow: inset 0 0 0 1px rgba(158, 41, 25, 0.25);
+  background-color: rgba(199, 165, 106, 0.14);
+  background-image:
+    var(--heritage-corners-compact),
+    linear-gradient(90deg, rgba(158, 41, 25, 0.10) 0%, rgba(199, 165, 106, 0.18) 50%, rgba(120, 151, 131, 0.12) 100%);
+  background-position:
+    top 1.5px left 1.5px,
+    top 1.5px right 1.5px,
+    bottom 1.5px right 1.5px,
+    bottom 1.5px left 1.5px,
+    0 0;
+  background-size: 9px 9px, 9px 9px, 9px 9px, 9px 9px, 100% 100%;
+  background-repeat: no-repeat;
+  border: 1.5px solid var(--heritage-border-gold) !important;
+  box-shadow: inset 0 0 0 1.5px var(--heritage-border-terracotta);
 }
 
 .dark .heritage-kicker-plaque {
-  background: linear-gradient(90deg, rgba(158, 41, 25, 0.32) 0%, rgba(36, 27, 18, 0.88) 50%, rgba(120, 151, 131, 0.24) 100%);
-  border: 1.5px solid #c7a56a;
-  box-shadow: inset 0 0 0 1px rgba(199, 165, 106, 0.25);
+  background-color: rgba(36, 27, 18, 0.85);
+  background-image:
+    var(--heritage-corners-compact),
+    linear-gradient(90deg, rgba(158, 41, 25, 0.32) 0%, rgba(36, 27, 18, 0.88) 50%, rgba(120, 151, 131, 0.24) 100%);
+  border: 1.5px solid #c7a56a !important;
+  box-shadow: inset 0 0 0 1.5px rgba(158, 41, 25, 0.55);
 }
 
-
-/* Primary Liquid-Glass Surface Hierarchy */
-.liquid-glass {
+/* Primary Liquid-Glass Surface Hierarchy with Integrated 4-Corner Heritage Ornaments */
+.liquid-glass,
+.heritage-box-md {
   position: relative;
-  background:
+  background-color: var(--glass-surface);
+  background-image:
+    var(--heritage-corners-ornate),
     linear-gradient(
       165deg,
       rgba(255, 255, 255, 0.38) 0%,
       rgba(255, 255, 255, 0) 42%
-    ),
-    var(--glass-surface);
+    );
+  background-position:
+    top 2px left 2px,
+    top 2px right 2px,
+    bottom 2px right 2px,
+    bottom 2px left 2px,
+    0 0;
+  background-size: 15px 15px, 15px 15px, 15px 15px, 15px 15px, 100% 100%;
+  background-repeat: no-repeat;
   backdrop-filter: blur(18px) saturate(155%);
   -webkit-backdrop-filter: blur(18px) saturate(155%);
-  border: 1.5px solid var(--glass-border);
+  border: 1.5px solid var(--heritage-border-gold) !important;
   box-shadow: var(--glass-specular), var(--glass-shadow);
   transition:
     background-color 130ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -213,14 +304,16 @@
     transform 130ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.dark .liquid-glass {
-  background:
+.dark .liquid-glass,
+.dark .heritage-box-md {
+  background-color: var(--glass-surface);
+  background-image:
+    var(--heritage-corners-ornate),
     linear-gradient(
       165deg,
       rgba(254, 215, 170, 0.055) 0%,
       rgba(254, 215, 170, 0) 45%
-    ),
-    var(--glass-surface);
+    );
 }
 
 .liquid-glass-interactive {
@@ -229,53 +322,85 @@
 
 .liquid-glass-interactive:hover,
 .liquid-glass-interactive:focus-within {
-  border-color: var(--glass-border-strong);
+  border-color: var(--glass-border-strong) !important;
   box-shadow: var(--glass-specular-elevated), var(--glass-shadow-hover);
   transform: translateY(-2px);
 }
 
 .liquid-glass-elevated {
-  background:
+  background-color: var(--glass-surface-elevated);
+  background-image:
+    var(--heritage-corners-ornate),
     linear-gradient(
       170deg,
       rgba(255, 255, 255, 0.45) 0%,
       rgba(255, 255, 255, 0) 38%
-    ),
-    var(--glass-surface-elevated);
+    );
+  background-position:
+    top 2px left 2px,
+    top 2px right 2px,
+    bottom 2px right 2px,
+    bottom 2px left 2px,
+    0 0;
+  background-size: 16px 16px, 16px 16px, 16px 16px, 16px 16px, 100% 100%;
+  background-repeat: no-repeat;
   backdrop-filter: blur(22px) saturate(165%);
   -webkit-backdrop-filter: blur(22px) saturate(165%);
-  border: 1.5px solid var(--glass-border);
+  border: 1.5px solid var(--heritage-border-gold) !important;
   box-shadow: var(--glass-specular-elevated), var(--glass-modal-shadow);
 }
 
 .dark .liquid-glass-elevated {
-  background:
+  background-color: var(--glass-surface-elevated);
+  background-image:
+    var(--heritage-corners-ornate),
     linear-gradient(
       170deg,
       rgba(254, 215, 170, 0.07) 0%,
       rgba(254, 215, 170, 0) 40%
-    ),
-    var(--glass-surface-elevated);
+    );
 }
 
 .liquid-glass-floating {
-  background: var(--glass-surface-floating);
+  background-color: var(--glass-surface-floating);
+  background-image: var(--heritage-corners-ornate);
+  background-position:
+    top 2px left 2px,
+    top 2px right 2px,
+    bottom 2px right 2px,
+    bottom 2px left 2px;
+  background-size: 16px 16px;
+  background-repeat: no-repeat;
   backdrop-filter: blur(24px) saturate(175%);
   -webkit-backdrop-filter: blur(24px) saturate(175%);
-  border: 1.5px solid var(--glass-border-strong);
+  border: 1.5px solid var(--glass-border-strong) !important;
   box-shadow: var(--glass-specular-elevated), var(--glass-modal-shadow);
 }
 
-.liquid-glass-subtle {
-  background: var(--glass-surface-subtle);
+.liquid-glass-subtle,
+.heritage-box-sm {
+  background-color: var(--glass-surface-subtle);
+  background-image: var(--heritage-corners-compact);
+  background-position:
+    top 1.5px left 1.5px,
+    top 1.5px right 1.5px,
+    bottom 1.5px right 1.5px,
+    bottom 1.5px left 1.5px;
+  background-size: 10px 10px;
+  background-repeat: no-repeat;
   backdrop-filter: blur(10px) saturate(135%);
   -webkit-backdrop-filter: blur(10px) saturate(135%);
-  border: 1px solid var(--glass-border);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45);
+  border: 1.25px solid var(--heritage-border-gold) !important;
+  box-shadow:
+    inset 0 0 0 1px var(--heritage-border-terracotta),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
 }
 
-.dark .liquid-glass-subtle {
-  box-shadow: inset 0 1px 0 0 rgba(254, 215, 170, 0.08);
+.dark .liquid-glass-subtle,
+.dark .heritage-box-sm {
+  box-shadow:
+    inset 0 0 0 1px var(--heritage-border-terracotta),
+    inset 0 1px 0 0 rgba(254, 215, 170, 0.10);
 }
 
 /* Fallback for browsers without backdrop-filter support */
@@ -283,29 +408,49 @@
   .liquid-glass,
   .liquid-glass-elevated,
   .liquid-glass-floating {
-    background: var(--glass-surface-fallback);
+    background-color: var(--glass-surface-fallback);
   }
 }
 
-/* Semantic Tinted Accents */
+/* Semantic Tinted Accents with Ornamental Corner Framing */
 .glass-tint-blue {
-  background: var(--glass-tint-blue);
-  border: 1px solid rgba(194, 65, 12, 0.35);
+  background-color: var(--glass-tint-blue);
+  background-image: var(--heritage-corners-compact);
+  background-position: top 1.5px left 1.5px, top 1.5px right 1.5px, bottom 1.5px right 1.5px, bottom 1.5px left 1.5px;
+  background-size: 10px 10px;
+  background-repeat: no-repeat;
+  border: 1.25px solid var(--heritage-border-gold) !important;
+  box-shadow: inset 0 0 0 1px rgba(158, 41, 25, 0.35);
 }
 
 .glass-tint-emerald {
-  background: var(--glass-tint-emerald);
-  border: 1px solid rgba(4, 106, 56, 0.35);
+  background-color: var(--glass-tint-emerald);
+  background-image: var(--heritage-corners-compact);
+  background-position: top 1.5px left 1.5px, top 1.5px right 1.5px, bottom 1.5px right 1.5px, bottom 1.5px left 1.5px;
+  background-size: 10px 10px;
+  background-repeat: no-repeat;
+  border: 1.25px solid var(--heritage-border-gold) !important;
+  box-shadow: inset 0 0 0 1px rgba(120, 151, 131, 0.42);
 }
 
 .glass-tint-amber {
-  background: var(--glass-tint-amber);
-  border: 1px solid rgba(180, 83, 9, 0.35);
+  background-color: var(--glass-tint-amber);
+  background-image: var(--heritage-corners-compact);
+  background-position: top 1.5px left 1.5px, top 1.5px right 1.5px, bottom 1.5px right 1.5px, bottom 1.5px left 1.5px;
+  background-size: 10px 10px;
+  background-repeat: no-repeat;
+  border: 1.25px solid var(--heritage-border-gold) !important;
+  box-shadow: inset 0 0 0 1px rgba(199, 165, 106, 0.45);
 }
 
 .glass-tint-crimson {
-  background: var(--glass-tint-crimson);
-  border: 1px solid rgba(185, 28, 28, 0.35);
+  background-color: var(--glass-tint-crimson);
+  background-image: var(--heritage-corners-compact);
+  background-position: top 1.5px left 1.5px, top 1.5px right 1.5px, bottom 1.5px right 1.5px, bottom 1.5px left 1.5px;
+  background-size: 10px 10px;
+  background-repeat: no-repeat;
+  border: 1.25px solid var(--heritage-border-gold) !important;
+  box-shadow: inset 0 0 0 1px rgba(158, 41, 25, 0.45);
 }
 
 /* Modal & Slide-Over Backdrop */
@@ -315,12 +460,75 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
-/* Harmonize structural cards, borders & icons across all portal views */
+/* ============================================================================
+   UNIVERSAL ORNAMENTAL BORDER RULES FOR ALL BOXED ELEMENTS ACROSS ALL VIEWS
+   Adapts ornament scale automatically to box size (Large / Medium / Small / Micro)
+   while keeping decorations strictly on the perimeter behind content.
+   ============================================================================ */
+
+/* 1. Large & Medium Rounded Box Containers (rounded-3xl, rounded-2xl, rounded-xl) */
+.liquid-canvas :where(div, section, article, aside, nav, form, label, li, details, dialog):is([class*="rounded-3xl"], [class*="rounded-2xl"], [class*="rounded-xl"]):not([class*="rounded-full"]):not([class*="h-1"]):not([class*="h-2"]):not([class*="h-3"]):not([class*="w-1"]):not([class*="w-2"]):not([class*="w-3"]) {
+  border-style: solid;
+  border-width: 1.5px;
+  border-color: var(--heritage-border-gold) !important;
+  background-image: var(--heritage-corners-ornate);
+  background-position:
+    top 2px left 2px,
+    top 2px right 2px,
+    bottom 2px right 2px,
+    bottom 2px left 2px;
+  background-size: 14px 14px;
+  background-repeat: no-repeat;
+  box-shadow:
+    inset 0 0 0 1.5px var(--heritage-border-terracotta),
+    inset 0 0 0 2.5px var(--heritage-border-inner-gold),
+    var(--glass-shadow);
+}
+
+/* 2. Small & Compact Rounded Box Containers (rounded-lg, rounded-md, rounded) */
+.liquid-canvas :where(div, section, article, aside, nav, form, label, li, details, pre):is([class*="rounded-lg"], [class*="rounded-md"], [class*="rounded "]):not([class*="rounded-xl"]):not([class*="rounded-2xl"]):not([class*="rounded-3xl"]):not([class*="rounded-full"]):not([class*="h-1"]):not([class*="h-2"]):not([class*="h-3"]):not([class*="w-1"]):not([class*="w-2"]):not([class*="w-3"]):not([class*="h-full"]) {
+  border-style: solid;
+  border-width: 1.25px;
+  border-color: var(--heritage-border-gold) !important;
+  background-image: var(--heritage-corners-compact);
+  background-position:
+    top 1.5px left 1.5px,
+    top 1.5px right 1.5px,
+    bottom 1.5px right 1.5px,
+    bottom 1.5px left 1.5px;
+  background-size: 8.5px 8.5px;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px var(--heritage-border-terracotta);
+}
+
+/* 3. Micro Boxed Spans, StatusBadges, FileTypeMarkers & Inline Tags */
+.liquid-canvas :where(span, a, code):is([class*="rounded-xl"], [class*="rounded-lg"], [class*="rounded-md"], [class*="rounded "], [class$="rounded"]):not([class*="rounded-full"]):not([class*="h-1"]):not([class*="h-2"]):not([class*="w-1"]):not([class*="w-2"]) {
+  border-style: solid;
+  border-width: 1px;
+  border-color: var(--heritage-border-gold) !important;
+  background-image: var(--heritage-corners-compact);
+  background-position:
+    top 1px left 1px,
+    top 1px right 1px,
+    bottom 1px right 1px,
+    bottom 1px left 1px;
+  background-size: 5.5px 5.5px;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px var(--heritage-control-inner);
+}
+
+/* 4. Capsule / Pill Containers & Avatar Rings (rounded-full, excluding tiny <12px status dots) */
+.liquid-canvas :where(div, span, a):is([class*="rounded-full"]):not([class*="w-1"]):not([class*="w-2"]):not([class*="w-3"]):not([class*="h-1"]):not([class*="h-2"]):not([class*="h-3"]):not([class*="h-full"]) {
+  border-style: solid;
+  border-width: 1.25px;
+  border-color: var(--heritage-border-gold) !important;
+  box-shadow: inset 0 0 0 1.25px var(--heritage-border-terracotta);
+}
+
+/* Harmonize structural cards & light/dark backgrounds across all portal views */
 .liquid-canvas section.bg-white,
 .liquid-canvas div.bg-white {
-  background: var(--glass-surface);
-  border-color: var(--glass-border);
-  box-shadow: var(--glass-specular), var(--glass-shadow);
+  background-color: var(--glass-surface);
 }
 
 .liquid-canvas .bg-slate-50,
@@ -328,11 +536,10 @@
 .liquid-canvas .bg-slate-50\/70,
 .liquid-canvas .bg-slate-50\/60,
 .liquid-canvas .bg-slate-50\/50 {
-  background: var(--glass-surface-subtle);
-  border-color: var(--glass-border);
+  background-color: var(--glass-surface-subtle);
 }
 
-/* Map legacy blue icons and accents inside portal views to India Green & Dark Orange */
+/* Map legacy blue icons and accents inside portal views to India Green & Terracotta */
 .liquid-canvas svg.text-blue-600,
 .liquid-canvas svg.text-blue-700,
 .liquid-canvas svg.text-blue-500,
@@ -359,24 +566,108 @@
   color: #22c55e !important;
 }
 
-.dark .liquid-canvas input:not([type="checkbox"]):not([type="radio"]),
-.dark .liquid-canvas select,
-.dark .liquid-canvas textarea {
-  background-color: rgba(24, 20, 17, 0.85);
-  border-color: rgba(217, 95, 24, 0.38);
-}
-
-.liquid-canvas input:not([type="checkbox"]):not([type="radio"]),
+/* 5. All Form Controls: Inputs, Search Boxes, Selects, Textareas, Date Inputs & File Upload Controls */
+.liquid-canvas input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
 .liquid-canvas select,
 .liquid-canvas textarea {
-  border-color: rgba(194, 65, 12, 0.35);
+  background-color: rgba(254, 250, 242, 0.92);
+  background-image: var(--heritage-corners-compact);
+  background-position:
+    top 1.5px left 1.5px,
+    top 1.5px right 1.5px,
+    bottom 1.5px right 1.5px,
+    bottom 1.5px left 1.5px;
+  background-size: 8px 8px;
+  background-repeat: no-repeat;
+  border: 1.5px solid var(--heritage-control-border) !important;
+  box-shadow:
+    inset 0 0 0 1px var(--heritage-control-inner),
+    inset 0 1px 2px rgba(36, 27, 18, 0.06);
   transition:
     border-color 120ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 120ms cubic-bezier(0.22, 1, 0.36, 1),
     background-color 120ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.liquid-canvas button,
+.dark .liquid-canvas input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+.dark .liquid-canvas select,
+.dark .liquid-canvas textarea {
+  background-color: rgba(28, 21, 15, 0.90);
+  border-color: var(--heritage-control-border) !important;
+  box-shadow:
+    inset 0 0 0 1px var(--heritage-control-inner),
+    inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.liquid-canvas input:not([type="checkbox"]):not([type="radio"]):focus,
+.liquid-canvas select:focus,
+.liquid-canvas textarea:focus {
+  border-color: var(--heritage-border-gold-strong) !important;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(158, 41, 25, 0.55),
+    0 0 0 2px rgba(199, 165, 106, 0.28);
+}
+
+/* Checkboxes and Radio Controls with Compatible Heritage Outline */
+.liquid-canvas input[type="checkbox"],
+.liquid-canvas input[type="radio"] {
+  accent-color: #9e2919;
+  outline: 1.5px solid var(--heritage-border-gold);
+  outline-offset: 1px;
+  cursor: pointer;
+}
+
+/* 6. Universal Ornamental Border Treatment for All Buttons & Segmented Controls */
+.liquid-canvas button:not(.liquid-glass):not(.liquid-glass-elevated):not(.heritage-double-frame):not([class*="rounded-2xl"]):not([class*="rounded-3xl"]) {
+  border-style: solid;
+  border-width: 1.25px;
+  border-color: var(--heritage-border-gold);
+  background-image: var(--heritage-corners-compact);
+  background-position:
+    top 1.5px left 1.5px,
+    top 1.5px right 1.5px,
+    bottom 1.5px right 1.5px,
+    bottom 1.5px left 1.5px;
+  background-size: 7.5px 7.5px;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px var(--heritage-control-inner);
+  transition:
+    background-color 120ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 120ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 120ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 120ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 120ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Give unpadded inline buttons (table sort headers, inline link-buttons) comfortable breathing room inside their compact heritage border */
+.liquid-canvas thead th button,
+.liquid-canvas button:not([class*="p-"]):not([class*="px-"]):not([class*="py-"]):not([class*="w-"]):not([class*="h-"]):not([class*="btn-"]):not(.liquid-glass) {
+  padding: 0.2rem 0.55rem !important;
+  border-radius: 0.4rem !important;
+}
+
+/* Give password-visibility icon button inside inputs clean internal padding */
+.liquid-canvas button[class*="right-3"] {
+  padding: 0.25rem !important;
+  border-radius: 0.375rem !important;
+}
+
+/* Ensure header navigation buttons have comfortable padding and radius for their compact ornamental border */
+nav[aria-label="Primary Navigation"] button {
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.65rem;
+}
+
+/* Circular buttons (such as floating Chatbot launcher) use double heritage ring instead of square corners */
+.liquid-canvas button[class*="rounded-full"],
+button[class*="rounded-full"] {
+  background-image: none;
+  border: 2px solid var(--heritage-border-gold) !important;
+  box-shadow:
+    inset 0 0 0 2px var(--heritage-border-terracotta),
+    0 8px 24px rgba(12, 8, 5, 0.45);
+}
+
 .liquid-canvas a,
 .liquid-canvas tr {
   transition:
@@ -387,7 +678,45 @@
     box-shadow 120ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Standardized Button Hierarchy with Specular Edge & Tactile Feedback */
+/* 7. Tables, Table Headers, Rows & Cells */
+.liquid-canvas table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--heritage-table-border);
+  border-radius: 0.75rem;
+}
+
+.liquid-canvas thead th {
+  border-bottom: 1.5px solid var(--heritage-border-gold) !important;
+  border-right: 1px solid var(--heritage-table-cell-border);
+  background-image: var(--heritage-corners-compact);
+  background-position:
+    top 1px left 1px,
+    top 1px right 1px,
+    bottom 1px right 1px,
+    bottom 1px left 1px;
+  background-size: 5.5px 5.5px;
+  background-repeat: no-repeat;
+}
+
+.liquid-canvas thead th:last-child {
+  border-right: none;
+}
+
+.liquid-canvas tbody td {
+  border-bottom: 1px solid var(--heritage-table-border);
+  border-right: 1px solid var(--heritage-table-cell-border);
+}
+
+.liquid-canvas tbody td:last-child {
+  border-right: none;
+}
+
+.liquid-canvas tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Standardized Button Hierarchy with Heritage Ornamental Frame & Tactile Feedback */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -398,21 +727,30 @@
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.25rem;
-  background-color: #c2410c;
-  color: #ffffff !important;
-  border: 1px solid #9a3412;
+  background-color: #9e2919;
+  background-image: var(--heritage-corners-compact);
+  background-position:
+    top 1.5px left 1.5px,
+    top 1.5px right 1.5px,
+    bottom 1.5px right 1.5px,
+    bottom 1.5px left 1.5px;
+  background-size: 8px 8px;
+  background-repeat: no-repeat;
+  color: #f1e8d8 !important;
+  border: 1.5px solid #c7a56a !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.28),
-    0 2px 6px rgba(154, 52, 18, 0.24);
+    inset 0 0 0 1px rgba(241, 232, 216, 0.26),
+    0 2px 6px rgba(158, 41, 25, 0.28);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #9a3412;
+  background-color: #822012;
+  border-color: #e3c58e !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
-    0 6px 14px rgba(154, 52, 18, 0.3);
+    inset 0 0 0 1.5px rgba(241, 232, 216, 0.35),
+    0 6px 14px rgba(158, 41, 25, 0.36);
   transform: translateY(-1px);
 }
 
@@ -436,20 +774,29 @@
   font-weight: 600;
   line-height: 1.25rem;
   background-color: #046a38;
-  color: #ffffff !important;
-  border: 1px solid #03542c;
+  background-image: var(--heritage-corners-compact);
+  background-position:
+    top 1.5px left 1.5px,
+    top 1.5px right 1.5px,
+    bottom 1.5px right 1.5px,
+    bottom 1.5px left 1.5px;
+  background-size: 8px 8px;
+  background-repeat: no-repeat;
+  color: #f1e8d8 !important;
+  border: 1.5px solid #c7a56a !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.26),
-    0 2px 6px rgba(4, 106, 56, 0.24);
+    inset 0 0 0 1px rgba(241, 232, 216, 0.24),
+    0 2px 6px rgba(4, 106, 56, 0.26);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .btn-emerald:hover:not(:disabled) {
   background-color: #03542c;
+  border-color: #e3c58e !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.34),
-    0 6px 14px rgba(4, 106, 56, 0.3);
+    inset 0 0 0 1.5px rgba(241, 232, 216, 0.34),
+    0 6px 14px rgba(4, 106, 56, 0.32);
   transform: translateY(-1px);
 }
 
@@ -467,21 +814,29 @@
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.25rem;
-  background: var(--glass-surface-elevated);
-  color: #1c1917;
-  border: 1.5px solid var(--glass-border);
+  background-color: var(--glass-surface-elevated);
+  background-image: var(--heritage-corners-compact);
+  background-position:
+    top 1.5px left 1.5px,
+    top 1.5px right 1.5px,
+    bottom 1.5px right 1.5px,
+    bottom 1.5px left 1.5px;
+  background-size: 8px 8px;
+  background-repeat: no-repeat;
+  color: #241b12;
+  border: 1.5px solid var(--heritage-border-gold) !important;
   box-shadow: var(--glass-specular);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .dark .btn-secondary {
-  color: #f5f5f4;
+  color: #f1e8d8;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border-color: var(--glass-border-strong);
-  background: rgba(234, 88, 12, 0.09);
+  border-color: var(--glass-border-strong) !important;
+  background-color: rgba(158, 41, 25, 0.14);
   transform: translateY(-1px);
 }
 
@@ -498,18 +853,29 @@
   border-radius: 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #c2410c;
-  background: transparent;
+  color: #9e2919;
+  background-color: rgba(199, 165, 106, 0.10);
+  background-image: var(--heritage-corners-compact);
+  background-position:
+    top 1.5px left 1.5px,
+    top 1.5px right 1.5px,
+    bottom 1.5px right 1.5px,
+    bottom 1.5px left 1.5px;
+  background-size: 6.5px 6.5px;
+  background-repeat: no-repeat;
+  border: 1px solid var(--heritage-border-gold) !important;
+  box-shadow: inset 0 0 0 1px var(--heritage-control-inner);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .dark .btn-tertiary {
-  color: #fb923c;
+  color: #e3c58e;
+  background-color: rgba(199, 165, 106, 0.08);
 }
 
 .btn-tertiary:hover:not(:disabled) {
-  background: rgba(194, 65, 12, 0.1);
+  background-color: rgba(158, 41, 25, 0.18);
 }
 
 /* Responsive Workspace Container Scaling cleanly from 375px Mobile to 7680px 8K */
@@ -544,7 +910,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #c2410c;
+  outline: 2px solid #c7a56a;
   outline-offset: 2px;
 }
 
@@ -553,7 +919,7 @@ textarea:focus-visible {
 .dark input:focus-visible,
 .dark select:focus-visible,
 .dark textarea:focus-visible {
-  outline: 2px solid #fb923c;
+  outline: 2px solid #e3c58e;
   outline-offset: 2px;
 }
 
@@ -566,6 +932,10 @@ textarea:focus-visible {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+  .heritage-corner-wheel-spin,
+  .heritage-corner-wheel-spin-reverse {
+    animation: none !important;
+  }
   .liquid-glass-interactive:hover,
   .liquid-glass-interactive:focus-within,
   .btn-primary:hover:not(:disabled),
@@ -574,3 +944,4 @@ textarea:focus-visible {
     transform: none !important;
   }
 }
+
