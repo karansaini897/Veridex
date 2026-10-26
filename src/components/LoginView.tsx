@@ -23,6 +23,7 @@ import {
   normalizePhoneNumber,
   verifyUserCredential,
 } from '../lib/domain';
+import { signInUserWithSupabase } from '../lib/authService';
 import {
   HeritageAmbientPattern,
   HeritageCornerOrnament,
@@ -60,7 +61,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [recoveryIdentifier, setRecoveryIdentifier] = useState('');
   const [recoverySubmitted, setRecoverySubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setMatchedRequestForNotice(null);
@@ -76,29 +77,16 @@ export const LoginView: React.FC<LoginViewProps> = ({
     }
 
     setIsSubmitting(true);
-    window.setTimeout(() => {
-      const normalizedInputPhone = normalizePhoneNumber(trimmedId);
-      const matchedUser = users.find(
-        (u) =>
-          u.username.toLowerCase() === trimmedId.toLowerCase() ||
-          u.email.toLowerCase() === trimmedId.toLowerCase() ||
-          (normalizedInputPhone && u.normalizedPhone === normalizedInputPhone)
-      );
-
-      if (matchedUser && verifyUserCredential(matchedUser, password)) {
-        if (matchedUser.status !== 'Active') {
-          setIsSubmitting(false);
-          setError(
-            `Account "${matchedUser.username}" is currently ${matchedUser.status}. Contact an authorized administrator.`
-          );
-          return;
-        }
+    try {
+      const result = await signInUserWithSupabase(trimmedId, password, users);
+      if (result.success && result.user) {
         setIsSubmitting(false);
-        onLoginSuccess(matchedUser);
+        onLoginSuccess(result.user);
         return;
       }
 
       // Check if credentials match an existing account approval request
+      const normalizedInputPhone = normalizePhoneNumber(trimmedId);
       const inputDigest = computeCredentialDigest(password);
       const matchedReq = approvalRequests.find(
         (r) =>
@@ -133,9 +121,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
       setIsSubmitting(false);
       setError(
-        'Invalid username/phone number or password. Please verify your credentials or contact your Regional Nodal Administrator.'
+        result.error ||
+          'Invalid username/phone number or password. Please verify your credentials or contact your Regional Nodal Administrator.'
       );
-    }, 180);
+    } catch {
+      setIsSubmitting(false);
+      setError('Authentication failed. Please verify your network connection and try again.');
+    }
   };
 
   return (

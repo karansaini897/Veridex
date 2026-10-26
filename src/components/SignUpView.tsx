@@ -44,6 +44,7 @@ import {
   normalizePhoneNumber,
   validateSignupSubmission,
 } from '../lib/domain';
+import { signUpUserWithSupabase } from '../lib/authService';
 import { StatusBadge } from './StatusPrimitives';
 import { HeritageAmbientPattern, HeritageEmbroideredBorder } from './HeritageOrnaments';
 
@@ -270,6 +271,23 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
       division: requestedRole === 'student' ? division : undefined,
       classTeacherDivision:
         requestedRole === 'faculty' ? classTeacherDivision : undefined,
+    });
+
+    // Asynchronously create Supabase Auth credentials if configured
+    signUpUserWithSupabase({
+      email: email.trim().toLowerCase(),
+      password,
+      fullName: fullName.trim(),
+      username: username.trim().toLowerCase(),
+      phone: phone.trim(),
+      role: requestedRole,
+      institutionId: inst.id,
+      institutionName: inst.name,
+      department: requestedRole !== 'institutional_rep' ? department : undefined,
+      division: requestedRole === 'student' ? division : undefined,
+      dob: dob.trim(),
+    }).catch((err) => {
+      console.warn('[VERIDEX SignUp] Supabase Auth registration notice:', err);
     });
 
     setSubmittedRequest(created);

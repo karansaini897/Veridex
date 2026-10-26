@@ -27,7 +27,6 @@ import {
   SEED_COMPLIANCE_RULES,
   SEED_DOCUMENTS,
   SEED_DOCUMENT_REQUESTS,
-  SEED_INSTITUTIONS,
   SEED_NOTIFICATIONS,
   SEED_STUDENT_SUBMISSIONS,
   SEED_USERS,
@@ -77,8 +76,15 @@ import { ExpiryCalendarView } from './components/ExpiryCalendarView';
 import { ReportsAndAccountsView } from './components/ReportsAndAccountsView';
 import { ProfileAndSettingsView } from './components/ProfileAndSettingsView';
 import { GeminiChatbotWidget } from './components/GeminiChatbotWidget';
+import { useReferenceData } from './lib/referenceData';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { getActiveSupabaseUser, signOutUserWithSupabase } from './lib/authService';
+import { updateMemberRoleInDatabase, removeMemberFromInstitutionInDatabase } from './lib/hierarchyService';
+import { persistDocumentToSupabase, recordDocumentReview } from './lib/documentService';
+import { recordAuditEvent, fetchServerAuditEvents } from './lib/auditService';
 
 export default function App() {
+  const { institutions } = useReferenceData();
   // Dark theme is default for first-time visitors; saved theme preference ('light' or 'dark') is preserved
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try {
@@ -175,6 +181,60 @@ export default function App() {
     }
   });
 
+  // Synchronize Supabase Auth session on mount and listen to auth state changes
+  useEffect(() => {
+    let isMounted = true;
+    async function initSupabaseSession() {
+      const activeUser = await getActiveSupabaseUser();
+      if (isMounted && activeUser) {
+        setUsers((prev) => {
+          const exists = prev.some((u) => u.id === activeUser.id);
+          return exists ? prev.map((u) => (u.id === activeUser.id ? activeUser : u)) : [activeUser, ...prev];
+        });
+        setCurrentUserId(activeUser.id);
+      }
+    }
+    initSupabaseSession();
+
+    if (isSupabaseConfigured && supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!isMounted) return;
+        if (event === 'SIGNED_OUT') {
+          setCurrentUserId(null);
+        } else if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          const loaded = await getActiveSupabaseUser();
+          if (isMounted && loaded) {
+            setUsers((prev) => {
+              const exists = prev.some((u) => u.id === loaded.id);
+              return exists ? prev.map((u) => (u.id === loaded.id ? loaded : u)) : [loaded, ...prev];
+            });
+            setCurrentUserId(loaded.id);
+          }
+        }
+      });
+      return () => {
+        isMounted = false;
+        subscription.unsubscribe();
+      };
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Sync server-side immutable audit logs on load
+  useEffect(() => {
+    fetchServerAuditEvents().then((serverEvents) => {
+      if (serverEvents.length > 0) {
+        setAuditEvents((prev) => {
+          const existingIds = new Set(prev.map((e) => e.id));
+          const newUnique = serverEvents.filter((e) => !existingIds.has(e.id));
+          return [...newUnique, ...prev];
+        });
+      }
+    });
+  }, []);
+
   const [authScreenMode, setAuthScreenMode] = useState<'landing' | 'login' | 'signup'>('landing');
   const [signupInitialMode, setSignupInitialMode] = useState<'register' | 'status'>('register');
   const [signupPrefillId, setSignupPrefillId] = useState<string>('');
@@ -238,6 +298,20 @@ export default function App() {
       details,
     };
     setAuditEvents((prev) => [newEvent, ...prev]);
+
+    // Dispatch to secure server-side immutable audit ledger
+    recordAuditEvent({
+      actorName: actor.fullName,
+      actorUsername: actor.username,
+      actorRole: actor.role,
+      action,
+      targetType,
+      targetId,
+      details,
+      institutionId: currentUser?.institutionId,
+    }).catch((err) => {
+      console.warn('[VERIDEX Audit] Notice recording audit event:', err);
+    });
   };
 
   const handleLoginSuccess = (user: UserAccount) => {
@@ -266,6 +340,7 @@ export default function App() {
         `Signed out from ${formatRoleDisplayName(currentUser.role)} session.`
       );
     }
+    signOutUserWithSupabase().catch(() => {});
     setCurrentUserId(null);
     setAuthScreenMode('landing');
     setShowPublicOverview(false);
@@ -335,7 +410,7 @@ export default function App() {
         classTeacherDivision: draft.classTeacherDivision,
       },
       users,
-      SEED_INSTITUTIONS
+      institutions
     );
 
     const newReq: AccountApprovalRequest = {
@@ -420,7 +495,7 @@ export default function App() {
         classTeacherDivision: mergedClassDiv,
       },
       users,
-      SEED_INSTITUTIONS
+      institutions
     );
 
     const updatedReq: AccountApprovalRequest = {
@@ -523,7 +598,7 @@ export default function App() {
               classTeacherDivision: req.classTeacherDivision,
             },
             nextUsers,
-            SEED_INSTITUTIONS
+            institutions
           );
           return {
             ...req,
@@ -567,7 +642,7 @@ export default function App() {
             classTeacherDivision: req.classTeacherDivision,
           },
           nextUsers,
-          SEED_INSTITUTIONS
+          institutions
         );
         return {
           ...req,
@@ -612,7 +687,7 @@ export default function App() {
       patch,
       conflictResolution,
       users,
-      institutions: SEED_INSTITUTIONS,
+      institutions,
       timestamp: nowDisplay,
     });
 
@@ -622,6 +697,12 @@ export default function App() {
 
     setUsers(result.users);
     refreshPendingApprovalRouting(result.users);
+
+    if (patch.designation) {
+      updateMemberRoleInDatabase(targetUserId, patch.designation).catch((err) => {
+        console.warn('[VERIDEX Hierarchy] Supabase role update notice:', err);
+      });
+    }
 
     appendAudit(
       currentUser,
@@ -726,6 +807,10 @@ export default function App() {
 
     setUsers(result.users);
     refreshPendingApprovalRouting(result.users);
+
+    removeMemberFromInstitutionInDatabase(targetUserId).catch((err) => {
+      console.warn('[VERIDEX Hierarchy] Supabase removal notice:', err);
+    });
 
     appendAudit(
       currentUser,
@@ -1342,6 +1427,21 @@ export default function App() {
       );
     }
 
+    // Persist document metadata in Supabase documents table
+    if (currentUser.institutionId) {
+      persistDocumentToSupabase({
+        institutionId: currentUser.institutionId,
+        ownerId: currentUser.id,
+        category: fullDoc.category,
+        storagePath: `repository/${currentUser.id}/${fullDoc.fileName}`,
+        originalFilename: fullDoc.fileName,
+        mimeType: fullDoc.mimeType,
+        status: fullDoc.verificationStatusLabel,
+      }).catch((err) => {
+        console.warn('[VERIDEX Documents] Supabase persistence notice:', err);
+      });
+    }
+
     appendAudit(
       currentUser,
       'Document Record Registered in Repository',
@@ -1439,6 +1539,23 @@ export default function App() {
           : doc
       )
     );
+
+    // Record review decision in Supabase document_reviews table
+    const decision =
+      status === 'Reviewed'
+        ? 'Approved'
+        : status === 'Action Required'
+        ? 'Revision Required'
+        : 'Rejected';
+    recordDocumentReview({
+      documentId: docId,
+      reviewerId: currentUser.id,
+      decision,
+      comments: note,
+    }).catch((err) => {
+      console.warn('[VERIDEX Documents] Supabase review sync notice:', err);
+    });
+
     appendAudit(currentUser, `Document Marked ${status}`, 'Document', docId, note);
   };
 
@@ -1940,7 +2057,7 @@ export default function App() {
       return (
         <>
           <SignUpView
-            institutions={SEED_INSTITUTIONS}
+            institutions={institutions}
             users={users}
             approvalRequests={approvalRequests}
             onCreateRequest={handleCreateSignupRequest}
@@ -2016,13 +2133,13 @@ export default function App() {
       (a) => a.id === selectedApplicationId && canUserAccessApplication(currentUser, a)
     ) || null;
 
-  const userInstitution = SEED_INSTITUTIONS.find((i) => i.id === currentUser.institutionId);
+  const userInstitution = institutions.find((i) => i.id === currentUser.institutionId);
 
   return (
     <AppShell
       currentUser={currentUser}
       users={users}
-      institutions={SEED_INSTITUTIONS}
+      institutions={institutions}
       applications={applications}
       documents={documents}
       notifications={notifications}
@@ -2073,7 +2190,7 @@ export default function App() {
           <InstitutionalDashboardView
             currentUser={currentUser}
             institution={userInstitution}
-            institutions={SEED_INSTITUTIONS}
+            institutions={institutions}
             applications={applications}
             documents={documents}
             auditEvents={auditEvents}
@@ -2117,7 +2234,7 @@ export default function App() {
           <InstitutionalDashboardView
             currentUser={currentUser}
             institution={userInstitution}
-            institutions={SEED_INSTITUTIONS}
+            institutions={institutions}
             applications={applications}
             documents={documents}
             auditEvents={auditEvents}
@@ -2141,7 +2258,7 @@ export default function App() {
           currentUser={currentUser}
           documents={documents}
           applications={applications}
-          institutions={SEED_INSTITUTIONS}
+          institutions={institutions}
           selectedDocumentId={selectedDocumentId}
           onSelectDocument={setSelectedDocumentId}
           onOpenApplication={(appId) => setSelectedApplicationId(appId)}
@@ -2268,7 +2385,7 @@ export default function App() {
           currentUser={currentUser}
           users={users}
           approvalRequests={approvalRequests}
-          institutions={SEED_INSTITUTIONS}
+          institutions={institutions}
           applications={applications}
           documents={documents}
           auditEvents={auditEvents}
