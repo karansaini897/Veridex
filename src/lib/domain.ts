@@ -1192,29 +1192,97 @@ export function canUserAccessApplication(user: UserAccount, app: ApplicationReco
   return false;
 }
 
-export function canUserAccessDocument(user: UserAccount, doc: DocumentRecord): boolean {
+/**
+ * Strict role-based document access control:
+ * 1. The document's uploader or named person retains access.
+ * 2. System administrators have full oversight across all institutions.
+ * 3. Institutional representatives can access all documents within their permitted institutional scope.
+ * 4. Faculty members can access institutional categories (Approvals, Infrastructure, Qualifications,
+ *    Experience Certificates, Faculty Records, Financial & Trust Deeds) and application-linked documents
+ *    for their institution.
+ * 5. Students can access only their own personal records or documents they submitted.
+ * 6. Users from unrelated institutions are strictly denied access.
+ * 7. Possession of a document ID or storage path alone never grants access.
+ */
+export function canUserAccessDocument(
+  user: UserAccount | null | undefined,
+  doc: DocumentRecord | null | undefined,
+  applications?: ApplicationRecord[]
+): boolean {
+  if (!user || !doc) return false;
+
+  // 1. National System Administrator has cross-institutional audit oversight
   if (user.role === 'admin') return true;
+
+  // 2. Prevent cross-institutional data leakage:
+  // If the document is tied to an institution, users from another institution are strictly denied
+  if (doc.institutionId && user.institutionId && doc.institutionId !== user.institutionId) {
+    return false;
+  }
+
+  // 3. The document's uploader or named person retains access
+  if (
+    (doc.uploadedByUserId && doc.uploadedByUserId === user.id) ||
+    (doc.personUserId && doc.personUserId === user.id)
+  ) {
+    return true;
+  }
+  if (
+    doc.personName &&
+    user.fullName &&
+    doc.personName.trim().toLowerCase() === user.fullName.trim().toLowerCase()
+  ) {
+    return true;
+  }
+  if (
+    doc.versions &&
+    doc.versions.some(
+      (v) => v.uploadedBy && v.uploadedBy.trim().toLowerCase() === user.fullName.trim().toLowerCase()
+    )
+  ) {
+    return true;
+  }
+
+  // 4. Institutional Representative / Statutory Manager:
+  // Authorized to view all institutional and application documents within their institutional scope
   if (user.role === 'institutional_rep') {
     return Boolean(user.institutionId && doc.institutionId === user.institutionId);
   }
+
+  // 5. Faculty Members:
+  // Authorized within their permitted institution for:
+  // - Institutional compliance categories (Approvals, Infrastructure, Qualifications, Experience Certificates, Faculty Records, Financial & Trust Deeds)
+  // - Documents linked to applications for their institution
   if (user.role === 'faculty') {
-    return (
-      Boolean(user.institutionId && doc.institutionId === user.institutionId) &&
-      (doc.personUserId === user.id ||
-        doc.category === 'Faculty Records' ||
-        doc.category === 'Qualifications' ||
-        doc.category === 'Experience Certificates' ||
-        doc.category === 'Infrastructure' ||
-        doc.category === 'Approvals')
-    );
+    if (!user.institutionId || doc.institutionId !== user.institutionId) return false;
+
+    if (
+      doc.category === 'Approvals' ||
+      doc.category === 'Infrastructure' ||
+      doc.category === 'Qualifications' ||
+      doc.category === 'Experience Certificates' ||
+      doc.category === 'Faculty Records' ||
+      doc.category === 'Financial & Trust Deeds'
+    ) {
+      return true;
+    }
+
+    if (doc.relatedApplicationId && applications) {
+      const app = applications.find((a) => a.id === doc.relatedApplicationId);
+      if (app && app.institutionId === user.institutionId) {
+        return true;
+      }
+    }
+
+    return false;
   }
+
+  // 6. Students:
+  // Within their institution, only authorized for their own personal records or documents they submitted (already verified in step 3)
   if (user.role === 'student') {
-    return (
-      Boolean(user.institutionId && doc.institutionId === user.institutionId) &&
-      (doc.personUserId === user.id ||
-        doc.personName.toLowerCase() === user.fullName.toLowerCase())
-    );
+    return false;
   }
+
   return false;
 }
 

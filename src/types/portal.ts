@@ -193,6 +193,7 @@ export interface DocumentVersion {
   uploadedAt: string;
   uploadedBy: string;
   changeNote: string;
+  storagePath?: string;
 }
 
 export interface VerificationFinding {
@@ -236,6 +237,7 @@ export interface DocumentRecord {
   fileName: string;
   fileSize: string;
   mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
+  storagePath?: string;
   previewUrl?: string;
   vaultDocumentId?: string;
   hasStoredFileBlob?: boolean;
@@ -399,6 +401,7 @@ export interface SubmittedDocumentFile {
   fileSize: string;
   mimeType: string;
   submittedAt: string;
+  storagePath?: string;
   previewUrl?: string;
   vaultDocumentId?: string;
   sourceType?: 'upload' | 'vault';

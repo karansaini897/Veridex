@@ -80,7 +80,12 @@ import { useReferenceData } from './lib/referenceData';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { getActiveSupabaseUser, signOutUserWithSupabase } from './lib/authService';
 import { updateMemberRoleInDatabase, removeMemberFromInstitutionInDatabase } from './lib/hierarchyService';
-import { persistDocumentToSupabase, recordDocumentReview } from './lib/documentService';
+import {
+  persistDocumentToSupabase,
+  recordDocumentReview,
+  fetchDocumentsFromSupabase,
+  mapSupabaseDocumentToRecord,
+} from './lib/documentService';
 import { recordAuditEvent, fetchServerAuditEvents } from './lib/auditService';
 
 export default function App() {
@@ -271,6 +276,86 @@ export default function App() {
   ]);
 
   const currentUser = users.find((u) => u.id === currentUserId) || null;
+
+  // Synchronize persisted documents from Supabase database into application state on mount / auth change
+  useEffect(() => {
+    let isMounted = true;
+
+    async function syncDocumentsFromDatabase() {
+      if (!isSupabaseConfigured || !supabase || !currentUser) return;
+
+      try {
+        const queryParams =
+          currentUser.role === 'admin'
+            ? undefined
+            : currentUser.role === 'student'
+            ? { institutionId: currentUser.institutionId, ownerId: currentUser.id }
+            : { institutionId: currentUser.institutionId };
+
+        const dbRows = await fetchDocumentsFromSupabase(queryParams);
+        if (!isMounted || !dbRows || dbRows.length === 0) return;
+
+        const todayDate = getLocalTodayDate();
+
+        setDocuments((prevDocs) => {
+          let updated = [...prevDocs];
+          let changed = false;
+
+          for (const row of dbRows) {
+            const existingIndex = updated.findIndex(
+              (d) => d.id === row.id || (d.storagePath && d.storagePath === row.storage_path)
+            );
+
+            if (existingIndex >= 0) {
+              const current = updated[existingIndex];
+              const newStoragePath = row.storage_path || current.storagePath;
+              const newVerification = (row.status as any) || current.verificationStatusLabel;
+              if (
+                current.storagePath !== newStoragePath ||
+                current.verificationStatusLabel !== newVerification
+              ) {
+                updated[existingIndex] = {
+                  ...current,
+                  storagePath: newStoragePath,
+                  verificationStatusLabel: newVerification,
+                  statusUpdatedAt: formatTimestampForDisplay(row.updated_at || row.uploaded_at),
+                };
+                changed = true;
+              }
+            } else {
+              const mapped = mapSupabaseDocumentToRecord(row, institutions);
+              const evaluated = evaluateDocumentSixPillars(
+                mapped,
+                [mapped, ...updated],
+                applications,
+                todayDate
+              );
+              updated.unshift({
+                ...mapped,
+                completenessStatus: evaluated.completenessStatus,
+                consistencyStatus: evaluated.consistencyStatus,
+                anomalyStatus: evaluated.anomalyStatus,
+                issuerVerificationStatus: evaluated.issuerVerificationStatus,
+                humanReviewStatus: evaluated.humanReviewStatus,
+                findings: evaluated.findings,
+              });
+              changed = true;
+            }
+          }
+
+          return changed ? updated : prevDocs;
+        });
+      } catch (err) {
+        console.warn('[VERIDEX Documents] Database sync notice:', err);
+      }
+    }
+
+    syncDocumentsFromDatabase();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id, currentUser?.institutionId, currentUser?.role]);
 
   const pendingApprovalCount = useMemo(() => {
     if (!currentUser) return 0;
@@ -985,6 +1070,10 @@ export default function App() {
     docTitle: string;
     certNumber: string;
     expiryDate?: string;
+    fileName?: string;
+    fileSize?: string;
+    mimeType?: 'application/pdf' | 'image/jpeg' | 'image/png';
+    storagePath?: string;
   }) => {
     if (!currentUser) return;
     const targetApp = applications.find((a) => a.id === params.appId);
@@ -1000,6 +1089,10 @@ export default function App() {
       currentUser.fullName,
       documents.map((d) => d.internalCode)
     );
+
+    const docFileName = params.fileName || `${internalCode}_Record.pdf`;
+    const docFileSize = params.fileSize || '1.54 MB';
+    const docMime = params.mimeType || 'application/pdf';
 
     const newDoc: DocumentRecord = {
       id: newDocId,
@@ -1021,9 +1114,10 @@ export default function App() {
       issueDate: todayStr,
       expiryDate: params.expiryDate,
       uploadDate: todayStr,
-      fileName: `${internalCode}_Record.pdf`,
-      fileSize: '1.54 MB',
-      mimeType: 'application/pdf',
+      fileName: docFileName,
+      fileSize: docFileSize,
+      mimeType: docMime,
+      storagePath: params.storagePath,
       verificationStatusLabel: 'Pending Verification',
       approvalStatusLabel: 'Under Review',
       statusUpdatedAt: nowDisplay,
@@ -1037,6 +1131,7 @@ export default function App() {
         'Certificate Number': params.certNumber,
         'Linked Application': targetApp.id,
         'Intake Status': 'Metadata registered; awaiting human review',
+        ...(params.storagePath ? { 'Storage Path': params.storagePath } : {}),
       },
       findings: [
         {
@@ -1053,9 +1148,10 @@ export default function App() {
       versions: [
         {
           versionNumber: 1,
-          fileName: `${internalCode}_Record.pdf`,
-          fileSize: '1.54 MB',
-          mimeType: 'application/pdf',
+          fileName: docFileName,
+          fileSize: docFileSize,
+          mimeType: docMime,
+          storagePath: params.storagePath,
           uploadedAt: nowDisplay,
           uploadedBy: currentUser.fullName,
           changeNote: `Registered for checklist item "${item?.title}".`,
@@ -1379,7 +1475,10 @@ export default function App() {
 
   // Document Repository Registration
   const handleUploadDocument = (
-    newDocData: Omit<DocumentRecord, 'id' | 'internalCode'> & { internalCode: string }
+    newDocData: Omit<DocumentRecord, 'id' | 'internalCode'> & {
+      internalCode: string;
+      storagePath?: string;
+    }
   ) => {
     if (!currentUser) return;
     const todayStr = getLocalTodayDate();
@@ -1388,6 +1487,7 @@ export default function App() {
     const baseDoc: DocumentRecord = {
       ...newDocData,
       id: newDocId,
+      storagePath: newDocData.storagePath,
       uploadedFromSection:
         newDocData.uploadedFromSection ||
         (newDocData.relatedApplicationId
@@ -1427,8 +1527,8 @@ export default function App() {
       );
     }
 
-    // Persist document metadata in Supabase documents table
-    if (currentUser.institutionId) {
+    // Persist document metadata in Supabase documents table if not already persisted via uploadAndPersistDocument
+    if (currentUser.institutionId && !fullDoc.storagePath) {
       persistDocumentToSupabase({
         institutionId: currentUser.institutionId,
         ownerId: currentUser.id,
@@ -1457,6 +1557,7 @@ export default function App() {
     fileName: string;
     fileSize: string;
     mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
+    storagePath?: string;
     newExpiryDate?: string;
     changeNote: string;
   }) => {
@@ -1473,6 +1574,7 @@ export default function App() {
           fileName: params.fileName,
           fileSize: params.fileSize,
           mimeType: params.mimeType,
+          storagePath: params.storagePath || doc.storagePath,
           expiryDate: params.newExpiryDate || doc.expiryDate,
           uploadDate: todayStr,
           statusUpdatedAt: nowDisplay,
@@ -1484,6 +1586,7 @@ export default function App() {
               fileName: params.fileName,
               fileSize: params.fileSize,
               mimeType: params.mimeType,
+              storagePath: params.storagePath || doc.storagePath,
               uploadedAt: nowDisplay,
               uploadedBy: currentUser.fullName,
               changeNote: params.changeNote,

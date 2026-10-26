@@ -34,6 +34,7 @@ import {
 } from '../lib/vaultStorage';
 import { validateVaultFileInput } from '../lib/ocrEngine';
 import { StatusBadge } from './StatusPrimitives';
+import { uploadDocumentToStorage } from '../lib/documentService';
 
 interface StudentDocumentSubmissionModalProps {
   student: UserAccount;
@@ -256,47 +257,71 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
     const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
     const todayStr = getLocalTodayDate();
 
-    // Persist any newly uploaded files that have `saveCopyToVault` checked into IndexedDB Vault
+    // Persist any newly uploaded files: upload to storage bucket and optionally to IndexedDB Vault
     const savedVaultIdsByReq: Record<string, string> = {};
+    const uploadedStoragePathsByReq: Record<string, string> = {};
+
     for (const req of request.requiredDocuments) {
       const sel = selections[req.id];
-      if (sel && sel.mode === 'upload' && sel.saveCopyToVault) {
-        const valid = validateVaultFileInput(sel.file);
-        const vaultId = createRecordId('VAULT');
-        const newVaultRecord: VaultDocumentRecord = {
-          id: vaultId,
-          ownerUserId: student.id,
-          ownerName: student.fullName,
-          institutionId: student.institutionId,
-          institutionName: student.institutionName,
-          originalFileName: sel.file.name,
-          mimeType: valid.normalizedMimeType || 'application/pdf',
-          fileSizeBytes: sel.file.size,
-          fileSizeLabel: formatFileSizeBytes(sel.file.size),
-          category: 'Student Records',
-          dateAdded: todayStr,
-          updatedAt: nowDisplay,
-          hasStoredBlob: true,
-          ocrStatus: 'Not Run',
-          ocrExtractedText: '',
-          editableDetails: {
-            title: req.name,
-            certificateNumber: `SUB-${(student.rollNumber || 'STU').replace(/[^A-Za-z0-9]/g, '')}-${req.id.slice(-4).toUpperCase()}`,
-            holderName: student.fullName,
-            issuingAuthority: student.institutionName || 'University of Mumbai',
-            issueDate: todayStr,
-          },
-          verificationStatus: 'Pending Verification',
-          approvalStatus: 'Approval Pending',
-        };
-        const res = await saveVaultDocumentWithBlob(newVaultRecord, sel.file);
-        if (res.ok) {
-          savedVaultIdsByReq[req.id] = vaultId;
+      if (sel && sel.mode === 'upload') {
+        try {
+          const uploadRes = await uploadDocumentToStorage(sel.file, student.id, 'submissions');
+          if (uploadRes.success && uploadRes.storagePath) {
+            uploadedStoragePathsByReq[req.id] = uploadRes.storagePath;
+          }
+        } catch (err) {
+          console.warn('[VERIDEX Upload] Storage upload warning:', err);
+        }
+
+        if (sel.saveCopyToVault) {
+          const valid = validateVaultFileInput(sel.file);
+          const vaultId = createRecordId('VAULT');
+          const newVaultRecord: VaultDocumentRecord = {
+            id: vaultId,
+            ownerUserId: student.id,
+            ownerName: student.fullName,
+            institutionId: student.institutionId,
+            institutionName: student.institutionName,
+            originalFileName: sel.file.name,
+            mimeType: valid.normalizedMimeType || 'application/pdf',
+            fileSizeBytes: sel.file.size,
+            fileSizeLabel: formatFileSizeBytes(sel.file.size),
+            category: 'Student Records',
+            dateAdded: todayStr,
+            updatedAt: nowDisplay,
+            hasStoredBlob: true,
+            ocrStatus: 'Not Run',
+            ocrExtractedText: '',
+            editableDetails: {
+              title: req.name,
+              certificateNumber: `SUB-${(student.rollNumber || 'STU').replace(/[^A-Za-z0-9]/g, '')}-${req.id.slice(-4).toUpperCase()}`,
+              holderName: student.fullName,
+              issuingAuthority: student.institutionName || 'University of Mumbai',
+              issueDate: todayStr,
+            },
+            verificationStatus: 'Pending Verification',
+            approvalStatus: 'Approval Pending',
+          };
+          const res = await saveVaultDocumentWithBlob(newVaultRecord, sel.file);
+          if (res.ok) {
+            savedVaultIdsByReq[req.id] = vaultId;
+          }
         }
       }
     }
 
     setTimeout(() => {
+      // Clean up transient preview URLs to prevent memory leaks and object URL persistence
+      Object.values(selections).forEach((s) => {
+        if (s.mode === 'upload' && s.previewUrl) {
+          try {
+            URL.revokeObjectURL(s.previewUrl);
+          } catch {
+            // ignore
+          }
+        }
+      });
+
       setVerifyingStage('complete');
 
       // Section 4.2: Never automatically mark a document as Approved when a timer finishes!
@@ -332,7 +357,8 @@ export const StudentDocumentSubmissionModal: React.FC<StudentDocumentSubmissionM
             fileSize: formatFileSizeBytes(sel.file.size),
             mimeType: sel.file.type || 'application/pdf',
             submittedAt: nowDisplay,
-            previewUrl: sel.previewUrl,
+            storagePath: uploadedStoragePathsByReq[req.id],
+            previewUrl: undefined,
             vaultDocumentId: savedVaultIdsByReq[req.id],
             sourceType: 'upload',
             hasStoredFileBlob: Boolean(savedVaultIdsByReq[req.id] || sel.file.size > 0),

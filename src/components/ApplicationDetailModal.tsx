@@ -8,6 +8,9 @@ import {
   ArrowUpRight,
   AlertTriangle,
   CheckCircle2,
+  Upload,
+  Loader2,
+  FileCheck,
 } from 'lucide-react';
 import {
   ApplicationRecord,
@@ -18,6 +21,7 @@ import {
 import {
   addDaysToLocalDate,
   calculateExpiryDetails,
+  canUserAccessDocument,
   canUserPerformAdminAction,
   extractDocumentPrefillSuggestion,
   getLocalTodayDate,
@@ -29,6 +33,10 @@ import {
 } from '../lib/motion';
 import { FileTypeMarker, StatusBadge } from './StatusPrimitives';
 import { getVaultDocumentsForUser } from '../lib/vaultStorage';
+import {
+  validateDocumentFile,
+  uploadAndPersistDocument,
+} from '../lib/documentService';
 
 interface ApplicationDetailModalProps {
   application: ApplicationRecord;
@@ -42,6 +50,10 @@ interface ApplicationDetailModalProps {
     docTitle: string;
     certNumber: string;
     expiryDate?: string;
+    fileName?: string;
+    fileSize?: string;
+    mimeType?: 'application/pdf' | 'image/jpeg' | 'image/png';
+    storagePath?: string;
   }) => void;
   onSubmitDraftApplication: (appId: string, submissionNote: string) => void;
   onResubmitApplication: (params: {
@@ -76,6 +88,16 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const [vaultDocs, setVaultDocs] = useState<VaultDocumentRecord[]>([]);
   const [selectedVaultPrefillId, setSelectedVaultPrefillId] = useState<string>('');
 
+  // Persistent File Upload State for Checklist Items
+  const [checklistFile, setChecklistFile] = useState<File | null>(null);
+  const [checklistFileName, setChecklistFileName] = useState('');
+  const [checklistFileSize, setChecklistFileSize] = useState('');
+  const [checklistMimeType, setChecklistMimeType] = useState<
+    'application/pdf' | 'image/jpeg' | 'image/png'
+  >('application/pdf');
+  const [isUploadingChecklist, setIsUploadingChecklist] = useState(false);
+  const [checklistUploadError, setChecklistUploadError] = useState<string | null>(null);
+
   React.useEffect(() => {
     getVaultDocumentsForUser(currentUser.id)
       .then((docs) => setVaultDocs(docs))
@@ -109,8 +131,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
   const linkedDocs = documents.filter(
     (d) =>
-      application.documentIds.includes(d.id) ||
-      d.relatedApplicationId === application.id
+      (application.documentIds.includes(d.id) ||
+      d.relatedApplicationId === application.id) &&
+      canUserAccessDocument(currentUser, d, [application])
   );
 
   const missingRequiredItems = useMemo(
@@ -128,21 +151,108 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
     [application.checklist]
   );
 
-  const handleChecklistUploadSubmit = (e: React.FormEvent, checklistItemId: string) => {
+  const handleChecklistFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setChecklistUploadError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validation = validateDocumentFile(file);
+    if (!validation.valid) {
+      setChecklistUploadError(validation.error || 'Invalid file format or size limit exceeded.');
+      return;
+    }
+
+    setChecklistFile(file);
+    setChecklistFileName(file.name);
+    setChecklistFileSize(`${Math.max(0.05, file.size / (1024 * 1024)).toFixed(2)} MB`);
+    const mime = (['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)
+      ? file.type
+      : 'application/pdf') as 'application/pdf' | 'image/jpeg' | 'image/png';
+    setChecklistMimeType(mime);
+    if (!uploadTitle) {
+      setUploadTitle(file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '));
+    }
+  };
+
+  const handleChecklistUploadSubmit = async (e: React.FormEvent, checklistItemId: string) => {
     e.preventDefault();
-    if (!uploadTitle.trim() || !uploadCertNo.trim()) return;
+    setChecklistUploadError(null);
+
+    if (!uploadTitle.trim()) {
+      setChecklistUploadError('Please enter a descriptive document title.');
+      return;
+    }
+    if (!uploadCertNo.trim()) {
+      setChecklistUploadError('Please enter the official certificate or reference number.');
+      return;
+    }
+
+    const item = application.checklist.find((c) => c.id === checklistItemId);
+    const docCat = item?.documentCategory || 'Approvals';
+
+    let storagePath: string | undefined = undefined;
+    let finalFileName = checklistFileName || `${uploadTitle.trim().replace(/\s+/g, '_')}.pdf`;
+    let finalFileSize = checklistFileSize || '1.45 MB';
+    let finalMime = checklistMimeType;
+
+    if (checklistFile) {
+      setIsUploadingChecklist(true);
+      try {
+        const uploadResult = await uploadAndPersistDocument({
+          file: checklistFile,
+          ownerId: currentUser.id,
+          category: docCat,
+          institutionId: application.institutionId,
+          status: 'Pending Verification',
+        });
+
+        if (!uploadResult.success || !uploadResult.storagePath) {
+          setChecklistUploadError(
+            uploadResult.error || 'Document upload to storage failed. Please check the file and retry.'
+          );
+          setIsUploadingChecklist(false);
+          return;
+        }
+
+        storagePath = uploadResult.storagePath;
+        finalFileName = checklistFile.name;
+      } catch (err) {
+        setChecklistUploadError(
+          err instanceof Error ? err.message : 'Upload failed due to network or storage error.'
+        );
+        setIsUploadingChecklist(false);
+        return;
+      } finally {
+        setIsUploadingChecklist(false);
+      }
+    } else if (!selectedVaultPrefillId) {
+      setChecklistUploadError(
+        'Please select a document file (.pdf, .jpg, .png up to 15 MB) or choose a Personal Document Vault record.'
+      );
+      return;
+    }
+
     onAttachChecklistDocument({
       appId: application.id,
       checklistItemId,
       docTitle: uploadTitle.trim(),
       certNumber: uploadCertNo.trim(),
       expiryDate: uploadExpiry || undefined,
+      fileName: finalFileName,
+      fileSize: finalFileSize,
+      mimeType: finalMime,
+      storagePath,
     });
+
     setUploadingChecklistId(null);
     setUploadTitle('');
     setUploadCertNo('');
+    setChecklistFile(null);
+    setChecklistFileName('');
+    setChecklistFileSize('');
+    setChecklistUploadError(null);
     setFeedbackBanner(
-      'Supporting document metadata registered and linked to checklist item; awaiting reviewing officer verification.'
+      'Document uploaded to veridex-documents and linked to checklist item; awaiting reviewing officer verification.'
     );
   };
 
@@ -470,17 +580,23 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                           <span className="text-slate-500">{item.documentCategory}</span>
                         </div>
                         {linkedDoc ? (
-                          <div className="flex items-center gap-2 flex-wrap text-xs text-stone-600 dark:text-stone-400 font-mono-tabular">
-                            <span>Linked Record:</span>
-                            <button
-                              type="button"
-                              onClick={() => onOpenDocument(linkedDoc.id)}
-                              className="text-[#C2410C] dark:text-amber-400 font-semibold hover:underline cursor-pointer"
-                            >
-                              {linkedDoc.internalCode} ({linkedDoc.name})
-                            </button>
-                            <FileTypeMarker mimeType={linkedDoc.mimeType} fileName={linkedDoc.fileName} />
-                          </div>
+                          canUserAccessDocument(currentUser, linkedDoc, [application]) ? (
+                            <div className="flex items-center gap-2 flex-wrap text-xs text-stone-600 dark:text-stone-400 font-mono-tabular">
+                              <span>Linked Record:</span>
+                              <button
+                                type="button"
+                                onClick={() => onOpenDocument(linkedDoc.id)}
+                                className="text-[#C2410C] dark:text-amber-400 font-semibold hover:underline cursor-pointer"
+                              >
+                                {linkedDoc.internalCode} ({linkedDoc.name})
+                              </button>
+                              <FileTypeMarker mimeType={linkedDoc.mimeType} fileName={linkedDoc.fileName} />
+                            </div>
+                          ) : (
+                            <div className="text-xs text-stone-500 font-mono-tabular italic">
+                              Linked Record: Restricted (Outside Authorized Scope)
+                            </div>
+                          )
                         ) : (
                           <div className="text-xs text-stone-400">
                             No document record registered yet.
@@ -522,9 +638,37 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                           onSubmit={(e) => handleChecklistUploadSubmit(e, item.id)}
                           className="p-3.5 rounded-xl liquid-glass-subtle space-y-3"
                         >
-                          <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                            Register Supporting Document Metadata for "{item.title}"
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                              Register Supporting Document for "{item.title}"
+                            </span>
+                            <span className="text-[11px] font-mono-tabular text-slate-500">
+                              Storage: veridex-documents (Private)
+                            </span>
                           </div>
+
+                          {checklistUploadError && (
+                            <div
+                              role="alert"
+                              className="p-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-xs text-red-800 dark:text-red-300 flex items-start justify-between gap-2"
+                            >
+                              <span>{checklistUploadError}</span>
+                              <button
+                                type="button"
+                                onClick={() => setChecklistUploadError(null)}
+                                className="text-red-700 dark:text-red-300 font-semibold underline shrink-0 cursor-pointer"
+                              >
+                                Retry
+                              </button>
+                            </div>
+                          )}
+
+                          {isUploadingChecklist && (
+                            <div className="p-3 rounded-lg bg-blue-50/80 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 text-xs text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                              <Loader2 className="w-4 h-4 animate-spin shrink-0 text-blue-600 dark:text-blue-400" />
+                              <span>Uploading file to private storage bucket `veridex-documents` and persisting metadata...</span>
+                            </div>
+                          )}
 
                           {vaultDocs.length > 0 && (
                             <div className="p-2.5 rounded-lg bg-white/80 dark:bg-stone-900/80 border border-[#C7A56A]/45 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -545,7 +689,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                               </select>
                               <button
                                 type="button"
-                                disabled={!selectedVaultPrefillId}
+                                disabled={!selectedVaultPrefillId || isUploadingChecklist}
                                 onClick={() => {
                                   const chosen = vaultDocs.find((v) => v.id === selectedVaultPrefillId);
                                   if (!chosen) return;
@@ -558,6 +702,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                                   if (prefill.expiryDate) {
                                     setUploadExpiry(prefill.expiryDate);
                                   }
+                                  setChecklistFileName(chosen.originalFileName || 'Vault_Document.pdf');
+                                  setChecklistFileSize(chosen.fileSizeLabel || '1.40 MB');
                                 }}
                                 className="btn-secondary !py-1 !px-2.5 text-[11px] whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50"
                               >
@@ -569,7 +715,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                               <label className="block text-[11px] text-slate-500 mb-1">
-                                Document Title
+                                Document Title *
                               </label>
                               <input
                                 type="text"
@@ -581,7 +727,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                             </div>
                             <div>
                               <label className="block text-[11px] text-slate-500 mb-1">
-                                Certificate Number
+                                Certificate Number *
                               </label>
                               <input
                                 type="text"
@@ -603,19 +749,68 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                               />
                             </div>
                           </div>
-                          <div className="flex justify-end gap-2">
+
+                          {/* File Picker Input */}
+                          <div className="p-3 rounded-lg bg-white/70 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <label
+                                htmlFor={`checklist-file-input-${item.id}`}
+                                className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
+                              >
+                                <Upload className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                <span>Choose Document File (.pdf, .jpg, .png up to 15 MB)</span>
+                              </label>
+                              <span className="text-[10px] text-slate-400">
+                                Strictly stored in private `veridex-documents` bucket
+                              </span>
+                            </div>
+
+                            <input
+                              id={`checklist-file-input-${item.id}`}
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              disabled={isUploadingChecklist}
+                              onChange={handleChecklistFileChange}
+                              aria-label={`Upload document for ${item.title}`}
+                              className="w-full text-xs text-slate-600 dark:text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-800 dark:file:text-blue-300 cursor-pointer"
+                            />
+
+                            {checklistFile && (
+                              <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 font-mono-tabular pt-1">
+                                <FileCheck className="w-3.5 h-3.5 shrink-0" />
+                                <span>
+                                  Selected: <strong>{checklistFileName}</strong> ({checklistFileSize}, {checklistMimeType})
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex justify-end gap-2 pt-1">
                             <button
                               type="button"
-                              onClick={() => setUploadingChecklistId(null)}
-                              className="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-xs"
+                              disabled={isUploadingChecklist}
+                              onClick={() => {
+                                setUploadingChecklistId(null);
+                                setChecklistFile(null);
+                                setChecklistUploadError(null);
+                              }}
+                              className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium cursor-pointer disabled:opacity-50"
                             >
                               Cancel
                             </button>
                             <button
                               type="submit"
-                              className="px-3 py-1 rounded-lg bg-blue-700 text-white text-xs font-medium cursor-pointer"
+                              disabled={isUploadingChecklist}
+                              className="px-4 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
-                              Register &amp; Link Record
+                              {isUploadingChecklist ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  <span>Uploading...</span>
+                                </>
+                              ) : (
+                                <span>Register &amp; Link Record</span>
+                              )}
                             </button>
                           </div>
                         </motion.form>

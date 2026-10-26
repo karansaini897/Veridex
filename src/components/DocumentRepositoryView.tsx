@@ -7,6 +7,10 @@ import {
   History,
   ArrowUpRight,
   Database,
+  Download,
+  Loader2,
+  RefreshCw,
+  FileCheck,
 } from 'lucide-react';
 import {
   ApplicationRecord,
@@ -46,8 +50,18 @@ import {
   StatusBadge,
 } from './StatusPrimitives';
 import { PersonalDocumentVaultSection } from './PersonalDocumentVaultSection';
-import { createVaultBlobObjectUrl, getVaultDocumentsForUser } from '../lib/vaultStorage';
+import {
+  createVaultBlobObjectUrl,
+  getVaultDocumentBlob,
+  getVaultDocumentsForUser,
+} from '../lib/vaultStorage';
 import { processDocumentOcrInBrowser } from '../lib/ocrEngine';
+import {
+  validateDocumentFile,
+  uploadAndPersistDocument,
+  uploadDocumentToStorage,
+  getDocumentSignedUrlWithCache,
+} from '../lib/documentService';
 
 interface DocumentRepositoryViewProps {
   currentUser: UserAccount;
@@ -57,12 +71,13 @@ interface DocumentRepositoryViewProps {
   selectedDocumentId: string | null;
   onSelectDocument: (docId: string | null) => void;
   onOpenApplication: (appId: string) => void;
-  onUploadDocument: (newDoc: Omit<DocumentRecord, 'id' | 'internalCode'> & { internalCode: string }) => void;
+  onUploadDocument: (newDoc: Omit<DocumentRecord, 'id' | 'internalCode'> & { internalCode: string; storagePath?: string }) => void;
   onReplaceDocumentVersion: (params: {
     docId: string;
     fileName: string;
     fileSize: string;
     mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
+    storagePath?: string;
     newExpiryDate?: string;
     changeNote: string;
   }) => void;
@@ -153,6 +168,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
 
   // Register New Document Record Modal State
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [docTitle, setDocTitle] = useState('');
   const [personName, setPersonName] = useState(currentUser.fullName);
   const [certNumber, setCertNumber] = useState('');
@@ -166,6 +182,12 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
   const [overrideCategory, setOverrideCategory] = useState<DocumentCategory | ''>('');
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Signed URL state for private document viewing & downloading
+  const [signedDocumentUrl, setSignedDocumentUrl] = useState<string | null>(null);
+  const [isLoadingSignedUrl, setIsLoadingSignedUrl] = useState(false);
+  const [signedUrlError, setSignedUrlError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
   // Document-to-Form Prefill State (Priority 5.4)
   const [availableVaultDocs, setAvailableVaultDocs] = useState<VaultDocumentRecord[]>([]);
   const [selectedPrefillVaultId, setSelectedPrefillVaultId] = useState<string>('');
@@ -176,16 +198,20 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
 
   // Replace Version State inside Detail Drawer
   const [replaceOpen, setReplaceOpen] = useState(false);
+  const [replaceFile, setReplaceFile] = useState<File | null>(null);
+  const [replaceUploading, setReplaceUploading] = useState(false);
+  const [replaceError, setReplaceError] = useState<string | null>(null);
   const [replaceFileName, setReplaceFileName] = useState('Renewed_Certificate_v2.pdf');
   const [replaceExpiry, setReplaceExpiry] = useState(() => addDaysToLocalDate(todayStr, 365));
   const [replaceNote, setReplaceNote] = useState(
     'Registered renewed certificate record to resolve expiry/completeness flag.'
   );
 
-  // Strict user document ownership: repository shows only documents belonging to or uploaded by current user
+  // Role-based document access: uploader retains access, institutional administrators view within institutional scope,
+  // and faculty/students view authorized institutional, application, or personal records without cross-institutional leakage.
   const authorizedDocs = useMemo(
-    () => documents.filter((d) => isUserDocumentOwner(currentUser, d)),
-    [documents, currentUser]
+    () => documents.filter((d) => canUserAccessDocument(currentUser, d, applications)),
+    [documents, currentUser, applications]
   );
 
   const filteredDocs = useMemo(() => {
@@ -286,6 +312,112 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
       if (revokeFn) revokeFn();
     };
   }, [selectedDocument?.vaultDocumentId]);
+
+  // Request signed URL on-demand when inspecting an authorized document stored in Supabase veridex-documents
+  useEffect(() => {
+    let cancelled = false;
+    setSignedDocumentUrl(null);
+    setSignedUrlError(null);
+
+    if (selectedDocument?.storagePath) {
+      if (!canUserAccessDocument(currentUser, selectedDocument, applications)) {
+        setSignedUrlError('Access Denied: You do not possess the required permissions to view this document.');
+        return;
+      }
+
+      setIsLoadingSignedUrl(true);
+      getDocumentSignedUrlWithCache(selectedDocument.storagePath)
+        .then((url) => {
+          if (!cancelled) {
+            setSignedDocumentUrl(url);
+          }
+        })
+        .catch((err) => {
+          if (!cancelled) {
+            setSignedUrlError(
+              err instanceof Error ? err.message : 'Unable to generate signed URL for document.'
+            );
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsLoadingSignedUrl(false);
+          }
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDocument, currentUser, applications]);
+
+  const handleRefreshSignedUrl = async (path: string) => {
+    if (!selectedDocument || !canUserAccessDocument(currentUser, selectedDocument, applications)) {
+      setSignedUrlError('Access Denied: You are not authorized to access this document.');
+      return;
+    }
+
+    setIsLoadingSignedUrl(true);
+    setSignedUrlError(null);
+    try {
+      const url = await getDocumentSignedUrlWithCache(path, 3600);
+      setSignedDocumentUrl(url);
+    } catch (err) {
+      setSignedUrlError(err instanceof Error ? err.message : 'Failed to refresh signed link.');
+    } finally {
+      setIsLoadingSignedUrl(false);
+    }
+  };
+
+  const handleDownloadCurrentDocument = async () => {
+    if (!selectedDocument) return;
+    if (!canUserAccessDocument(currentUser, selectedDocument, applications)) {
+      setSignedUrlError('Access Denied: You are not authorized to download this document.');
+      return;
+    }
+    setIsDownloading(true);
+
+    try {
+      if (selectedDocument.storagePath) {
+        const signedUrl = await getDocumentSignedUrlWithCache(selectedDocument.storagePath);
+        if (signedUrl) {
+          const a = document.createElement('a');
+          a.href = signedUrl;
+          a.download = selectedDocument.fileName;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          return;
+        }
+      }
+
+      if (vaultBlobPreviewUrl) {
+        const a = document.createElement('a');
+        a.href = vaultBlobPreviewUrl;
+        a.download = selectedDocument.fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+
+      // Metadata record download fallback (plain text summary)
+      const summaryText = `VERIDEX OFFICIAL DOCUMENT SUMMARY\n=================================\nInternal Code: ${selectedDocument.internalCode}\nDocument Title: ${selectedDocument.name}\nCertificate #: ${selectedDocument.certificateNumber}\nIssuing Authority: ${selectedDocument.issuingAuthority}\nIssue Date: ${selectedDocument.issueDate}\nValid Until: ${selectedDocument.expiryDate || 'Permanent'}\nHolder: ${selectedDocument.personName}\nCategory: ${selectedDocument.category}\nVerification Status: ${getDocVerificationStatus(selectedDocument)}\nApproval Status: ${getDocApprovalStatus(selectedDocument)}\nStatus Last Updated: ${getDocStatusUpdatedAt(selectedDocument)}`;
+      const blob = new Blob([summaryText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${selectedDocument.internalCode}_Summary.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   useEffect(() => {
     if (!uploadModalOpen) return;
@@ -390,28 +522,25 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-    if (!validTypes.includes(file.type)) {
-      setUploadError(
-        `Unsupported file format (${file.type || 'unknown'}). Only PDF, JPEG, and PNG files are permitted.`
-      );
-      return;
-    }
-    if (file.size > 15 * 1024 * 1024) {
-      setUploadError('File exceeds maximum 15 MB security limit.');
+    const validation = validateDocumentFile(file);
+    if (!validation.valid) {
+      setUploadError(validation.error || 'Invalid file format or size.');
       return;
     }
 
     setSelectedRawFile(file);
     setFileName(file.name);
-    setMimeType(file.type as 'application/pdf' | 'image/jpeg' | 'image/png');
-    setFileSize(`${Math.max(0.15, file.size / (1024 * 1024)).toFixed(2)} MB`);
+    const detectedMime = (['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)
+      ? file.type
+      : 'application/pdf') as 'application/pdf' | 'image/jpeg' | 'image/png';
+    setMimeType(detectedMime);
+    setFileSize(`${Math.max(0.05, file.size / (1024 * 1024)).toFixed(2)} MB`);
     if (!docTitle) {
       setDocTitle(file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '));
     }
   };
 
-  const handleUploadSubmit = (e: React.FormEvent) => {
+  const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploadError(null);
 
@@ -423,8 +552,30 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
       setUploadError('Enter the official certificate or reference number.');
       return;
     }
-    if (!/\.(pdf|jpe?g|png)$/i.test(fileName.trim())) {
-      setUploadError('File name must carry a valid .pdf, .jpg, .jpeg, or .png format.');
+
+    // Resolve file to upload: from file picker or retrieved from selected Personal Vault doc
+    let fileToUpload = selectedRawFile;
+    if (!fileToUpload && selectedPrefillVaultId) {
+      try {
+        const vaultBlob = await getVaultDocumentBlob(selectedPrefillVaultId);
+        if (vaultBlob) {
+          fileToUpload = new File([vaultBlob], fileName.trim(), { type: mimeType });
+        }
+      } catch {
+        // continue
+      }
+    }
+
+    if (!fileToUpload) {
+      setUploadError(
+        'Please select a document file (.pdf, .jpg, or .png up to 15 MB) to upload to the repository.'
+      );
+      return;
+    }
+
+    const validation = validateDocumentFile(fileToUpload);
+    if (!validation.valid) {
+      setUploadError(validation.error || 'File validation failed.');
       return;
     }
 
@@ -432,68 +583,101 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
     const instObj = institutions.find((i) => i.id === instId);
     const nowDisplay = formatTimestampForDisplay(getCurrentIsoTimestamp());
 
-    onUploadDocument({
-      internalCode: previewInternalCode,
-      name: docTitle.trim(),
-      category: finalCategory,
-      suggestedAiCategory: aiSuggestion.category,
-      suggestedFolder: aiSuggestion.folder,
-      categoryConfirmed: true,
-      institutionId: instId,
-      institutionName:
-        instObj?.name ||
-        "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai",
-      relatedApplicationId: relatedAppId || undefined,
-      personName: personName.trim() || currentUser.fullName,
-      personUserId: currentUser.id,
-      certificateNumber: certNumber.trim(),
-      issuingAuthority: issuingAuthority.trim() || 'Authorized Issuing Body',
-      issueDate,
-      expiryDate: expiryDate || undefined,
-      uploadDate: todayStr,
-      fileName: fileName.trim(),
-      fileSize,
-      mimeType,
-      completenessStatus: 'Pending Review',
-      consistencyStatus: 'Pending Check',
-      anomalyStatus: 'Not Screened',
-      issuerVerificationStatus: 'Unavailable',
-      humanReviewStatus: 'Pending',
-      extractedSummary: {
-        'Document Title': docTitle.trim(),
-        'Holder / Signatory': personName.trim() || currentUser.fullName,
-        'Certificate Number': certNumber.trim(),
-        'Classification Folder': aiSuggestion.folder,
-        'Selected File Attributes': `${fileName.trim()} (${mimeType}, ${fileSize})`,
-      },
-      findings: [
-        {
-          id: createRecordId('F-NEW'),
-          pillar: 'Completeness',
-          status: 'Advisory',
-          affectedFieldOrPage: 'Registered Metadata Record',
-          explanation:
-            'Document details, certificate reference, and file attributes registered; awaiting reviewing officer inspection.',
-          evidenceComparison: `Registered Cert #${certNumber.trim()} (${fileName.trim()}, ${fileSize}).`,
-          suggestedNextAction: 'Queued for regional reviewer inspection and human sign-off.',
-        },
-      ],
-      versions: [
-        {
-          versionNumber: 1,
-          fileName: fileName.trim(),
-          fileSize,
-          mimeType,
-          uploadedAt: nowDisplay,
-          uploadedBy: currentUser.fullName,
-          changeNote: 'Initial metadata registration with keyword-based category confirmation.',
-        },
-      ],
-    });
+    setIsUploading(true);
 
-    setUploadModalOpen(false);
-    setDocTitle('');
-    setCertNumber('');
+    try {
+      const uploadResult = await uploadAndPersistDocument({
+        file: fileToUpload,
+        ownerId: currentUser.id,
+        category: finalCategory,
+        institutionId: instId,
+        status: 'Pending Verification',
+      });
+
+      if (!uploadResult.success || !uploadResult.storagePath) {
+        setUploadError(
+          uploadResult.error || 'Upload to storage bucket failed. Please check the file and retry.'
+        );
+        setIsUploading(false);
+        return;
+      }
+
+      onUploadDocument({
+        internalCode: previewInternalCode,
+        name: docTitle.trim(),
+        category: finalCategory,
+        suggestedAiCategory: aiSuggestion.category,
+        suggestedFolder: aiSuggestion.folder,
+        categoryConfirmed: true,
+        institutionId: instId,
+        institutionName:
+          instObj?.name ||
+          "Vivekanand Education Society's Institute of Technology (VESIT), Mumbai",
+        relatedApplicationId: relatedAppId || undefined,
+        personName: personName.trim() || currentUser.fullName,
+        personUserId: currentUser.id,
+        certificateNumber: certNumber.trim(),
+        issuingAuthority: issuingAuthority.trim() || 'Authorized Issuing Body',
+        issueDate,
+        expiryDate: expiryDate || undefined,
+        uploadDate: todayStr,
+        fileName: fileToUpload.name,
+        fileSize,
+        mimeType,
+        storagePath: uploadResult.storagePath,
+        verificationStatusLabel: 'Pending Verification',
+        approvalStatusLabel: 'Under Review',
+        completenessStatus: 'Pending Review',
+        consistencyStatus: 'Pending Check',
+        anomalyStatus: 'Not Screened',
+        issuerVerificationStatus: 'Unavailable',
+        humanReviewStatus: 'Pending',
+        extractedSummary: {
+          'Document Title': docTitle.trim(),
+          'Holder / Signatory': personName.trim() || currentUser.fullName,
+          'Certificate Number': certNumber.trim(),
+          'Classification Folder': aiSuggestion.folder,
+          'Selected File Attributes': `${fileToUpload.name} (${mimeType}, ${fileSize})`,
+          'Persistent Storage Path': uploadResult.storagePath,
+        },
+        findings: [
+          {
+            id: createRecordId('F-NEW'),
+            pillar: 'Completeness',
+            status: 'Advisory',
+            affectedFieldOrPage: 'Registered Metadata Record',
+            explanation:
+              'Document details, certificate reference, and file attributes registered; awaiting reviewing officer inspection.',
+            evidenceComparison: `Registered Cert #${certNumber.trim()} (${fileToUpload.name}, ${fileSize}).`,
+            suggestedNextAction: 'Queued for regional reviewer inspection and human sign-off.',
+          },
+        ],
+        versions: [
+          {
+            versionNumber: 1,
+            fileName: fileToUpload.name,
+            fileSize,
+            mimeType,
+            storagePath: uploadResult.storagePath,
+            uploadedAt: nowDisplay,
+            uploadedBy: currentUser.fullName,
+            changeNote: 'Initial metadata registration with keyword-based category confirmation.',
+          },
+        ],
+      });
+
+      setUploadModalOpen(false);
+      setSelectedRawFile(null);
+      setDocTitle('');
+      setCertNumber('');
+      setUploadError(null);
+    } catch (err) {
+      setUploadError(
+        err instanceof Error ? err.message : 'An error occurred during file upload and metadata saving.'
+      );
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -856,22 +1040,45 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                     </span>
                   </div>
 
-                  {/* Render actual uploaded preview if previewUrl or IndexedDB vaultBlobPreviewUrl is available */}
-                  {vaultBlobPreviewUrl || selectedDocument.previewUrl ? (
-                    <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2">
+                  {/* Render actual uploaded preview if signedDocumentUrl, vaultBlobPreviewUrl, or previewUrl is available */}
+                  {isLoadingSignedUrl ? (
+                    <div className="p-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center space-y-2.5">
+                      <Loader2 className="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400" />
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                        Requesting secure signed URL from storage...
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono-tabular">
+                        Bucket: veridex-documents
+                      </span>
+                    </div>
+                  ) : signedDocumentUrl || vaultBlobPreviewUrl || selectedDocument.previewUrl ? (
+                    <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 space-y-2">
                       {selectedDocument.mimeType.startsWith('image/') ||
-                      (vaultBlobPreviewUrl || selectedDocument.previewUrl || '').startsWith('data:image/') ? (
+                      (signedDocumentUrl || vaultBlobPreviewUrl || selectedDocument.previewUrl || '').startsWith('data:image/') ? (
                         <img
-                          src={vaultBlobPreviewUrl || selectedDocument.previewUrl}
+                          src={signedDocumentUrl || vaultBlobPreviewUrl || selectedDocument.previewUrl}
                           alt={selectedDocument.name}
                           className="max-h-64 w-full object-contain rounded-md"
                         />
                       ) : (
                         <iframe
-                          src={vaultBlobPreviewUrl || selectedDocument.previewUrl}
+                          src={signedDocumentUrl || vaultBlobPreviewUrl || selectedDocument.previewUrl}
                           title={selectedDocument.name}
                           className="w-full h-64 rounded-md border-0"
                         />
+                      )}
+                      {selectedDocument.storagePath && (
+                        <div className="flex items-center justify-between text-[10px] font-mono-tabular text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800">
+                          <span className="truncate">Storage: veridex-documents (Private)</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRefreshSignedUrl(selectedDocument.storagePath!)}
+                            className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer shrink-0"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            <span>Refresh Signed Link</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -890,14 +1097,31 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                         <div>
                           Valid Until: {selectedDocument.expiryDate || 'Permanent / No Expiry'}
                         </div>
-                        <div className="pt-1 text-[10px] text-amber-700 dark:text-amber-400">
-                          Storage Type: Metadata-only record (no binary blob in browser IndexedDB)
-                        </div>
+                        {selectedDocument.storagePath && (
+                          <div className="pt-1 text-[10px] text-blue-700 dark:text-blue-400 font-mono-tabular">
+                            Path: {selectedDocument.storagePath}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-xs pt-1">
+                  {signedUrlError && (
+                    <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+                      <span>{signedUrlError}</span>
+                      {selectedDocument.storagePath && (
+                        <button
+                          type="button"
+                          onClick={() => handleRefreshSignedUrl(selectedDocument.storagePath!)}
+                          className="font-semibold underline ml-2 cursor-pointer"
+                        >
+                          Retry
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-1">
                     {selectedDocument.relatedApplicationId ? (
                       <button
                         type="button"
@@ -915,15 +1139,27 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                       <span className="text-slate-400">Standalone Repository Record</span>
                     )}
 
-                    {currentUser.role !== 'student' && (
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setReplaceOpen((prev) => !prev)}
-                        className="px-3 py-1 rounded-lg bg-slate-900 dark:bg-blue-600 text-white text-xs font-medium cursor-pointer"
+                        disabled={isDownloading}
+                        onClick={handleDownloadCurrentDocument}
+                        className="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
-                        Replace Version
+                        <Download className="w-3.5 h-3.5" />
+                        <span>{isDownloading ? 'Downloading...' : 'Download Document'}</span>
                       </button>
-                    )}
+
+                      {currentUser.role !== 'student' && (
+                        <button
+                          type="button"
+                          onClick={() => setReplaceOpen((prev) => !prev)}
+                          className="px-3 py-1 rounded-lg bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 text-white text-xs font-medium cursor-pointer"
+                        >
+                          Replace Version
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -947,6 +1183,14 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                         {selectedDocument.suggestedFolder}
                       </span>
                     </div>
+                    {selectedDocument.storagePath && (
+                      <div className="py-1.5 flex items-start justify-between gap-3">
+                        <span className="text-slate-500">Storage Path</span>
+                        <span className="font-mono-tabular text-[10px] text-blue-700 dark:text-blue-400 break-all text-right">
+                          {selectedDocument.storagePath}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -954,34 +1198,106 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
               {/* Replace Document Version Form */}
               {replaceOpen && (
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
+                    setReplaceError(null);
+
+                    let storagePath = selectedDocument.storagePath;
+                    let fileName = replaceFileName.trim() || 'Updated_Document_v2.pdf';
+                    let fileSize = '1.92 MB';
+                    let mimeType: 'application/pdf' | 'image/jpeg' | 'image/png' = 'application/pdf';
+
+                    if (replaceFile) {
+                      const validation = validateDocumentFile(replaceFile);
+                      if (!validation.valid) {
+                        setReplaceError(validation.error || 'Invalid replacement file.');
+                        return;
+                      }
+
+                      setReplaceUploading(true);
+                      try {
+                        const uploadRes = await uploadDocumentToStorage(
+                          replaceFile,
+                          currentUser.id,
+                          selectedDocument.category
+                        );
+                        if (!uploadRes.success || !uploadRes.storagePath) {
+                          setReplaceError(uploadRes.error || 'Failed to upload replacement file.');
+                          setReplaceUploading(false);
+                          return;
+                        }
+                        storagePath = uploadRes.storagePath;
+                        fileName = replaceFile.name;
+                        fileSize = `${Math.max(0.05, replaceFile.size / (1024 * 1024)).toFixed(2)} MB`;
+                        mimeType = (['application/pdf', 'image/jpeg', 'image/png'].includes(replaceFile.type)
+                          ? replaceFile.type
+                          : 'application/pdf') as 'application/pdf' | 'image/jpeg' | 'image/png';
+                      } catch (err) {
+                        setReplaceError(err instanceof Error ? err.message : 'Upload failed.');
+                        setReplaceUploading(false);
+                        return;
+                      } finally {
+                        setReplaceUploading(false);
+                      }
+                    }
+
                     onReplaceDocumentVersion({
                       docId: selectedDocument.id,
-                      fileName: replaceFileName.trim() || 'Updated_Document_v2.pdf',
-                      fileSize: '1.92 MB',
-                      mimeType: 'application/pdf',
+                      fileName,
+                      fileSize,
+                      mimeType,
+                      storagePath,
                       newExpiryDate: replaceExpiry || undefined,
                       changeNote: replaceNote.trim() || 'Uploaded updated version.',
                     });
+
                     setReplaceOpen(false);
+                    setReplaceFile(null);
+                    setReplaceError(null);
                   }}
                   className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 space-y-3"
                 >
-                  <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                    Upload New Version (v{selectedDocument.versions.length + 1}): Preserves Prior Version History
+                  <div className="text-xs font-semibold text-slate-900 dark:text-white flex items-center justify-between">
+                    <span>Upload New Version (v{selectedDocument.versions.length + 1}): Preserves Prior History</span>
+                    <span className="text-[11px] font-mono-tabular text-slate-500">Private Bucket: veridex-documents</span>
                   </div>
+
+                  {replaceError && (
+                    <div className="p-2.5 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-xs text-red-800 dark:text-red-300 flex items-center justify-between">
+                      <span>{replaceError}</span>
+                      <button
+                        type="button"
+                        onClick={() => setReplaceError(null)}
+                        className="underline font-semibold"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+
+                  {replaceUploading && (
+                    <div className="p-2.5 rounded-lg bg-blue-100/70 dark:bg-blue-900/40 text-xs text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Uploading replacement version to veridex-documents...</span>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">
-                        Replacement File Name
+                        Replacement File (.pdf, .jpg, .png up to 15 MB)
                       </label>
                       <input
-                        type="text"
-                        required
-                        value={replaceFileName}
-                        onChange={(e) => setReplaceFileName(e.target.value)}
-                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        disabled={replaceUploading}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setReplaceFile(file);
+                          setReplaceFileName(file.name);
+                        }}
+                        className="w-full text-xs text-slate-600 dark:text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 dark:file:bg-slate-800 dark:file:text-blue-300 cursor-pointer"
                       />
                     </div>
                     <div>
@@ -998,7 +1314,7 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                   </div>
                   <div>
                     <label className="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">
-                      Version Change Note
+                      Version Change Note *
                     </label>
                     <input
                       type="text"
@@ -1011,16 +1327,29 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
                   <div className="flex justify-end gap-2">
                     <button
                       type="button"
-                      onClick={() => setReplaceOpen(false)}
-                      className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs"
+                      disabled={replaceUploading}
+                      onClick={() => {
+                        setReplaceOpen(false);
+                        setReplaceFile(null);
+                        setReplaceError(null);
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs cursor-pointer disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="px-3.5 py-1.5 rounded-lg bg-blue-700 text-white text-xs font-medium cursor-pointer"
+                      disabled={replaceUploading}
+                      className="px-3.5 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
-                      Save Version v{selectedDocument.versions.length + 1}
+                      {replaceUploading ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Saving Version...</span>
+                        </>
+                      ) : (
+                        <span>Save Version v{selectedDocument.versions.length + 1}</span>
+                      )}
                     </button>
                   </div>
                 </form>
@@ -1212,9 +1541,23 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
             {uploadError && (
               <div
                 role="alert"
-                className="p-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-xs text-red-800 dark:text-red-300"
+                className="p-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-xs text-red-800 dark:text-red-300 flex items-start justify-between gap-2"
               >
-                {uploadError}
+                <span>{uploadError}</span>
+                <button
+                  type="button"
+                  onClick={() => setUploadError(null)}
+                  className="text-red-700 dark:text-red-300 font-semibold underline shrink-0 cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {isUploading && (
+              <div className="p-3 rounded-lg bg-blue-50/80 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 text-xs text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin shrink-0 text-blue-600 dark:text-blue-400" />
+                <span>Uploading file to private storage bucket `veridex-documents` and persisting metadata...</span>
               </div>
             )}
 
@@ -1481,16 +1824,28 @@ export const DocumentRepositoryView: React.FC<DocumentRepositoryViewProps> = ({
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setUploadModalOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-xs font-medium"
+                  disabled={isUploading}
+                  onClick={() => {
+                    setUploadModalOpen(false);
+                    setUploadError(null);
+                  }}
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium cursor-pointer"
+                  disabled={isUploading}
+                  className="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  Confirm &amp; Register Document Record
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Uploading to Storage...</span>
+                    </>
+                  ) : (
+                    <span>Confirm &amp; Register Document Record</span>
+                  )}
                 </button>
               </div>
             </form>
