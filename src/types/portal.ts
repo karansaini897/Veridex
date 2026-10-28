@@ -196,6 +196,17 @@ export interface DocumentVersion {
   storagePath?: string;
 }
 
+export type HonestCheckStatus =
+  | 'Passed'
+  | 'Failed'
+  | 'Review required'
+  | 'Pending'
+  | 'Unable to verify'
+  | 'Not checked'
+  | 'Unsupported'
+  | 'Not applicable'
+  | 'Demonstration result';
+
 export interface VerificationFinding {
   id: string;
   pillar:
@@ -211,7 +222,87 @@ export interface VerificationFinding {
   explanation: string;
   evidenceComparison: string;
   suggestedNextAction: string;
+  resolvedByReviewer?: string;
+  resolvedAt?: string;
+  resolutionJustification?: string;
+  resolutionDecision?: 'Resolved' | 'Overridden' | 'Confirmed Deficiency';
 }
+
+export interface AuthenticityCheckItem {
+  id: string;
+  checkName: string;
+  category:
+    | 'Expiry & Validity'
+    | 'Duplicate Certificate Detection'
+    | 'Metadata & File Attribute Inspection'
+    | 'Issuer Information'
+    | 'Reference Number Format'
+    | 'Digital Signature Validation'
+    | 'QR Code Detection & Validation'
+    | 'Document Integrity / Alteration Screening';
+  status: HonestCheckStatus;
+  observedEvidence: string;
+  explanation: string;
+  requiresExternalAuthority: boolean;
+}
+
+export interface CrossDocumentComparisonRow {
+  id: string;
+  fieldName: string;
+  comparisonRule: string;
+  valuesByDocument: Array<{
+    documentId: string;
+    internalCode: string;
+    documentTitle: string;
+    value: string;
+    valueSource: 'OCR Extracted' | 'Manually Entered' | 'Verified Record';
+  }>;
+  status: HonestCheckStatus;
+  discrepancyReason: string;
+  reviewGuidance: string;
+}
+
+export interface ComplianceRuleEvaluationRow {
+  ruleId: string;
+  ruleCode: string;
+  ruleName: string;
+  ruleVersion: string;
+  effectiveDate: string;
+  applicableCategory: string;
+  mandatory: boolean;
+  requiredEvidence: string;
+  observedEvidence: string;
+  supportingDocumentId?: string;
+  supportingDocumentCode?: string;
+  supportingDocumentName?: string;
+  status: HonestCheckStatus;
+  reason: string;
+  reviewerStatus: string;
+}
+
+export type ContactEnquiryCategory =
+  | 'General enquiry'
+  | 'Technical support'
+  | 'Application or document issue'
+  | 'Document verification concern'
+  | 'Privacy or data handling concern'
+  | 'Security concern'
+  | 'Feedback or suggestion';
+
+export interface ContactEnquirySubmission {
+  id: string;
+  ticketReference: string;
+  name: string;
+  email: string;
+  category: ContactEnquiryCategory;
+  subject: string;
+  message: string;
+  applicationReference?: string;
+  submittedAt: string;
+  deliveryMode: 'server_recorded' | 'local_recorded';
+  statusNote: string;
+}
+
 
 export interface DocumentRecord {
   id: string;

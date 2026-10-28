@@ -1,0 +1,1204 @@
+VERIDEX: COMPLETE MASTER IMPLEMENTATION PROMPT
+
+SIH26261 Requirements, Privacy Policy, Contact Us, Validation Workflows, and Strict Design Preservation
+
+You are working on my existing project, VERIDEX: Institutional Document Management, a web application being developed for Smart India Hackathon 2026 problem statement SIH26261: AI-Powered Application Validation, Document Authentication and Regulatory Compliance Verification, associated with AICTE under the Smart Automation theme.
+
+Your task is to inspect, improve, and extend the existing application while preserving its current design, animations, architecture, functionality, and security.
+
+THIS IS AN EXTENSION OF MY EXISTING PROJECT, NOT A REDESIGN OR A REBUILD.
+
+Read every instruction before making changes. Inspect the existing codebase first, understand how its components, routes, styles, authentication, Supabase integration, and workflows operate, and then implement the requirements using the existing architecture.
+
+Do not replace working features with mock implementations. Do not remove existing features to make implementation easier. Do not change the design simply because you think a different design would look better.
+
+PART 1: ABSOLUTE PRIORITY
+
+1.1 Preserve my existing design exactly
+
+MY EXISTING VERIDEX THEME, VISUAL IDENTITY, AND ANIMATIONS MUST NOT BE REDESIGNED.
+
+I have already established the visual direction of this application. I want to improve its capabilities and completeness while retaining the appearance I have already created.
+
+Preserve the existing design system, including all of the following:
+
+* Existing color palette and color relationships.
+* Existing dark and light themes.
+* Dark mode as the default theme.
+* Existing theme-switching functionality and theme persistence.
+* Existing glassmorphism effects.
+* Existing background textures, patterns, and decorative elements.
+* Existing animated shapes and background effects.
+* Existing animations, transitions, and motion effects.
+* Existing hover effects and interactive feedback.
+* Existing entrance and exit animations.
+* Existing animation timing, duration, easing, and keyframes.
+* Existing cards, panels, containers, and dashboard components.
+* Existing button styles, sizes, borders, and hover states.
+* Existing typography, fonts, font sizes, and hierarchy.
+* Existing spacing, alignment, proportions, and layout.
+* Existing shadows, borders, corner radii, and visual depth.
+* Existing sidebar, navigation, headers, and dashboard structure.
+* Existing modal, dialog, notification, and dropdown styling.
+* Existing loading states and loading animations.
+* Existing icons, logo, and visual identity.
+* Existing responsive behavior across desktop, tablet, and mobile.
+* Existing page transitions and interactive behaviors.
+* Existing visual hierarchy and the overall look and feel of VERIDEX.
+
+Do not introduce a new design system.
+
+Do not replace the existing theme with a generic enterprise dashboard, a conventional government portal template, or a new AI-generated interface.
+
+Do not remove glassmorphism, flatten animated elements, simplify backgrounds, replace the current palette, or convert the existing interface into a plain collection of white cards.
+
+Do not replace existing animations with new ones. Do not disable animations to make the application appear simpler or more professional.
+
+Do not change existing animation definitions, CSS keyframes, durations, easing functions, or transition behavior unless a change is absolutely necessary for a specific new feature to work. If a change is necessary, modify only the smallest relevant component and preserve the existing effect.
+
+Do not apply broad global CSS changes to accommodate new pages or features.
+
+Use the existing design tokens, CSS variables, components, utility classes, and styling conventions wherever available.
+
+New components must inherit the existing visual language. They must look like they have always belonged to VERIDEX.
+
+If an existing component already provides the required functionality or appearance, reuse it instead of creating a competing replacement.
+
+Non-negotiable design rule
+
+When implementing a new feature, adapt the feature to the existing design. Never redesign the existing application to accommodate the feature.
+
+If a proposed change risks altering the current theme or animations, prioritize preserving the existing design and find a more targeted implementation.
+
+1.2 Use DigiLocker only as a reference for professionalism
+
+I want the Privacy Policy and Contact Us pages to communicate the clarity, structure, accessibility, and institutional professionalism associated with established digital public-service portals such as DigiLocker.
+
+Reference: https://www.digilocker.gov.in/
+
+Use this reference only for general principles such as:
+
+* Clear information hierarchy.
+* Readable policy sections.
+* Straightforward navigation.
+* Accessible forms.
+* Clear contact categories.
+* Trustworthy and professional communication.
+* Easy-to-understand explanations of services and user responsibilities.
+
+Do not copy DigiLocker’s branding, logo, exact colors, layout, components, or visual identity.
+
+Do not make VERIDEX look like a DigiLocker clone.
+
+Do not imply that VERIDEX is owned, operated, endorsed, or officially maintained by DigiLocker, AICTE, or the Government of India unless that relationship is explicitly established in the existing project.
+
+The new pages must use VERIDEX’s existing theme, not DigiLocker’s theme.
+
+PART 2: INSPECT THE EXISTING PROJECT BEFORE CHANGING IT
+
+Before implementation, inspect the existing codebase and identify:
+
+1. The application’s framework, entry points, routing system, and page structure.
+2. Existing shared components and layout components.
+3. The current theme implementation and theme variables.
+4. Existing CSS files, stylesheets, animation definitions, and responsive rules.
+5. Existing authentication and role-based access control.
+6. Existing Supabase client configuration and authentication services.
+7. Existing database tables, policies, and relevant relationships.
+8. Existing document upload, storage, and retrieval workflows.
+9. Existing document repository and verification status components.
+10. Existing OCR and AI-related integrations.
+11. Existing notification, request, application, and review workflows.
+12. Existing audit logging and activity tracking.
+13. Existing dashboards, metrics, charts, and application lists.
+14. Existing error handling, loading states, and form validation.
+15. Existing tests and build configuration.
+
+Determine which requested capabilities already exist and which are incomplete or missing.
+
+Extend existing functionality where possible. Do not create duplicate pages, duplicate services, competing state-management systems, or redundant database structures.
+
+If a feature already works, preserve it and improve it only where necessary to satisfy the requirements.
+
+Do not assume that a feature is missing simply because its implementation is located in an unfamiliar file.
+
+Do not overwrite existing files wholesale when targeted changes would be sufficient.
+
+Do not change working authentication credentials, environment variable names, Supabase configuration, existing route behavior, or application structure without a demonstrated technical requirement.
+
+After inspection, proceed with implementation. Do not stop after producing an analysis report.
+
+PART 3: ADD A PRIVACY POLICY PAGE
+
+Create a complete Privacy Policy page at:
+
+/privacy-policy
+
+Integrate it into the existing routing system. Use the current application’s layout and design components wherever appropriate.
+
+The page must be readable, professional, responsive, and consistent with the existing VERIDEX interface in both dark and light modes.
+
+3.1 Required Privacy Policy sections
+
+Include clearly organized sections covering the following topics.
+
+1. Introduction
+
+Explain the purpose of the Privacy Policy and how it applies to users of VERIDEX.
+
+Describe VERIDEX as an institutional document management and application validation platform, using wording consistent with the actual project.
+
+Do not invent a registered company, legal entity, government affiliation, or official institutional relationship.
+
+2. Information collected
+
+Explain the categories of information that may be processed, based on the application’s actual implementation:
+
+* Account and profile information.
+* Institution, department, division, faculty, or student information where applicable.
+* Application and request information.
+* Uploaded documents and supporting evidence.
+* Information extracted from uploaded documents.
+* Verification results and compliance findings.
+* Application status and review history.
+* Audit events and relevant activity information.
+* Technical information processed by the application and its integrated services.
+
+Do not claim that the application collects information that it does not actually collect.
+
+3. Uploaded documents and extracted information
+
+Explain how uploaded documents may be stored, displayed, processed, and reviewed.
+
+Describe OCR and AI-assisted extraction only to the extent supported by the existing implementation.
+
+Clarify that extracted information may contain errors and may require human review.
+
+Explain that extracted information should be checked against the original document before consequential decisions are made.
+
+4. Purpose of processing
+
+Explain the purposes for which information may be used, including:
+
+* Account and institutional access management.
+* Document management.
+* Application processing.
+* Document extraction and validation.
+* Regulatory compliance assessment.
+* Authenticity checks where supported.
+* Notifications and workflow management.
+* Review, approval, and rectification workflows.
+* Security monitoring and audit logging.
+* Troubleshooting and service improvement.
+
+Include only purposes that correspond to actual or clearly intended application functionality.
+
+5. AI-assisted processing and limitations
+
+Explain that automated extraction, validation, and compliance analysis may be imperfect.
+
+Clarify the difference between an automated flag, a verification result, an officer’s assessment, and an official decision.
+
+Do not represent an AI-generated result as conclusive proof of fraud, document authenticity, regulatory compliance, or legal eligibility.
+
+6. Data sharing and access
+
+Explain that access to information should be governed by the application’s authentication system, assigned roles, institutional relationships, and authorization rules.
+
+Describe access by authorized reviewers or institutional personnel only where supported by the implementation.
+
+Explain the involvement of integrated service providers only to the extent that their role is established by the existing architecture.
+
+Do not claim that data is never shared if the application’s integrations or operations require processing by third parties.
+
+7. Data storage and retention
+
+Explain how information is stored using the actual application architecture.
+
+If Supabase is used for authentication, database services, or document storage, describe its role accurately.
+
+Do not invent storage locations, retention periods, deletion schedules, or guarantees of permanent deletion.
+
+If a retention or deletion policy has not been established, state that the applicable policy needs to be confirmed rather than inventing a commitment.
+
+8. Security
+
+Describe existing safeguards accurately, such as authentication, role-based permissions, access controls, private storage, signed document URLs, and database policies, but only where these are actually implemented and verified.
+
+Do not claim that the application is completely secure, immune to breaches, independently certified, or compliant with a particular security standard without evidence.
+
+9. Cookies and local storage
+
+Inspect the actual application to determine whether it uses browser local storage, session storage, cookies, or similar mechanisms.
+
+Explain their actual purposes, such as theme preferences, session persistence, or other relevant application settings.
+
+Do not claim that the application uses no cookies or local storage without verifying the code.
+
+10. User rights and requests
+
+Explain the process for requesting access to information, correcting inaccurate information, or raising concerns about data handling, subject to the applicable policies and authorization requirements.
+
+Do not promise automatic deletion, immediate correction, or legal rights that have not been confirmed.
+
+11. Student and institutional information
+
+Explain that institutional applications may involve information about students, faculty, and other personnel.
+
+Encourage users to submit only the information and supporting documents required for the relevant application.
+
+Avoid requesting unnecessary sensitive information.
+
+12. External services
+
+Identify relevant external services only after inspecting the actual implementation.
+
+Explain their roles accurately. Do not fabricate integrations or claim that an external service has been independently verified.
+
+13. Policy updates
+
+Explain that the policy may be updated as the platform evolves.
+
+If a last-updated date is displayed, use a genuine date corresponding to the actual policy revision. Do not invent a past review date.
+
+14. Contact and privacy concerns
+
+Provide a clear route to the new Contact Us page for questions or concerns.
+
+Do not invent a privacy officer, institutional address, support email, phone number, or complaint-handling authority.
+
+If official contact details have not been provided, make this limitation clear in the interface or project configuration rather than displaying fictional details.
+
+3.2 Privacy Policy functionality
+
+The page must:
+
+* Be accessible through /privacy-policy.
+* Include a clear page title and structured sections.
+* Use readable spacing and headings.
+* Preserve the current theme and animations.
+* Work correctly in dark mode and light mode.
+* Be responsive on mobile and desktop.
+* Include a link to Contact Us.
+* Include appropriate navigation back to the application.
+* Use accessible heading structure and keyboard navigation.
+* Avoid unnecessary forms or collection of additional personal information.
+
+If a table of contents would improve navigation, implement it using existing components and styles.
+
+Do not add a separate theme or modify global styles to make the page work.
+
+PART 4: ADD A CONTACT US PAGE
+
+Create a complete Contact Us page at:
+
+/contact
+
+Use the existing application routing, shared components, typography, color palette, and animations.
+
+The page should feel like a professional institutional support interface while remaining visually consistent with the existing VERIDEX application.
+
+4.1 Page structure
+
+Include the following sections where appropriate.
+
+1. Contact introduction
+
+Explain that users can use this page to raise questions or report problems concerning VERIDEX.
+
+Use clear, concise language. Avoid exaggerated marketing claims.
+
+2. Contact categories
+
+Provide clearly labeled categories such as:
+
+* General enquiry.
+* Technical support.
+* Application or document issue.
+* Document verification concern.
+* Privacy or data handling concern.
+* Security concern.
+* Feedback or suggestion.
+
+Use the categories to help users understand the nature of their enquiry.
+
+Do not imply that each category is connected to a dedicated support team unless that is actually configured.
+
+3. Contact form
+
+If appropriate for the existing architecture, implement a functional form with fields such as:
+
+* Name, if needed.
+* Email address, if a reply is required.
+* Enquiry category.
+* Subject.
+* Message.
+* Application reference number, where applicable and optional.
+
+Use clear labels, helpful validation messages, and accessible error states.
+
+Do not request passwords, authentication tokens, unnecessary identity documents, or other secrets through the contact form.
+
+Do not make sensitive application details publicly accessible through the form or its submission mechanism.
+
+4. Submission behavior
+
+Before implementing submission, inspect whether the project already has a suitable backend endpoint, support workflow, database table, or messaging integration.
+
+If an appropriate existing service is available, reuse it.
+
+If a new backend service is genuinely required, do not silently introduce it or weaken existing security controls. Implement it only in a way compatible with the current architecture and existing authorization rules.
+
+If no real submission mechanism exists, do not create a fake success state.
+
+In that situation, either:
+
+* Build the page as a clearly identified frontend demonstration without implying that messages have been sent, or
+* Integrate a real submission mechanism only if the required service and configuration are available.
+
+A success message may appear only after the application has confirmed successful submission.
+
+Handle failures clearly and allow users to retry where appropriate.
+
+5. Contact information
+
+Display an email address, telephone number, office address, or institutional contact only if the information has been provided or verified from an authoritative source relevant to the project.
+
+Do not invent contact details.
+
+Do not present fictional support personnel or nonexistent offices as real.
+
+If contact details are not yet configured, keep the page usable without fabricating them and identify the missing configuration appropriately.
+
+6. Additional support information
+
+Where useful, include concise instructions about:
+
+* Providing an application reference number when reporting an issue.
+* Describing technical problems clearly.
+* Avoiding passwords and confidential authentication details.
+* Reporting suspected document or security issues through the appropriate category.
+
+Do not promise specific response times, round-the-clock support, or guaranteed resolution unless those commitments have been established.
+
+4.2 Contact page requirements
+
+The Contact Us page must:
+
+* Be accessible through /contact.
+* Use the existing VERIDEX design system.
+* Work in dark and light modes.
+* Be responsive.
+* Include form validation if a form is implemented.
+* Use accessible labels and keyboard navigation.
+* Display accurate loading, success, and error states.
+* Avoid collecting unnecessary personal information.
+* Include a link to the Privacy Policy.
+* Avoid fake contact details and fake submission confirmations.
+
+PART 5: INTEGRATE THE NEW PAGES INTO THE EXISTING APPLICATION
+
+Integrate both pages into the existing navigation structure without disrupting current navigation.
+
+Add accessible links for:
+
+* Privacy Policy.
+* Contact Us.
+
+Prefer the existing footer if the application already has one.
+
+If there is no suitable footer, introduce a minimal footer using existing components and styling. It must not cause a redesign of the application shell.
+
+Keep the existing header, sidebar, dashboard, page transitions, and navigation behavior intact.
+
+Ensure that:
+
+* Both routes resolve correctly.
+* The pages can be opened directly through their URLs.
+* Refreshing either page does not produce a routing error.
+* The pages work with the existing authentication flow.
+* Public access is used only where appropriate for informational pages.
+* Existing protected routes remain protected.
+* Adding these pages does not change any existing user’s permissions.
+
+Do not introduce a new routing library if the project already has a working router.
+
+PART 6: IMPLEMENT THE SIH26261 VALIDATION WORKFLOW
+
+The primary purpose of VERIDEX is institutional document management, application validation, document authentication, and regulatory compliance verification.
+
+Improve the existing application so that these capabilities are presented through a coherent workflow rather than disconnected screens.
+
+The workflow should guide authorized users through:
+
+1. Selecting an application.
+2. Reviewing application details.
+3. Checking required documents.
+4. Uploading or opening supporting evidence.
+5. Extracting document information.
+6. Reviewing extracted fields.
+7. Comparing information across documents.
+8. Running supported validation and authenticity checks.
+9. Evaluating applicable regulatory requirements.
+10. Reviewing findings and unresolved issues.
+11. Requesting corrections when necessary.
+12. Recording an authorized review and decision.
+13. Viewing the application history and final status.
+
+Reuse existing pages and components whenever possible. If a corresponding workflow already exists, extend it rather than creating a competing workflow.
+
+6.1 Unified Application Validation Workspace
+
+Provide a clear workspace for authorized users to inspect an application’s overall validation status.
+
+The workspace should make it easy to identify:
+
+* Application identity and reference.
+* Institution or applicant details.
+* Application category.
+* Required documents.
+* Submitted documents.
+* Missing or incomplete documents.
+* Extracted information.
+* Cross-document inconsistencies.
+* Applicable compliance checks.
+* Authenticity checks and their results.
+* Findings requiring human review.
+* Pending corrections.
+* Reviewer remarks.
+* Application status and history.
+
+Organize these details using existing cards, tabs, panels, tables, or other established components.
+
+Do not overcrowd the screen or replace the current dashboard layout unnecessarily.
+
+Where a workflow spans several steps, provide clear progress indicators and preserve relevant state when moving between steps.
+
+Do not show a completed validation status merely because the user opened a page or uploaded a file.
+
+6.2 OCR and document information extraction
+
+Support OCR and extraction for relevant uploaded documents, including PDFs and image-based documents, according to the capabilities of the existing integrations.
+
+The intended document types may include:
+
+* Infrastructure proofs.
+* No Objection Certificates.
+* Land records.
+* Building-related documents.
+* Institutional certificates.
+* Other supporting documents required for an application.
+
+Where supported, extract relevant fields such as:
+
+* Document number.
+* Applicant or institution name.
+* Issuing authority.
+* Issue date.
+* Expiry date.
+* Address or location.
+* Relevant measurements.
+* Other fields appropriate to the document category.
+
+Show extracted information alongside the original document whenever practical.
+
+Allow authorized reviewers to inspect the original evidence and identify extraction errors.
+
+Clearly distinguish extracted values from manually entered values and verified values.
+
+If OCR cannot process a document, show an accurate status and an understandable reason where available.
+
+Do not invent extracted values or display fabricated OCR results as real.
+
+Do not claim that OCR has been performed unless the extraction process has actually run.
+
+6.3 Cross-document consistency checks
+
+Where relevant fields exist across multiple documents, provide a way to compare them.
+
+Examples include:
+
+* Institution name.
+* Institution address.
+* Applicant identity.
+* Document reference numbers.
+* Dates.
+* Land area.
+* Building measurements.
+* Other fields applicable to the relevant application category.
+
+Flag discrepancies for review.
+
+For every discrepancy, show as much supporting context as the system can reliably provide, including:
+
+* The relevant field.
+* The value from each document.
+* The source document.
+* The applicable comparison rule.
+* The reason for the discrepancy.
+* The current review status.
+
+Do not automatically label a discrepancy as fraud. It may be caused by an OCR error, a formatting difference, an outdated document, or a legitimate change.
+
+Allow authorized reviewers to record a justified resolution.
+
+6.4 Document authenticity and fraud indicators
+
+Provide a structured authenticity assessment for documents where the required capabilities and integrations exist.
+
+Potential checks include:
+
+* Digital signature presence and validation, where supported.
+* QR code detection and validation, where a suitable verification process exists.
+* Reference number checks against an authoritative source, where available.
+* Issuer information checks, where supported.
+* Expiry and validity checks.
+* Duplicate document detection.
+* Metadata inspection, where technically possible.
+* Document integrity or tampering indicators, where supported by a real implementation.
+
+For each check, distinguish between:
+
+* Passed.
+* Failed.
+* Review required.
+* Pending.
+* Unable to verify.
+* Not checked.
+* Unsupported.
+* Not applicable.
+* Demonstration result.
+
+Do not display a check as passed merely because no error was detected.
+
+Do not claim a digital signature is valid unless actual signature validation has taken place.
+
+Do not claim a QR code is authentic unless its contents or reference have been checked against an appropriate source.
+
+Do not claim that a document is forged solely because of unusual metadata, OCR discrepancies, fonts, compression, or other indirect indicators.
+
+Do not claim that image analysis proves forgery.
+
+Where authenticity cannot be established, display an honest result such as “Unable to verify” or “Review required.”
+
+If an external verification service is not integrated, identify that limitation rather than simulating a successful external verification.
+
+6.5 Regulatory compliance centre
+
+Create or improve a compliance review interface that organizes applicable requirements into individual checks.
+
+The interface should make it possible to inspect:
+
+* The applicable requirement.
+* The source or reference for that requirement.
+* The application category to which it applies.
+* The required evidence.
+* The observed evidence.
+* The result.
+* The reason for a failure or warning.
+* The supporting document or field.
+* The reviewer status.
+
+Where applicable, reference the relevant AICTE Approval Process Handbook or other confirmed regulatory source.
+
+Do not invent regulatory clauses, thresholds, requirements, or eligibility conditions.
+
+Do not use outdated requirements as if they were current.
+
+Where rule versions are available, preserve the version used for the assessment.
+
+Where current official rules have not been integrated, identify the applicable rules as awaiting configuration or verification.
+
+Avoid presenting a generic compliance percentage as authoritative unless it is calculated from a clearly defined and implemented scoring method.
+
+If a compliance score exists, explain its basis and ensure that its underlying checks are real.
+
+Do not imply that a system-generated score is an official regulatory approval.
+
+6.6 Infrastructure assessment
+
+Where the application category requires infrastructure evidence, provide a structured way to review relevant documents and evidence.
+
+Potential categories include:
+
+* Land ownership or land-related records.
+* Building documents.
+* Classrooms.
+* Laboratories.
+* Equipment.
+* Floor plans.
+* Infrastructure photographs.
+* Measurements and area details.
+* Other requirements applicable to the institution.
+
+Show the required evidence, submitted evidence, extracted values, applicable rules, and unresolved issues.
+
+Allow authorized reviewers to record remarks and request missing evidence.
+
+Do not claim that a building, classroom, laboratory, or piece of equipment physically exists or meets a standard merely because a document or photograph was uploaded.
+
+Distinguish document-based assessment from physical inspection or independent verification.
+
+6.7 Application completeness and rectification
+
+Provide a clear way for authorized users to identify missing documents, incomplete fields, expired documents, and unresolved validation issues.
+
+Where the existing role hierarchy permits it, allow the appropriate reviewer to request corrections or additional evidence.
+
+Show:
+
+* What needs correction.
+* Why it needs correction.
+* Which document or field is affected.
+* What action the applicant must take.
+* The current rectification status.
+* Whether the updated submission has been reviewed.
+
+Preserve the history of earlier submissions and findings where the existing data architecture supports it.
+
+Do not silently overwrite important evidence or remove historical review information.
+
+Do not give users access to modify applications outside their existing permissions.
+
+6.8 Human review and decision workflow
+
+Automated validation should support the authorized reviewer, not replace the reviewer or imply an official decision.
+
+Provide or improve a review interface where authorized users can:
+
+* Inspect findings.
+* Open the supporting document.
+* Review extracted fields.
+* Add remarks.
+* Request corrections.
+* Resolve findings with a recorded justification.
+* Escalate issues where the existing workflow supports escalation.
+* Record a review outcome.
+* View the history of earlier decisions.
+
+Clearly distinguish between an automated result and a human review decision.
+
+Any override of a finding must be authorized and appropriately recorded.
+
+Do not allow ordinary users to bypass the existing approval hierarchy.
+
+Do not change role permissions simply to make the interface easier to implement.
+
+6.9 Evidence-linked findings
+
+Every significant finding should include traceable evidence wherever possible.
+
+A finding should identify:
+
+* The issue.
+* The affected application.
+* The affected document or field.
+* The relevant rule or validation check.
+* The observed value or discrepancy.
+* The reason the finding was raised.
+* The current status.
+* Any reviewer remarks or resolution.
+
+Provide navigation from a finding to its supporting evidence.
+
+Do not display unsupported findings without identifying their source or explaining the limitation.
+
+If the source of a finding cannot be established, label the result appropriately.
+
+6.10 Dashboard improvements
+
+Improve the usefulness of existing dashboards without redesigning them.
+
+Where appropriate, organize existing information into:
+
+* Applications awaiting review.
+* Applications with missing documents.
+* Validation failures.
+* Findings requiring manual review.
+* Pending rectifications.
+* Completed reviews.
+* Recent activity.
+* Relevant application status counts.
+
+Provide useful filtering and sorting where supported.
+
+Ensure that displayed numbers are derived from actual application data.
+
+Do not introduce fabricated statistics, fake applications, invented verification results, or misleading success rates.
+
+Maintain the existing dashboard appearance, card styles, animations, and layout.
+
+PART 7: AUDITABILITY AND TRACEABILITY
+
+Preserve and improve the existing audit trail where relevant.
+
+For important actions, use the existing audit architecture to record appropriate events, such as:
+
+* Document submission.
+* Document replacement or update.
+* Validation execution.
+* Finding creation.
+* Review comments.
+* Correction requests.
+* Finding resolution.
+* Authorized overrides.
+* Application status changes.
+* Relevant approval actions.
+
+Use the existing audit service and database structures wherever possible.
+
+Do not create a duplicate audit logging system if one already exists.
+
+Do not allow unauthenticated users to create trusted audit records.
+
+Do not allow ordinary users to modify or erase audit history through the frontend.
+
+Use server-side authorization and the existing security architecture for sensitive operations.
+
+Audit entries must reflect actual actions. Do not fabricate past events or populate the audit history with fake success messages.
+
+If a particular action is not currently recorded, implement it only in a manner compatible with the existing data model and security rules.
+
+PART 8: STATUS LABELS AND HONEST RESULTS
+
+Use consistent status labels across the application.
+
+Appropriate statuses include:
+
+* Passed.
+* Failed.
+* Review required.
+* Pending.
+* Unable to verify.
+* Not checked.
+* Unsupported.
+* Not applicable.
+* Demonstration result.
+
+Choose statuses according to the actual result of each check.
+
+For example:
+
+* A file uploaded successfully does not mean its contents have been validated.
+* OCR completing successfully does not mean the extracted information is accurate.
+* A document containing a QR code does not mean the QR code has been authenticated.
+* A document containing a digital signature does not mean the signature is valid.
+* A document passing a format check does not mean the document is genuine.
+* No detected discrepancy does not prove that a document is authentic.
+* A completed automated assessment does not mean an institution has received official approval.
+
+Where a capability is not integrated, do not simulate it as fully functional.
+
+If the application is demonstrating a workflow without performing the underlying verification, clearly identify the result as a demonstration.
+
+Use these principles throughout the dashboard, reports, document repository, application workspace, and reviewer interface.
+
+PART 9: DOCUMENT REPOSITORY AND STORAGE
+
+Preserve the existing document repository and all working upload, retrieval, preview, and download functionality.
+
+Inspect the current implementation before making changes.
+
+Ensure that the repository provides appropriate visibility into:
+
+* Document name.
+* Document category.
+* Associated application.
+* Submission date.
+* Upload or processing status.
+* Validation status.
+* Review status.
+* Relevant approval or rectification status.
+
+Reuse the existing repository components and metadata structures wherever possible.
+
+Preserve existing private storage behavior, including the current Supabase storage bucket and signed URL handling where implemented.
+
+Do not make private documents publicly accessible to solve a visibility problem.
+
+Do not remove authorization filters simply to make uploaded files appear across accounts.
+
+If a document is expected to be visible to multiple authorized users, investigate the existing ownership, institutional relationships, membership, database queries, and access policies.
+
+Implement visibility according to the application’s actual access model.
+
+Do not confuse browser-local demonstration data with persistent database records.
+
+Do not claim that data is shared across devices unless the data is actually persisted and retrieved through the appropriate backend.
+
+PART 10: SECURITY AND SUPABASE PRESERVATION
+
+My existing project already has authentication and Supabase-related functionality. Preserve it.
+
+Do not replace the existing authentication system.
+
+Do not change login credentials, seed credentials, environment variable names, authentication flows, or role assignments without a demonstrated technical need.
+
+Do not remove existing role-based access controls.
+
+Do not weaken Supabase Row Level Security policies.
+
+Do not disable RLS or make private document storage public.
+
+Do not grant broader database privileges simply to make a new feature work.
+
+Do not expose secret API keys, service-role credentials, access tokens, passwords, or other sensitive values in frontend code.
+
+Do not move privileged server-side operations into the browser.
+
+Do not bypass existing server-side authorization.
+
+Do not trust the frontend alone to authorize sensitive operations.
+
+Before modifying any Supabase schema, database policy, storage policy, or backend endpoint, inspect the existing implementation and determine whether a change is actually necessary.
+
+Prefer the smallest safe change.
+
+If a schema or security change is required, explain the reason, affected objects, migration requirements, and compatibility implications before applying it.
+
+Preserve existing users, records, documents, and application data.
+
+Do not drop tables, delete existing records, or reset the database.
+
+Do not replace real data with sample data.
+
+Do not expose private information in error messages, logs, or public pages.
+
+Do not change security behavior just to simplify development.
+
+PART 11: PRESERVE EXISTING FUNCTIONALITY
+
+All existing working functionality must remain available after implementation.
+
+This includes, where present in the existing codebase:
+
+* Authentication and session persistence.
+* Role-based dashboards.
+* Institutional hierarchy and membership relationships.
+* Institution manager, institutional representative, faculty, and student workflows.
+* Existing profile and directory features.
+* Application and request workflows.
+* Notifications.
+* Document uploads.
+* Document retrieval and previews.
+* OCR-related functionality.
+* Document repository.
+* Supabase database integration.
+* Private storage.
+* Audit logging.
+* Existing charts and metrics.
+* Search, filtering, and sorting.
+* Existing routing.
+* Existing dark and light themes.
+* Theme persistence.
+* Responsive layouts.
+* Existing animations and transitions.
+* Existing error handling.
+* Existing loading states.
+
+Do not remove or simplify a feature because it is not directly related to the new Privacy Policy or Contact Us pages.
+
+Do not create replacement versions of working components unless a specific technical issue requires it.
+
+Do not break existing users’ workflows.
+
+PART 12: TECHNICAL IMPLEMENTATION RULES
+
+Follow the current project’s architecture and coding conventions.
+
+The existing project uses a React and TypeScript-based frontend with Vite and existing integrations. Verify the current implementation before making assumptions.
+
+Use the existing framework, router, styling system, libraries, and component patterns.
+
+Do not introduce another frontend framework.
+
+Do not replace the current project with a new starter template.
+
+Do not migrate the application to a different architecture.
+
+Do not introduce unnecessary dependencies.
+
+Do not duplicate utilities or services that already exist.
+
+Do not hard-code information that should come from the existing application state or database.
+
+Do not add fake backend functionality.
+
+Do not leave important buttons that appear functional but do nothing.
+
+Do not use placeholder links that lead nowhere.
+
+Do not leave broken routes or inaccessible forms.
+
+Do not suppress errors merely to make the interface appear successful.
+
+Use appropriate loading, empty, error, and success states.
+
+Preserve existing types and data contracts unless a necessary change has been identified.
+
+If a type or database structure must change, update all relevant consumers and tests.
+
+Keep changes focused, maintainable, and compatible with the existing application.
+
+PART 13: ACCESSIBILITY AND RESPONSIVE BEHAVIOR
+
+All new pages and components must work within the existing responsive design.
+
+Ensure that:
+
+* Content remains readable on smaller screens.
+* Forms are usable on mobile devices.
+* Buttons and links are keyboard accessible.
+* Inputs have appropriate labels.
+* Focus indicators remain visible.
+* Dialogs and interactive elements can be operated using a keyboard.
+* Text and controls maintain appropriate contrast within the existing themes.
+* Error messages are understandable.
+* Status indicators do not rely on color alone.
+* Reduced-motion preferences are respected where applicable without unnecessarily changing the existing animation system.
+* Existing animations remain intact for users who do not request reduced motion.
+
+Do not use accessibility improvements as a justification for redesigning the application.
+
+Make targeted changes to the relevant components.
+
+PART 14: TESTING AND REGRESSION PREVENTION
+
+After implementation, verify the changes against the existing project.
+
+14.1 Build and technical checks
+
+Run the available project checks, where configured:
+
+* TypeScript checks.
+* Linting.
+* Unit tests.
+* Integration tests.
+* Production build.
+* Existing route tests.
+* Relevant authentication and authorization tests.
+
+Resolve errors introduced by your changes.
+
+Do not claim that a test passed unless it was actually executed and passed.
+
+If a test cannot be run, state that limitation clearly.
+
+14.2 Verify the new pages
+
+Confirm that:
+
+* /privacy-policy loads correctly.
+* /contact loads correctly.
+* Both pages can be refreshed directly.
+* Navigation links work.
+* Links between the two pages work.
+* The pages remain responsive.
+* Both pages work in dark mode.
+* Both pages work in light mode.
+* Existing theme persistence continues to work.
+* Contact form validation works, if implemented.
+* Contact form submission reports success only when submission is confirmed.
+* No invented contact details or unsupported policy claims appear.
+
+14.3 Verify existing functionality
+
+Check that existing authentication, dashboards, document uploads, document retrieval, repository views, notifications, audit logging, and relevant role permissions have not regressed.
+
+Do not make destructive changes to production data to perform tests.
+
+Use appropriate test data and the existing test setup.
+
+14.4 Verify design preservation
+
+Compare the existing interface before and after the changes.
+
+Check the existing:
+
+* Dashboard.
+* Sidebar and navigation.
+* Header.
+* Cards and panels.
+* Buttons.
+* Modal dialogs.
+* Theme switcher.
+* Background effects.
+* Animations.
+* Hover effects.
+* Page transitions.
+* Typography.
+* Responsive layouts.
+
+Confirm that the original theme, animations, visual hierarchy, and component styling have been preserved.
+
+The addition of the new pages must not cause unrelated changes to the existing interface.
+
+If a new feature introduces a global style regression, fix the regression rather than redesigning the existing page.
+
+PART 15: IMPLEMENTATION ORDER
+
+Follow this order to minimize risk.
+
+Phase 1: Inspect
+
+Understand the current architecture, components, styles, routing, integrations, and existing functionality.
+
+Identify which requested features already exist.
+
+Phase 2: Establish preservation boundaries
+
+Identify the existing theme variables, animation definitions, shared components, layout components, and global styles.
+
+Avoid unnecessary changes to these files.
+
+Phase 3: Implement the Privacy Policy
+
+Create the new page using the existing design system and information supported by the project.
+
+Phase 4: Implement Contact Us
+
+Create the new page and implement an actual submission mechanism only where the required backend functionality is available and properly configured.
+
+Phase 5: Integrate navigation
+
+Add the required links without disrupting existing navigation.
+
+Phase 6: Improve validation workflows
+
+Extend existing application validation, OCR, evidence linking, compliance review, authenticity assessment, rectification, and reviewer workflows where necessary.
+
+Do not recreate features that already work.
+
+Phase 7: Verify security
+
+Check that new functionality respects existing authentication, role permissions, Supabase policies, storage access, and audit logging.
+
+Phase 8: Run tests
+
+Execute the available build, type, test, and regression checks.
+
+Phase 9: Inspect the final interface
+
+Confirm that the original design, animations, and theme remain intact.
+
+Phase 10: Report the result
+
+Provide a concise but specific implementation report.
+
+PART 16: FINAL ACCEPTANCE CRITERIA
+
+The task is complete only when the following conditions have been addressed.
+
+Design preservation
+
+* The existing VERIDEX theme remains intact.
+* Dark mode remains the default.
+* The existing light theme remains available.
+* Existing glassmorphism and background textures remain intact.
+* Existing animations, transitions, and hover effects remain intact.
+* Existing typography, colors, spacing, and layout remain intact.
+* Existing navigation and dashboard design remain intact.
+* No unnecessary global CSS changes have been introduced.
+* New pages match the existing VERIDEX design system.
+
+Privacy Policy
+
+* A complete Privacy Policy page exists at /privacy-policy.
+* It describes data handling accurately.
+* It explains OCR and AI-assisted processing limitations.
+* It addresses storage, access, retention, security, and user concerns without inventing guarantees.
+* It links to Contact Us.
+* It works in dark mode and light mode.
+
+Contact Us
+
+* A Contact Us page exists at /contact.
+* It provides useful enquiry categories.
+* The form, if implemented, validates inputs.
+* Submission behavior accurately reflects whether a message was received.
+* No fake contact details or support promises are displayed.
+* It links to the Privacy Policy.
+* It works in dark mode and light mode.
+
+Validation and compliance
+
+* The existing validation workflow is improved without duplicating working functionality.
+* Document extraction results are distinguished from verified information.
+* Cross-document inconsistencies can be traced to their evidence where supported.
+* Authenticity checks report only results that have actually been established.
+* Compliance checks identify their applicable requirements where available.
+* Missing capabilities are identified honestly.
+* Human review and correction workflows respect existing permissions.
+* Automated findings are not misrepresented as official decisions.
+
+Security and existing functionality
+
+* Existing authentication remains intact.
+* Existing role permissions remain intact.
+* Existing Supabase integration remains intact.
+* Existing RLS and private storage protections are not weakened.
+* Existing document uploads and retrieval continue to work.
+* Existing audit functionality is preserved.
+* Existing routes and workflows continue to function.
+* No existing data is deleted or reset.
+* No fake verification results are introduced.
+
+Testing
+
+* Available tests and build checks are executed.
+* Regressions introduced by the changes are fixed.
+* Any tests that could not be executed are identified honestly.
+* The final implementation report distinguishes completed work from incomplete or unavailable integrations.
+
+PART 17: REQUIRED FINAL IMPLEMENTATION REPORT
+
+When the work is finished, provide a clear report covering:
+
+1. Files created.
+2. Files modified.
+3. Privacy Policy implementation.
+4. Contact Us implementation.
+5. Validation and compliance improvements.
+6. Any backend or Supabase changes, if applicable.
+7. Security considerations.
+8. Tests actually executed and their results.
+9. Any features that remain dependent on external integrations.
+10. Any configuration or contact information that I must provide.
+11. Confirmation of whether the existing theme and animations were preserved.
+12. Any limitations that remain unresolved.
+
+Do not simply state that everything is complete. Identify what was implemented and how it was verified.
+
+Do not claim that an external verification integration works unless it was actually configured and tested.
+
+Do not claim that the design is unchanged without inspecting the relevant components and styles.
+
+FINAL INSTRUCTIONS
+
+Before making any changes, read this entire prompt and inspect the existing codebase.
+
+Then implement the requested improvements directly in the existing project.
+
+Do not stop after describing what you intend to do.
+
+Do not replace the application with a newly generated version.
+
+Do not redesign the application.
+
+Do not remove existing functionality.
+
+Do not weaken authentication or security.
+
+Do not fabricate regulatory checks, OCR results, authenticity results, support contacts, legal guarantees, or successful submissions.
+
+Reuse existing components and services wherever possible. Make the smallest changes necessary to achieve the requested result.
+
+If a requirement cannot be implemented safely because a service, official rule source, contact detail, or backend capability is unavailable, preserve the existing application, implement the parts that can be completed reliably, and report the limitation.
+
+MY EXISTING VERIDEX DESIGN IS NOT UP FOR REDESIGN.
+
+PRESERVE MY THEME. PRESERVE MY ANIMATIONS. PRESERVE MY GLASSMORPHISM. PRESERVE MY COLORS, TEXTURES, TYPOGRAPHY, LAYOUT, AND EXISTING FUNCTIONALITY.
+
+IMPROVE THE APPLICATION’S CAPABILITIES WITHOUT CHANGING THE VISUAL IDENTITY I HAVE ALREADY CREATED.
+
+The final result must feel like the same VERIDEX application, with its existing appearance and behavior preserved, but with more complete validation workflows, a professional Privacy Policy page, a functional and honest Contact Us page, and stronger alignment with the SIH26261 problem statement.

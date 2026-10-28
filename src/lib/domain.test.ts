@@ -1228,4 +1228,118 @@ test('Organisational Assignment Conflict Resolution and Remove from Assignment v
   assert.equal(sunitaAfterAssocRemoval.username, 'sunita.kulkarni');
 });
 
+test('SIH26261: evaluateCrossDocumentConsistencyMatrix, evaluateDocumentAuthenticityChecks, evaluateApplicationComplianceMatrix, and resolveDocumentFindingWithJustification work accurately and honestly', async () => {
+  const { SEED_APPLICATIONS, SEED_DOCUMENTS, SEED_COMPLIANCE_RULES } = await import('../data/seedData');
+  const {
+    evaluateCrossDocumentConsistencyMatrix,
+    evaluateDocumentAuthenticityChecks,
+    evaluateApplicationComplianceMatrix,
+    resolveDocumentFindingWithJustification,
+    computeSihValidationSummary,
+  } = await import('./domain');
+
+  const app = SEED_APPLICATIONS[0];
+  const linkedDocs = SEED_DOCUMENTS.filter(
+    (d) => app.documentIds.includes(d.id) || d.relatedApplicationId === app.id
+  );
+
+  // 1. Cross-Document Consistency Matrix
+  const matrix = evaluateCrossDocumentConsistencyMatrix(app, linkedDocs);
+  assert.ok(matrix.length >= 4);
+  const instRow = matrix.find((r) => r.fieldName.includes('Institution Name'));
+  assert.ok(instRow);
+  assert.equal(instRow.status, 'Passed');
+
+  // 2. Document Authenticity Checks with honest status labels
+  const sampleDoc = linkedDocs[0] || SEED_DOCUMENTS[0];
+  const authChecks = evaluateDocumentAuthenticityChecks(sampleDoc, SEED_DOCUMENTS, '2026-10-28');
+  assert.equal(authChecks.length, 8);
+  const dscCheck = authChecks.find((c) => c.category === 'Digital Signature Validation');
+  const qrCheck = authChecks.find((c) => c.category === 'QR Code Detection & Validation');
+  assert.equal(dscCheck?.status, 'Unable to verify');
+  assert.equal(dscCheck?.requiresExternalAuthority, true);
+  assert.equal(qrCheck?.status, 'Unable to verify');
+  assert.equal(qrCheck?.requiresExternalAuthority, true);
+
+  // 3. Regulatory Compliance Matrix
+  const complianceRows = evaluateApplicationComplianceMatrix(
+    app,
+    linkedDocs,
+    SEED_COMPLIANCE_RULES,
+    '2026-10-28'
+  );
+  assert.ok(complianceRows.length > 0);
+  for (const row of complianceRows) {
+    assert.ok(row.ruleCode);
+    assert.ok(row.ruleVersion);
+    assert.ok(['Passed', 'Review required', 'Failed', 'Pending'].includes(row.status));
+  }
+
+  // 4. Reviewer Finding Resolution requires justification and updates finding status
+  const flaggedDoc = SEED_DOCUMENTS.find((d) => d.findings.some((f) => f.status === 'Flagged')) || SEED_DOCUMENTS[0];
+  const targetFinding = flaggedDoc.findings[0];
+  assert.throws(() =>
+    resolveDocumentFindingWithJustification(
+      flaggedDoc,
+      targetFinding.id,
+      { fullName: 'Karan Saini', role: 'admin' },
+      'Resolved',
+      '   '
+    )
+  );
+
+  const resolvedDoc = resolveDocumentFindingWithJustification(
+    flaggedDoc,
+    targetFinding.id,
+    { fullName: 'Karan Saini', role: 'admin' },
+    'Resolved',
+    'Verified original gazette notification and university scroll; middle initial expansion confirmed.',
+    '28 Oct 2026, 10:30 IST'
+  );
+  const updatedFinding = resolvedDoc.findings.find((f) => f.id === targetFinding.id)!;
+  assert.equal(updatedFinding.status, 'Passed');
+  assert.equal(updatedFinding.resolutionDecision, 'Resolved');
+  assert.ok(updatedFinding.resolvedByReviewer?.includes('Karan Saini'));
+
+  // 5. Validation Summary
+  const summary = computeSihValidationSummary(SEED_APPLICATIONS, SEED_DOCUMENTS, '2026-10-28');
+  assert.equal(typeof summary.awaitingReview, 'number');
+  assert.equal(typeof summary.missingDocumentsCount, 'number');
+  assert.equal(typeof summary.validationFlagsCount, 'number');
+  assert.equal(typeof summary.findingsRequiringHumanReview, 'number');
+});
+
+test('validateContactEnquiryInput validates required fields, email format, category, and optional reference', async () => {
+  const { validateContactEnquiryInput } = await import('./domain');
+
+  const invalid = validateContactEnquiryInput({
+    name: 'A',
+    email: 'invalid-email',
+    category: 'Unknown category',
+    subject: 'Hi',
+    message: 'Too short',
+    applicationReference: 'BAD REF $$$',
+  });
+  assert.equal(invalid.valid, false);
+  assert.ok(invalid.errors.name);
+  assert.ok(invalid.errors.email);
+  assert.ok(invalid.errors.category);
+  assert.ok(invalid.errors.subject);
+  assert.ok(invalid.errors.message);
+  assert.ok(invalid.errors.applicationReference);
+
+  const valid = validateContactEnquiryInput({
+    name: 'Dr. Aashay Khadkikar',
+    email: 'aashay.khadkikar@vesit.example.edu.in',
+    category: 'Document verification concern',
+    subject: 'Clarification on Fire NOC renewal window',
+    message: 'We have uploaded the renewed municipal fire safety certificate for APP-2026-0104 and request re-verification.',
+    applicationReference: 'APP-2026-0104',
+  });
+  assert.equal(valid.valid, true);
+  assert.equal(Object.keys(valid.errors).length, 0);
+  assert.equal(valid.sanitized.applicationReference, 'APP-2026-0104');
+});
+
+
 

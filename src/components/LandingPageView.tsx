@@ -37,6 +37,8 @@ interface LandingPageViewProps {
   onReturnToWorkspace?: () => void;
   darkMode?: boolean;
   onToggleDarkMode?: () => void;
+  onOpenPrivacyPolicy?: () => void;
+  onOpenContactUs?: () => void;
 }
 
 const SMOOTH_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -114,6 +116,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onReturnToWorkspace,
   darkMode = false,
   onToggleDarkMode,
+  onOpenPrivacyPolicy,
+  onOpenContactUs,
 }) => {
   const prefersReducedMotion = useReducedMotion();
   const [activeJourneyStep, setActiveJourneyStep] = useState<number>(0);
@@ -1206,6 +1210,26 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             >
               Responsible Verification
             </button>
+            {onOpenPrivacyPolicy && (
+              <button
+                type="button"
+                onClick={onOpenPrivacyPolicy}
+                data-testid="landing-footer-privacy-link"
+                className="hover:text-[#9E2919] dark:hover:text-[#C7A56A] transition-colors cursor-pointer"
+              >
+                Privacy Policy
+              </button>
+            )}
+            {onOpenContactUs && (
+              <button
+                type="button"
+                onClick={onOpenContactUs}
+                data-testid="landing-footer-contact-link"
+                className="hover:text-[#9E2919] dark:hover:text-[#C7A56A] transition-colors cursor-pointer"
+              >
+                Contact Us
+              </button>
+            )}
             <button
               type="button"
               onClick={onOpenLogin}

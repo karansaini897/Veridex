@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import {
   ApplicationCategory,
+  ApplicationRecord,
   ComplianceRule,
   DocumentCategory,
   DocumentRecord,
@@ -12,8 +13,10 @@ import {
 } from '../types/portal';
 import {
   calculateExpiryDetails,
+  canUserAccessApplication,
   canUserAccessDocument,
   canUserPerformAdminAction,
+  evaluateApplicationComplianceMatrix,
   getLocalTodayDate,
 } from '../lib/domain';
 import {
@@ -32,6 +35,8 @@ interface VerificationComplianceViewProps {
   currentUser: UserAccount;
   documents: DocumentRecord[];
   complianceRules: ComplianceRule[];
+  applications?: ApplicationRecord[];
+  onOpenApplication?: (appId: string) => void;
   onRunAllVerificationChecks?: () => void;
   onOpenDocument: (docId: string) => void;
   onToggleRuleActive: (ruleId: string) => void;
@@ -47,6 +52,8 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
   currentUser,
   documents,
   complianceRules,
+  applications = [],
+  onOpenApplication,
   onRunAllVerificationChecks,
   onOpenDocument,
   onToggleRuleActive,
@@ -56,6 +63,7 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
   const [activeSubTab, setActiveSubTab] = useState<'pillars' | 'rules' | 'infrastructure'>('pillars');
   const [pillarFilter, setPillarFilter] = useState<'all' | 'flagged' | 'pending_human'>('all');
   const [screeningBanner, setScreeningBanner] = useState<string | null>(null);
+  const [selectedEvalAppId, setSelectedEvalAppId] = useState<string>('');
 
   // New Compliance Rule State
   const [newRuleOpen, setNewRuleOpen] = useState(false);
@@ -85,6 +93,24 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
     () => documents.filter((d) => canUserAccessDocument(currentUser, d)),
     [documents, currentUser]
   );
+
+  const authorizedApps = useMemo(
+    () => applications.filter((a) => canUserAccessApplication(currentUser, a)),
+    [applications, currentUser]
+  );
+
+  const activeEvalApp = useMemo(() => {
+    if (authorizedApps.length === 0) return null;
+    return authorizedApps.find((a) => a.id === selectedEvalAppId) || authorizedApps[0];
+  }, [authorizedApps, selectedEvalAppId]);
+
+  const activeEvalMatrix = useMemo(() => {
+    if (!activeEvalApp) return [];
+    const linked = authorizedDocs.filter(
+      (d) => activeEvalApp.documentIds.includes(d.id) || d.relatedApplicationId === activeEvalApp.id
+    );
+    return evaluateApplicationComplianceMatrix(activeEvalApp, linked, complianceRules, todayStr);
+  }, [activeEvalApp, authorizedDocs, complianceRules, todayStr]);
 
   const filteredPillarDocs = useMemo(() => {
     return authorizedDocs.filter((doc) => {
@@ -522,6 +548,109 @@ export const VerificationComplianceView: React.FC<VerificationComplianceViewProp
               </motion.div>
             ))}
           </motion.div>
+
+          {/* Live Application Regulatory Compliance Evaluation Matrix */}
+          {activeEvalApp && (
+            <div className="liquid-glass rounded-2xl p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-display font-bold text-slate-900 dark:text-white">
+                    Live Application Regulatory Compliance Evaluation Matrix
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Evaluates linked documents for the selected application against active AICTE APH rules. Basis: rule category mapping, minimum remaining validity days, and unresolved verification findings.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <select
+                    aria-label="Select application for compliance evaluation"
+                    value={activeEvalApp.id}
+                    onChange={(e) => setSelectedEvalAppId(e.target.value)}
+                    className="px-3 py-1.5 text-xs font-mono-tabular rounded-xl liquid-glass-subtle text-stone-900 dark:text-white"
+                  >
+                    {authorizedApps.map((app) => (
+                      <option key={app.id} value={app.id}>
+                        {app.id} · {app.institutionName} ({app.category})
+                      </option>
+                    ))}
+                  </select>
+                  {onOpenApplication && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenApplication(activeEvalApp.id)}
+                      className="btn-secondary !py-1.5 !px-3 text-xs cursor-pointer"
+                    >
+                      Open Dossier
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-[#C7A56A]/35 liquid-glass-subtle text-[11px] font-semibold text-stone-700 dark:text-stone-300">
+                      <th className="py-2.5 px-3">Requirement &amp; Source</th>
+                      <th className="py-2.5 px-3">Applicable Category</th>
+                      <th className="py-2.5 px-3">Required vs. Observed Evidence</th>
+                      <th className="py-2.5 px-3">Result</th>
+                      <th className="py-2.5 px-3">Reason &amp; Reviewer Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-200/70 dark:divide-stone-800/70">
+                    {activeEvalMatrix.map((row) => (
+                      <tr key={row.ruleId} className="align-top">
+                        <td className="py-3 px-3">
+                          <div className="font-mono-tabular font-bold text-[#9E2919] dark:text-amber-400">
+                            {row.ruleCode}
+                          </div>
+                          <div className="font-semibold text-stone-900 dark:text-white">
+                            {row.ruleName}
+                          </div>
+                          <div className="text-[10px] font-mono-tabular text-stone-500">
+                            {row.ruleVersion} · Effective: {row.effectiveDate}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-[11px] text-stone-600 dark:text-stone-300">
+                          {row.applicableCategory}
+                        </td>
+                        <td className="py-3 px-3 space-y-1 max-w-[240px]">
+                          <div className="text-[11px] text-stone-600 dark:text-stone-300">
+                            <strong>Required:</strong> {row.requiredEvidence}
+                          </div>
+                          <div className="text-[11px] font-mono-tabular text-stone-800 dark:text-stone-200">
+                            <strong>Observed:</strong>{' '}
+                            {row.supportingDocumentId ? (
+                              <button
+                                type="button"
+                                onClick={() => onOpenDocument(row.supportingDocumentId!)}
+                                className="text-[#C2410C] dark:text-amber-400 underline cursor-pointer"
+                              >
+                                {row.observedEvidence}
+                              </button>
+                            ) : (
+                              row.observedEvidence
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <StatusBadge status={row.status} customLabel={row.status} size="sm" />
+                        </td>
+                        <td className="py-3 px-3 max-w-[240px]">
+                          <div className="text-[11px] text-stone-700 dark:text-stone-300 leading-relaxed">
+                            {row.reason}
+                          </div>
+                          <div className="text-[10px] font-mono-tabular text-stone-500 mt-1">
+                            Reviewer Sign-Off: <strong>{row.reviewerStatus}</strong>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
 

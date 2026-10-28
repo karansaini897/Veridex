@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import {
   ApplicationRecord,
+  ComplianceRule,
   DocumentRecord,
   UserAccount,
   VaultDocumentRecord,
@@ -23,6 +24,9 @@ import {
   calculateExpiryDetails,
   canUserAccessDocument,
   canUserPerformAdminAction,
+  evaluateApplicationComplianceMatrix,
+  evaluateCrossDocumentConsistencyMatrix,
+  evaluateDocumentAuthenticityChecks,
   extractDocumentPrefillSuggestion,
   getLocalTodayDate,
 } from '../lib/domain';
@@ -67,6 +71,13 @@ interface ApplicationDetailModalProps {
     note: string;
     decisionOutcome?: ApplicationRecord['decisionOutcome'];
   }) => void;
+  complianceRules?: ComplianceRule[];
+  onResolveFinding?: (params: {
+    docId: string;
+    findingId: string;
+    decision: 'Resolved' | 'Overridden' | 'Confirmed Deficiency';
+    justification: string;
+  }) => void;
 }
 
 export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
@@ -79,6 +90,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   onSubmitDraftApplication,
   onResubmitApplication,
   onAdminAction,
+  complianceRules = [],
+  onResolveFinding,
 }) => {
   const todayStr = getLocalTodayDate();
   const [uploadingChecklistId, setUploadingChecklistId] = useState<string | null>(null);
@@ -124,6 +137,15 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const [decisionConfirmOpen, setDecisionConfirmOpen] = useState(false);
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
 
+  // Reviewer finding resolution state
+  const [resolvingFindingKey, setResolvingFindingKey] = useState<string | null>(null);
+  const [findingResolutionDecision, setFindingResolutionDecision] = useState<
+    'Resolved' | 'Overridden' | 'Confirmed Deficiency'
+  >('Resolved');
+  const [findingJustification, setFindingJustification] = useState('');
+  const [findingResolutionError, setFindingResolutionError] = useState<string | null>(null);
+  const [selectedAuthDocId, setSelectedAuthDocId] = useState<string>('');
+
   const isAdmin = canUserPerformAdminAction(currentUser);
   const isRep =
     currentUser.role === 'institutional_rep' &&
@@ -134,6 +156,29 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       (application.documentIds.includes(d.id) ||
       d.relatedApplicationId === application.id) &&
       canUserAccessDocument(currentUser, d, [application])
+  );
+
+  const consistencyMatrix = useMemo(
+    () => evaluateCrossDocumentConsistencyMatrix(application, linkedDocs),
+    [application, linkedDocs]
+  );
+
+  const complianceMatrix = useMemo(
+    () => evaluateApplicationComplianceMatrix(application, linkedDocs, complianceRules, todayStr),
+    [application, linkedDocs, complianceRules, todayStr]
+  );
+
+  const activeAuthDoc = useMemo(() => {
+    if (linkedDocs.length === 0) return null;
+    return linkedDocs.find((d) => d.id === selectedAuthDocId) || linkedDocs[0];
+  }, [linkedDocs, selectedAuthDocId]);
+
+  const activeAuthenticityChecks = useMemo(
+    () =>
+      activeAuthDoc
+        ? evaluateDocumentAuthenticityChecks(activeAuthDoc, documents, todayStr)
+        : [],
+    [activeAuthDoc, documents, todayStr]
   );
 
   const missingRequiredItems = useMemo(
@@ -822,18 +867,31 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             </div>
           </section>
 
-          {/* Linked Documents & Evidence-Linked Findings */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-display font-bold text-slate-900 dark:text-white">
-              2. Linked Documents &amp; Evidence-Linked Findings ({linkedDocs.length})
-            </h3>
+          {/* Linked Documents, Extracted vs. Entered Provenance & Evidence-Linked Findings */}
+          <section className="space-y-3" data-testid="dossier-linked-documents-section">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h3 className="text-sm font-display font-bold text-slate-900 dark:text-white">
+                2. Linked Documents, Extracted vs. Entered Metadata &amp; Evidence-Linked Findings ({linkedDocs.length})
+              </h3>
+              <span className="text-[11px] font-mono-tabular text-stone-500 dark:text-stone-400">
+                Provenance: OCR Extracted vs. Manually Entered vs. Reviewer Verified
+              </span>
+            </div>
             <div className="space-y-3">
               {linkedDocs.map((doc) => {
                 const exp = calculateExpiryDetails(doc.expiryDate, todayStr);
+                const hasOcr = Boolean(doc.ocrExtractedText && doc.ocrExtractedText.trim());
+                const provenanceLabel =
+                  doc.humanReviewStatus === 'Reviewed' && doc.issuerVerificationStatus === 'Verified'
+                    ? 'Reviewer Verified'
+                    : hasOcr
+                      ? 'OCR Extracted + User Confirmed'
+                      : 'Manually Entered Metadata';
+
                 return (
                   <div
                     key={doc.id}
-                    className="p-4 rounded-2xl liquid-glass space-y-2.5"
+                    className="p-4 rounded-2xl liquid-glass space-y-3"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
@@ -846,41 +904,179 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                           <StatusBadge status={exp.status} customLabel={exp.label} size="sm" />
                           <StatusBadge status={doc.humanReviewStatus} size="sm" />
                         </div>
-                        <div className="text-[11px] text-stone-500 font-mono-tabular mt-1">
-                          Cert #{doc.certificateNumber} · {doc.category}
+                        <div className="text-[11px] text-stone-500 dark:text-stone-400 font-mono-tabular mt-1 flex flex-wrap items-center gap-2">
+                          <span>Cert #{doc.certificateNumber}</span>
+                          <span>·</span>
+                          <span>{doc.category}</span>
+                          <span>·</span>
+                          <span className="px-2 py-0.5 rounded bg-[#C2410C]/15 text-[#C2410C] dark:text-amber-300 font-semibold">
+                            Source: {provenanceLabel}
+                          </span>
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => onOpenDocument(doc.id)}
-                        className="btn-secondary !py-1.5 !px-3 inline-flex items-center gap-1 shrink-0"
+                        className="btn-secondary !py-1.5 !px-3 inline-flex items-center gap-1 shrink-0 cursor-pointer"
                       >
                         <span>Inspect Document &amp; 6 Pillars</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
-                    {doc.findings.length > 0 && (
-                      <div className="space-y-1.5 pt-2 border-t border-stone-200/70 dark:border-stone-800">
-                        {doc.findings.map((f) => (
-                          <div
-                            key={f.id}
-                            className="text-xs flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 liquid-glass-subtle p-2.5 rounded-xl"
-                          >
-                            <div>
-                              <span className="font-semibold text-stone-900 dark:text-white">
-                                [{f.pillar}] {f.affectedFieldOrPage}:
-                              </span>{' '}
-                              <span className="text-stone-600 dark:text-stone-400">
-                                {f.explanation}
-                              </span>
-                              <div className="text-[11px] text-stone-500 font-mono-tabular mt-0.5">
-                                Evidence: {f.evidenceComparison} · Next Action: {f.suggestedNextAction}
+                    {/* Extracted Summary vs Entered Metadata Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                      <div className="p-2.5 rounded-xl liquid-glass-subtle space-y-1">
+                        <div className="text-[10px] font-mono-tabular uppercase font-bold text-[#9E2919] dark:text-amber-400">
+                          Entered / Registered Record Fields
+                        </div>
+                        <div className="text-[11px] text-stone-700 dark:text-stone-300 space-y-0.5 font-mono-tabular">
+                          <div>Holder / Signatory: <strong>{doc.personName}</strong></div>
+                          <div>Authority: <strong>{doc.issuingAuthority}</strong></div>
+                          <div>Issue: {doc.issueDate} · Expiry: {doc.expiryDate || 'Permanent'}</div>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl liquid-glass-subtle space-y-1">
+                        <div className="text-[10px] font-mono-tabular uppercase font-bold text-[#046A38] dark:text-emerald-400">
+                          {hasOcr ? 'OCR Extracted Summary Fields' : 'Structured Document Summary Fields'}
+                        </div>
+                        <div className="text-[11px] text-stone-700 dark:text-stone-300 space-y-0.5 font-mono-tabular">
+                          {Object.entries(doc.extractedSummary || {}).length > 0 ? (
+                            Object.entries(doc.extractedSummary).map(([k, v]) => (
+                              <div key={k}>
+                                {k}: <strong>{v}</strong>
                               </div>
+                            ))
+                          ) : (
+                            <div className="text-stone-500">No separate extracted summary fields recorded.</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {doc.findings.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-stone-200/70 dark:border-stone-800">
+                        {doc.findings.map((f) => {
+                          const findingKey = `${doc.id}:${f.id}`;
+                          const isResolvingThis = resolvingFindingKey === findingKey;
+                          return (
+                            <div
+                              key={f.id}
+                              className="text-xs liquid-glass-subtle p-3 rounded-xl space-y-2"
+                            >
+                              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
+                                <div>
+                                  <span className="font-semibold text-stone-900 dark:text-white">
+                                    [{f.pillar}] {f.affectedFieldOrPage}:
+                                  </span>{' '}
+                                  <span className="text-stone-600 dark:text-stone-300">
+                                    {f.explanation}
+                                  </span>
+                                  <div className="text-[11px] text-stone-500 dark:text-stone-400 font-mono-tabular mt-0.5">
+                                    Evidence: {f.evidenceComparison} · Next Action: {f.suggestedNextAction}
+                                  </div>
+                                  {f.resolutionDecision && (
+                                    <div className="mt-1.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-stone-800 dark:text-emerald-200 font-mono-tabular">
+                                      <strong>Reviewer Decision ({f.resolutionDecision}):</strong> {f.resolutionJustification} — <em>{f.resolvedByReviewer} ({f.resolvedAt})</em>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <StatusBadge status={f.status} size="sm" />
+                                  {isAdmin && onResolveFinding && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (isResolvingThis) {
+                                          setResolvingFindingKey(null);
+                                        } else {
+                                          setResolvingFindingKey(findingKey);
+                                          setFindingResolutionDecision('Resolved');
+                                          setFindingJustification(f.resolutionJustification || '');
+                                          setFindingResolutionError(null);
+                                        }
+                                      }}
+                                      className="px-2 py-1 rounded-lg liquid-glass text-[11px] font-semibold text-[#C2410C] dark:text-amber-400 hover:underline cursor-pointer"
+                                    >
+                                      {f.resolutionDecision ? 'Update Resolution' : 'Resolve / Override'}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {isResolvingThis && isAdmin && onResolveFinding && (
+                                <div className="p-3 rounded-xl bg-white/90 dark:bg-stone-900/90 border border-[#C7A56A]/50 space-y-2.5">
+                                  <div className="text-[11px] font-bold text-stone-900 dark:text-white">
+                                    Record Human Review Finding Resolution (Mandatory Justification)
+                                  </div>
+                                  {findingResolutionError && (
+                                    <div className="text-[11px] text-red-600 dark:text-red-400 font-medium">
+                                      {findingResolutionError}
+                                    </div>
+                                  )}
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <select
+                                      aria-label="Finding resolution decision"
+                                      value={findingResolutionDecision}
+                                      onChange={(e) =>
+                                        setFindingResolutionDecision(
+                                          e.target.value as 'Resolved' | 'Overridden' | 'Confirmed Deficiency'
+                                        )
+                                      }
+                                      className="px-2.5 py-1.5 text-xs rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950"
+                                    >
+                                      <option value="Resolved">Resolved (Verified Acceptable)</option>
+                                      <option value="Overridden">Overridden with Officer Note</option>
+                                      <option value="Confirmed Deficiency">Confirmed Deficiency Flag</option>
+                                    </select>
+                                    <input
+                                      type="text"
+                                      value={findingJustification}
+                                      onChange={(e) => setFindingJustification(e.target.value)}
+                                      placeholder="Enter mandatory evidence justification (e.g. verified against original scroll)..."
+                                      className="sm:col-span-2 px-2.5 py-1.5 text-xs rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950"
+                                    />
+                                  </div>
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setResolvingFindingKey(null)}
+                                      className="px-2.5 py-1 rounded-lg border border-stone-300 text-[11px] cursor-pointer"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (!findingJustification.trim()) {
+                                          setFindingResolutionError(
+                                            'Please enter a written justification before recording this finding resolution.'
+                                          );
+                                          return;
+                                        }
+                                        onResolveFinding({
+                                          docId: doc.id,
+                                          findingId: f.id,
+                                          decision: findingResolutionDecision,
+                                          justification: findingJustification.trim(),
+                                        });
+                                        setResolvingFindingKey(null);
+                                        setFindingJustification('');
+                                        setFeedbackBanner(
+                                          `Recorded ${findingResolutionDecision} determination on finding ${f.id} (${doc.internalCode}).`
+                                        );
+                                      }}
+                                      className="px-3 py-1 rounded-lg bg-[#046A38] hover:bg-[#03542C] text-white text-[11px] font-semibold cursor-pointer"
+                                    >
+                                      Save Finding Determination
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <StatusBadge status={f.status} size="sm" />
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -888,6 +1084,183 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               })}
             </div>
           </section>
+
+          {/* 2B. Cross-Document Consistency Comparison Matrix (SIH26261) */}
+          <section className="space-y-3" data-testid="dossier-consistency-matrix-section">
+            <div>
+              <h3 className="text-sm font-display font-bold text-slate-900 dark:text-white">
+                3. Cross-Document Consistency Comparison Matrix
+              </h3>
+              <p className="text-xs text-stone-600 dark:text-stone-400">
+                Compares shared institutional codes, holder identities, validity dates, and declared measurements across attached documents.
+              </p>
+            </div>
+            <div className="liquid-glass rounded-2xl overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-[#C7A56A]/35 liquid-glass-subtle text-[11px] font-semibold text-stone-700 dark:text-stone-300">
+                    <th className="py-2.5 px-3">Compared Field &amp; Rule</th>
+                    <th className="py-2.5 px-3">Values Across Linked Documents</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Observation &amp; Reviewer Guidance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-200/70 dark:divide-stone-800/70">
+                  {consistencyMatrix.map((row) => (
+                    <tr key={row.id} className="align-top">
+                      <td className="py-3 px-3 max-w-[200px]">
+                        <div className="font-semibold text-stone-900 dark:text-white">{row.fieldName}</div>
+                        <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 leading-relaxed">
+                          {row.comparisonRule}
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 space-y-1.5">
+                        {row.valuesByDocument.length === 0 ? (
+                          <span className="text-[11px] text-stone-400 italic">No applicable document values</span>
+                        ) : (
+                          row.valuesByDocument.map((val) => (
+                            <div
+                              key={`${row.id}-${val.documentId}`}
+                              className="p-1.5 rounded-lg liquid-glass-subtle text-[11px] font-mono-tabular flex flex-wrap items-center justify-between gap-2"
+                            >
+                              <span>
+                                <strong className="text-[#C2410C] dark:text-amber-400">{val.internalCode}:</strong> {val.value}
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded bg-stone-200/70 dark:bg-stone-800 text-[10px]">
+                                {val.valueSource}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </td>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <StatusBadge status={row.status} customLabel={row.status} size="sm" />
+                      </td>
+                      <td className="py-3 px-3 max-w-[240px]">
+                        <div className="text-stone-800 dark:text-stone-200 text-[11px] leading-relaxed">
+                          {row.discrepancyReason}
+                        </div>
+                        <div className="text-[10px] text-stone-500 dark:text-stone-400 mt-1">
+                          Guidance: {row.reviewGuidance}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* 2C. Document Authenticity & Fraud-Indicator Assessment (Honest Statuses) */}
+          {activeAuthDoc && (
+            <section className="space-y-3" data-testid="dossier-authenticity-section">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-display font-bold text-slate-900 dark:text-white">
+                    4. Document Authenticity &amp; Fraud-Indicator Assessment
+                  </h3>
+                  <p className="text-xs text-stone-600 dark:text-stone-400">
+                    Structured 8-point check. External cryptographic/registry checks honestly report <code className="font-mono-tabular">Unable to verify</code> or <code className="font-mono-tabular">Demonstration result</code> when no live authority API is connected.
+                  </p>
+                </div>
+                {linkedDocs.length > 1 && (
+                  <select
+                    aria-label="Select document to inspect authenticity checks"
+                    value={activeAuthDoc.id}
+                    onChange={(e) => setSelectedAuthDocId(e.target.value)}
+                    className="px-3 py-1.5 text-xs font-mono-tabular rounded-xl liquid-glass-subtle text-stone-900 dark:text-white"
+                  >
+                    {linkedDocs.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.internalCode} · {d.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {activeAuthenticityChecks.map((chk) => (
+                  <div key={chk.id} className="p-3.5 rounded-2xl liquid-glass space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs font-semibold text-stone-900 dark:text-white">
+                        {chk.checkName}
+                      </span>
+                      <StatusBadge status={chk.status} customLabel={chk.status} size="sm" />
+                    </div>
+                    <div className="text-[11px] font-mono-tabular text-[#C2410C] dark:text-amber-400">
+                      {chk.observedEvidence}
+                    </div>
+                    <p className="text-[11px] text-stone-600 dark:text-stone-300 leading-relaxed">
+                      {chk.explanation}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 2D. Applicable Regulatory Compliance Evaluation Matrix (AICTE APH) */}
+          {complianceMatrix.length > 0 && (
+            <section className="space-y-3" data-testid="dossier-compliance-matrix-section">
+              <div>
+                <h3 className="text-sm font-display font-bold text-slate-900 dark:text-white">
+                  5. Applicable Regulatory Compliance Checks ({complianceMatrix.length} Active Rules)
+                </h3>
+                <p className="text-xs text-stone-600 dark:text-stone-400">
+                  Evaluates linked application evidence against active AICTE Approval Process Handbook (APH) compliance rules. Basis: rule category mapping, minimum remaining validity days, and unresolved verification flags.
+                </p>
+              </div>
+              <div className="liquid-glass rounded-2xl overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-[#C7A56A]/35 liquid-glass-subtle text-[11px] font-semibold text-stone-700 dark:text-stone-300">
+                      <th className="py-2.5 px-3">Rule &amp; Version</th>
+                      <th className="py-2.5 px-3">Required vs. Observed Evidence</th>
+                      <th className="py-2.5 px-3">Result</th>
+                      <th className="py-2.5 px-3">Evaluation Reason &amp; Reviewer Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-200/70 dark:divide-stone-800/70">
+                    {complianceMatrix.map((row) => (
+                      <tr key={row.ruleId} className="align-top">
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <div className="font-mono-tabular font-bold text-[#9E2919] dark:text-amber-400">
+                            {row.ruleCode}
+                          </div>
+                          <div className="font-semibold text-stone-900 dark:text-white whitespace-normal max-w-[180px]">
+                            {row.ruleName}
+                          </div>
+                          <div className="text-[10px] font-mono-tabular text-stone-500">
+                            {row.ruleVersion} · Eff: {row.effectiveDate}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 space-y-1 max-w-[230px]">
+                          <div className="text-[11px] text-stone-600 dark:text-stone-300">
+                            <strong>Required:</strong> {row.requiredEvidence}
+                          </div>
+                          <div className="text-[11px] font-mono-tabular text-stone-800 dark:text-stone-200">
+                            <strong>Observed:</strong> {row.observedEvidence}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <StatusBadge status={row.status} customLabel={row.status} size="sm" />
+                        </td>
+                        <td className="py-3 px-3 max-w-[230px]">
+                          <div className="text-[11px] text-stone-700 dark:text-stone-300 leading-relaxed">
+                            {row.reason}
+                          </div>
+                          <div className="text-[10px] font-mono-tabular text-stone-500 mt-1">
+                            Reviewer Sign-Off: <strong>{row.reviewerStatus}</strong>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
 
           {/* Admin Review & Authorized Decision Controls */}
           {isAdmin && (

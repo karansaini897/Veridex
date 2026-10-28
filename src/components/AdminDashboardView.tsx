@@ -37,6 +37,7 @@ import {
   calculateExpiryDetails,
   computeAdminChartData,
   computeDashboardMetrics,
+  computeSihValidationSummary,
   getLocalTodayDate,
 } from '../lib/domain';
 import { AnimatedMetricValue, EmptyStateCard, StatusBadge } from './StatusPrimitives';
@@ -145,6 +146,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
   const chartData = useMemo(
     () => computeAdminChartData(applications, documents, todayStr),
+    [applications, documents, todayStr]
+  );
+
+  const sihSummary = useMemo(
+    () => computeSihValidationSummary(applications, documents, todayStr),
     [applications, documents, todayStr]
   );
 
@@ -389,6 +395,60 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             Awaiting institution resubmission
           </div>
         </motion.button>
+      </motion.section>
+
+      {/* SIH26261 Operational Validation & Rectification Summary Bar */}
+      <motion.section
+        aria-label="SIH26261 Validation Summary"
+        variants={DASHBOARD_ITEM_VARIANTS}
+        className="liquid-glass rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+      >
+        <div>
+          <span className="text-[11px] font-mono-tabular font-bold uppercase tracking-wider text-[#9E2919] dark:text-amber-400">
+            SIH26261 Validation, Consistency &amp; Compliance Queue
+          </span>
+          <p className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
+            Live counts computed directly from registered institutional dossiers, checklist items, and 6-pillar findings.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 shrink-0">
+          <div className="px-3 py-2 rounded-xl liquid-glass-subtle text-xs">
+            <div className="text-[10px] text-stone-500 dark:text-stone-400">Awaiting Review</div>
+            <div className="font-mono-tabular font-bold text-stone-900 dark:text-white mt-0.5">
+              {sihSummary.awaitingReview}
+            </div>
+          </div>
+          <div className="px-3 py-2 rounded-xl liquid-glass-subtle text-xs">
+            <div className="text-[10px] text-stone-500 dark:text-stone-400">Missing Checklist Docs</div>
+            <div className="font-mono-tabular font-bold text-[#C2410C] dark:text-amber-400 mt-0.5">
+              {sihSummary.missingDocumentsCount}
+            </div>
+          </div>
+          <div className="px-3 py-2 rounded-xl liquid-glass-subtle text-xs">
+            <div className="text-[10px] text-stone-500 dark:text-stone-400">Validation Flags</div>
+            <div className="font-mono-tabular font-bold text-red-700 dark:text-red-400 mt-0.5">
+              {sihSummary.validationFlagsCount}
+            </div>
+          </div>
+          <div className="px-3 py-2 rounded-xl liquid-glass-subtle text-xs">
+            <div className="text-[10px] text-stone-500 dark:text-stone-400">Unresolved Findings</div>
+            <div className="font-mono-tabular font-bold text-[#1D4ED8] dark:text-sky-400 mt-0.5">
+              {sihSummary.findingsRequiringHumanReview}
+            </div>
+          </div>
+          <div className="px-3 py-2 rounded-xl liquid-glass-subtle text-xs">
+            <div className="text-[10px] text-stone-500 dark:text-stone-400">Pending Rectification</div>
+            <div className="font-mono-tabular font-bold text-amber-700 dark:text-amber-300 mt-0.5">
+              {sihSummary.pendingRectifications}
+            </div>
+          </div>
+          <div className="px-3 py-2 rounded-xl liquid-glass-subtle text-xs">
+            <div className="text-[10px] text-stone-500 dark:text-stone-400">Completed Reviews</div>
+            <div className="font-mono-tabular font-bold text-[#046A38] dark:text-emerald-400 mt-0.5">
+              {sihSummary.completedReviews}
+            </div>
+          </div>
+        </div>
       </motion.section>
 
       {/* Recharts Data Visualization Section: Application Statuses & Document Processing Trends */}

@@ -280,6 +280,104 @@ async function startServer() {
     }
   });
 
+  // In-memory support enquiry intake log for /contact submissions
+  interface ServerContactEnquiry {
+    id: string;
+    ticketReference: string;
+    name: string;
+    email: string;
+    category: string;
+    subject: string;
+    message: string;
+    applicationReference?: string;
+    submittedAt: string;
+    deliveryMode: 'server_recorded';
+    statusNote: string;
+  }
+  const serverContactEnquiries: ServerContactEnquiry[] = [];
+  const ALLOWED_CONTACT_CATEGORIES = new Set([
+    'General enquiry',
+    'Technical support',
+    'Application or document issue',
+    'Document verification concern',
+    'Privacy or data handling concern',
+    'Security concern',
+    'Feedback or suggestion',
+  ]);
+
+  // POST /api/contact - Validates and records contact/support enquiries honestly
+  app.post('/api/contact', (req, res) => {
+    try {
+      const body = req.body || {};
+      const name = String(body.name || '').trim().slice(0, 120);
+      const email = String(body.email || '').trim().slice(0, 160);
+      const category = String(body.category || '').trim();
+      const subject = String(body.subject || '').trim().slice(0, 200);
+      const message = String(body.message || '').trim().slice(0, 4000);
+      const applicationReference = body.applicationReference
+        ? String(body.applicationReference).trim().slice(0, 40)
+        : undefined;
+
+      if (name.length < 2) {
+        res.status(400).json({ error: 'Please provide your full name (at least 2 characters).' });
+        return;
+      }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        res.status(400).json({ error: 'Please provide a valid email address.' });
+        return;
+      }
+      if (!ALLOWED_CONTACT_CATEGORIES.has(category)) {
+        res.status(400).json({ error: 'Please select a valid enquiry category.' });
+        return;
+      }
+      if (subject.length < 4) {
+        res.status(400).json({ error: 'Please provide a clear subject line (at least 4 characters).' });
+        return;
+      }
+      if (message.length < 15) {
+        res.status(400).json({ error: 'Please provide a detailed message (at least 15 characters).' });
+        return;
+      }
+      if (applicationReference && !/^[A-Za-z0-9_-]{3,40}$/.test(applicationReference)) {
+        res.status(400).json({ error: 'Invalid application or document reference format.' });
+        return;
+      }
+
+      const nowIso = new Date().toISOString();
+      const ticketReference = `ENQ-${new Date().getFullYear()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)
+        .toUpperCase()}`;
+
+      const enquiry: ServerContactEnquiry = {
+        id: `CNT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+        ticketReference,
+        name,
+        email,
+        category,
+        subject,
+        message,
+        applicationReference,
+        submittedAt: nowIso,
+        deliveryMode: 'server_recorded',
+        statusNote:
+          'Recorded in the VERIDEX application server support intake log. External email or ticketing dispatch is not connected and awaits institutional configuration.',
+      };
+
+      serverContactEnquiries.unshift(enquiry);
+      if (serverContactEnquiries.length > 250) {
+        serverContactEnquiries.pop();
+      }
+
+      res.status(201).json({
+        success: true,
+        enquiry,
+      });
+    } catch {
+      res.status(500).json({ error: 'Unable to record contact enquiry at this time.' });
+    }
+  });
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },

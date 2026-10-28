@@ -93,6 +93,8 @@ interface SignUpViewProps {
   onToggleDarkMode: () => void;
   initialMode?: 'register' | 'status';
   initialLookupIdentifier?: string;
+  onOpenPrivacyPolicy?: () => void;
+  onOpenContactUs?: () => void;
 }
 
 const SMOOTH_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -109,6 +111,8 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
   onToggleDarkMode,
   initialMode = 'register',
   initialLookupIdentifier = '',
+  onOpenPrivacyPolicy,
+  onOpenContactUs,
 }) => {
   const [activeTab, setActiveTab] = useState<'register' | 'status'>(initialMode);
 
@@ -1649,6 +1653,32 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
           </div>
         </motion.section>
       </main>
+
+      {(onOpenPrivacyPolicy || onOpenContactUs) && (
+        <footer className="max-w-7xl w-full mx-auto px-6 py-4 border-t border-[#C7A56A]/35 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-600 dark:text-stone-400 relative z-10">
+          <span>VERIDEX · Institutional Document Management (SIH26261)</span>
+          <div className="flex items-center gap-4 font-semibold">
+            {onOpenPrivacyPolicy && (
+              <button
+                type="button"
+                onClick={onOpenPrivacyPolicy}
+                className="hover:text-[#C2410C] dark:hover:text-amber-400 transition-colors cursor-pointer"
+              >
+                Privacy Policy
+              </button>
+            )}
+            {onOpenContactUs && (
+              <button
+                type="button"
+                onClick={onOpenContactUs}
+                className="hover:text-[#C2410C] dark:hover:text-amber-400 transition-colors cursor-pointer"
+              >
+                Contact Us
+              </button>
+            )}
+          </div>
+        </footer>
+      )}
     </div>
   );
 };

@@ -53,6 +53,7 @@ import {
   removeInstitutionalAssociation,
   removePersonnelFromAssignment,
   resolveApprovalRouting,
+  resolveDocumentFindingWithJustification,
   resolveRepositoryStatusesFromSubmission,
   syncStudentClassTeacherLinks,
 } from './lib/domain';
@@ -76,6 +77,8 @@ import { ExpiryCalendarView } from './components/ExpiryCalendarView';
 import { ReportsAndAccountsView } from './components/ReportsAndAccountsView';
 import { ProfileAndSettingsView } from './components/ProfileAndSettingsView';
 import { GeminiChatbotWidget } from './components/GeminiChatbotWidget';
+import { PrivacyPolicyView } from './components/PrivacyPolicyView';
+import { ContactUsView } from './components/ContactUsView';
 import { useReferenceData } from './lib/referenceData';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { getActiveSupabaseUser, signOutUserWithSupabase } from './lib/authService';
@@ -116,6 +119,41 @@ export default function App() {
       // ignore storage errors
     }
   }, [darkMode]);
+
+  // Clean URL routing for /privacy-policy and /contact (supports direct URL load, refresh, and browser back/forward)
+  const [publicPageRoute, setPublicPageRoute] = useState<'/privacy-policy' | '/contact' | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const p = window.location.pathname.replace(/\/+$/, '');
+    if (p === '/privacy-policy') return '/privacy-policy';
+    if (p === '/contact') return '/contact';
+    return null;
+  });
+
+  const navigateToPublicRoute = (route: '/privacy-policy' | '/contact' | null) => {
+    setPublicPageRoute(route);
+    if (typeof window !== 'undefined') {
+      const targetPath = route || '/';
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({}, '', targetPath);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const p = window.location.pathname.replace(/\/+$/, '');
+      if (p === '/privacy-policy') {
+        setPublicPageRoute('/privacy-policy');
+      } else if (p === '/contact') {
+        setPublicPageRoute('/contact');
+      } else {
+        setPublicPageRoute(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const [users, setUsers] = useState<UserAccount[]>(() =>
     loadUsersPreservingSeedAccounts(SEED_USERS)
@@ -2138,6 +2176,96 @@ export default function App() {
     );
   };
 
+  const handleResolveDocumentFinding = ({
+    docId,
+    findingId,
+    decision,
+    justification,
+  }: {
+    docId: string;
+    findingId: string;
+    decision: 'Resolved' | 'Overridden' | 'Confirmed Deficiency';
+    justification: string;
+  }) => {
+    if (!currentUser || !canUserPerformAdminAction(currentUser)) return;
+    const targetDoc = documents.find((d) => d.id === docId);
+    if (!targetDoc) return;
+
+    const updatedDoc = resolveDocumentFindingWithJustification(
+      targetDoc,
+      findingId,
+      currentUser,
+      decision,
+      justification
+    );
+
+    setDocuments((prev) => prev.map((d) => (d.id === docId ? updatedDoc : d)));
+    appendAudit(
+      currentUser,
+      `Finding ${decision}`,
+      'Document',
+      targetDoc.internalCode,
+      `Recorded ${decision} on finding ${findingId} (${targetDoc.internalCode}): ${justification}`
+    );
+  };
+
+  // Dedicated public/informational routes (/privacy-policy and /contact) accessible to both unauthenticated and authenticated users
+  if (publicPageRoute === '/privacy-policy') {
+    return (
+      <>
+        <PrivacyPolicyView
+          darkMode={darkMode}
+          onToggleDarkMode={() => setDarkMode((prev) => !prev)}
+          isAuthenticated={Boolean(currentUser)}
+          onBackToApp={() => navigateToPublicRoute(null)}
+          onNavigateContact={() => navigateToPublicRoute('/contact')}
+          onOpenLogin={() => {
+            navigateToPublicRoute(null);
+            setAuthScreenMode('login');
+          }}
+        />
+        <GeminiChatbotWidget
+          currentUser={currentUser}
+          applications={applications}
+          documents={documents}
+        />
+      </>
+    );
+  }
+
+  if (publicPageRoute === '/contact') {
+    return (
+      <>
+        <ContactUsView
+          darkMode={darkMode}
+          onToggleDarkMode={() => setDarkMode((prev) => !prev)}
+          currentUser={currentUser}
+          applications={
+            currentUser
+              ? applications.filter((a) => canUserAccessApplication(currentUser, a))
+              : []
+          }
+          onBackToApp={() => navigateToPublicRoute(null)}
+          onNavigatePrivacy={() => navigateToPublicRoute('/privacy-policy')}
+          onOpenLogin={() => {
+            navigateToPublicRoute(null);
+            setAuthScreenMode('login');
+          }}
+          onRecordAudit={(action, targetId, details) => {
+            if (currentUser) {
+              appendAudit(currentUser, action, 'Application', targetId, details);
+            }
+          }}
+        />
+        <GeminiChatbotWidget
+          currentUser={currentUser}
+          applications={applications}
+          documents={documents}
+        />
+      </>
+    );
+  }
+
   // If not authenticated, render LandingPageView by default, LoginView, or SignUpView
   if (!currentUser) {
     if (authScreenMode === 'landing') {
@@ -2147,6 +2275,8 @@ export default function App() {
             onOpenLogin={() => setAuthScreenMode('login')}
             darkMode={darkMode}
             onToggleDarkMode={() => setDarkMode((prev) => !prev)}
+            onOpenPrivacyPolicy={() => navigateToPublicRoute('/privacy-policy')}
+            onOpenContactUs={() => navigateToPublicRoute('/contact')}
           />
           <GeminiChatbotWidget
             currentUser={null}
@@ -2179,6 +2309,8 @@ export default function App() {
             onToggleDarkMode={() => setDarkMode((prev) => !prev)}
             initialMode={signupInitialMode}
             initialLookupIdentifier={signupPrefillId}
+            onOpenPrivacyPolicy={() => navigateToPublicRoute('/privacy-policy')}
+            onOpenContactUs={() => navigateToPublicRoute('/contact')}
           />
           <GeminiChatbotWidget
             currentUser={null}
@@ -2202,6 +2334,8 @@ export default function App() {
           darkMode={darkMode}
           onToggleDarkMode={() => setDarkMode((prev) => !prev)}
           onBackToLanding={() => setAuthScreenMode('landing')}
+          onOpenPrivacyPolicy={() => navigateToPublicRoute('/privacy-policy')}
+          onOpenContactUs={() => navigateToPublicRoute('/contact')}
         />
         <GeminiChatbotWidget
           currentUser={null}
@@ -2221,6 +2355,8 @@ export default function App() {
           onReturnToWorkspace={() => setShowPublicOverview(false)}
           darkMode={darkMode}
           onToggleDarkMode={() => setDarkMode((prev) => !prev)}
+          onOpenPrivacyPolicy={() => navigateToPublicRoute('/privacy-policy')}
+          onOpenContactUs={() => navigateToPublicRoute('/contact')}
         />
         <GeminiChatbotWidget
           currentUser={currentUser}
@@ -2267,6 +2403,8 @@ export default function App() {
       darkMode={darkMode}
       onToggleDarkMode={() => setDarkMode((prev) => !prev)}
       onOpenPublicLanding={() => setShowPublicOverview(true)}
+      onOpenPrivacyPolicy={() => navigateToPublicRoute('/privacy-policy')}
+      onOpenContactUs={() => navigateToPublicRoute('/contact')}
     >
       {/* Main View Router */}
       {activeView === 'dashboard' &&
@@ -2377,6 +2515,8 @@ export default function App() {
           currentUser={currentUser}
           documents={documents}
           complianceRules={complianceRules}
+          applications={applications}
+          onOpenApplication={(appId) => setSelectedApplicationId(appId)}
           onRunAllVerificationChecks={handleRunAllVerificationChecks}
           onOpenDocument={(docId) => {
             setActiveView('documents');
@@ -2578,6 +2718,8 @@ export default function App() {
             onSubmitDraftApplication={handleSubmitDraftApplication}
             onResubmitApplication={handleResubmitApplication}
             onAdminAction={handleAdminAction}
+            complianceRules={complianceRules}
+            onResolveFinding={handleResolveDocumentFinding}
           />
         )}
       </AnimatePresence>

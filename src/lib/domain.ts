@@ -5,11 +5,17 @@ import {
   AccountApprovalRequest,
   ApplicationCategory,
   ApplicationRecord,
+  AuthenticityCheckItem,
   ChecklistItem,
+  ComplianceRule,
+  ComplianceRuleEvaluationRow,
+  ContactEnquiryCategory,
+  CrossDocumentComparisonRow,
   DocumentCategory,
   DocumentRecord,
   DocumentRequirement,
   ExpiryStatus,
+  HonestCheckStatus,
   Institution,
   Role,
   SignupRole,
@@ -2256,5 +2262,630 @@ export function evaluateDocumentSixPillars(
     findings: combinedFindings,
   };
 }
+
+/**
+ * 6.3 Cross-Document Consistency Comparison Matrix (SIH26261)
+ * Compares shared fields across documents linked to an application:
+ * - Institution Name & Official Institution Code
+ * - Principal / Faculty / Holder Identity
+ * - Chronological Issue & Validity Dates relative to Application Submission
+ * - Infrastructure / Carpet Area Measurements (where applicable)
+ */
+export function evaluateCrossDocumentConsistencyMatrix(
+  application: ApplicationRecord,
+  linkedDocs: DocumentRecord[]
+): CrossDocumentComparisonRow[] {
+  const rows: CrossDocumentComparisonRow[] = [];
+
+  if (linkedDocs.length === 0) {
+    return [
+      {
+        id: `CMP-${application.id}-NONE`,
+        fieldName: 'Linked Supporting Dossier Documents',
+        comparisonRule: 'At least one supporting document must be attached to run cross-document comparison.',
+        valuesByDocument: [],
+        status: 'Pending',
+        discrepancyReason: 'No supporting documents are currently attached to this application dossier.',
+        reviewGuidance: 'Attach required checklist documents to enable multi-document field comparison.',
+      },
+    ];
+  }
+
+  const getValueSource = (doc: DocumentRecord): 'OCR Extracted' | 'Manually Entered' | 'Verified Record' => {
+    if (doc.humanReviewStatus === 'Reviewed' && doc.issuerVerificationStatus === 'Verified') {
+      return 'Verified Record';
+    }
+    if (doc.ocrExtractedText && doc.ocrExtractedText.trim().length > 0) {
+      return 'OCR Extracted';
+    }
+    return 'Manually Entered';
+  };
+
+  // 1. Institution Ownership & Code Alignment
+  const instValues = linkedDocs.map((doc) => ({
+    documentId: doc.id,
+    internalCode: doc.internalCode,
+    documentTitle: doc.name,
+    value: `${doc.institutionName} (${doc.institutionId})`,
+    valueSource: getValueSource(doc),
+  }));
+  const instMismatch = linkedDocs.some(
+    (doc) =>
+      doc.institutionId !== application.institutionId ||
+      doc.institutionName.trim().toLowerCase() !== application.institutionName.trim().toLowerCase()
+  );
+  rows.push({
+    id: `CMP-${application.id}-INST`,
+    fieldName: 'Institution Name & Official Code',
+    comparisonRule: `All attached records must belong to ${application.institutionName} (${application.institutionId} / ${application.officialInstitutionCode}).`,
+    valuesByDocument: instValues,
+    status: instMismatch ? 'Review required' : 'Passed',
+    discrepancyReason: instMismatch
+      ? 'One or more attached documents reference a different institution name or institutional ID than the application dossier.'
+      : `All ${linkedDocs.length} attached document(s) match ${application.institutionName} (${application.institutionId}).`,
+    reviewGuidance: instMismatch
+      ? 'Verify institutional affiliation or unlink documents belonging to another campus.'
+      : 'Institutional ownership is consistent across the application and attached certificates.',
+  });
+
+  // 2. Named Holder / Faculty / Signatory Identity Consistency
+  const personDocs = linkedDocs.filter(
+    (d) =>
+      d.category === 'Qualifications' ||
+      d.category === 'Experience Certificates' ||
+      d.category === 'Faculty Records' ||
+      d.consistencyStatus === 'Mismatch Flagged'
+  );
+  const targetPersonDocs = personDocs.length > 0 ? personDocs : linkedDocs;
+  const holderValues = targetPersonDocs.map((doc) => ({
+    documentId: doc.id,
+    internalCode: doc.internalCode,
+    documentTitle: doc.name,
+    value: doc.extractedSummary['Candidate Name'] || doc.extractedSummary['Faculty Name'] || doc.personName,
+    valueSource: getValueSource(doc),
+  }));
+
+  const hasNameDiscrepancyFlag = targetPersonDocs.some(
+    (d) =>
+      d.consistencyStatus === 'Mismatch Flagged' ||
+      d.findings.some((f) => f.pillar === 'Consistency' && f.status === 'Flagged' && !f.resolutionDecision)
+  );
+  rows.push({
+    id: `CMP-${application.id}-HOLDER`,
+    fieldName: 'Holder / Faculty / Signatory Name',
+    comparisonRule: 'Normalized holder name must match across qualification, experience, and faculty roster records for the same individual.',
+    valuesByDocument: holderValues,
+    status: hasNameDiscrepancyFlag ? 'Review required' : 'Passed',
+    discrepancyReason: hasNameDiscrepancyFlag
+      ? 'Name spelling or middle-initial variation detected across linked personnel/qualification documents (or flagged in consistency findings).'
+      : 'Holder and signatory identities are consistent across compared records.',
+    reviewGuidance: hasNameDiscrepancyFlag
+      ? 'Compare original degree scroll and appointment order; record a human review resolution if variation is an accepted initial expansion.'
+      : 'No identity mismatch detected across linked documents.',
+  });
+
+  // 3. Certificate Issue & Validity Dates vs Application Window
+  const dateValues = linkedDocs.map((doc) => ({
+    documentId: doc.id,
+    internalCode: doc.internalCode,
+    documentTitle: doc.name,
+    value: `Issued: ${doc.issueDate}${doc.expiryDate ? ` · Expires: ${doc.expiryDate}` : ' · Permanent'}`,
+    valueSource: getValueSource(doc),
+  }));
+  const hasDateIssue = linkedDocs.some((doc) => {
+    if (doc.expiryDate && doc.expiryDate < doc.issueDate) return true;
+    if (
+      application.submittedDate &&
+      /^\d{4}-\d{2}-\d{2}$/.test(application.submittedDate) &&
+      doc.expiryDate &&
+      doc.expiryDate < application.submittedDate
+    ) {
+      return true;
+    }
+    return false;
+  });
+  rows.push({
+    id: `CMP-${application.id}-DATES`,
+    fieldName: 'Certificate Issue & Validity Dates',
+    comparisonRule: 'Issue date must precede expiry date, and statutory approvals must be valid as of the application submission date.',
+    valuesByDocument: dateValues,
+    status: hasDateIssue ? 'Review required' : 'Passed',
+    discrepancyReason: hasDateIssue
+      ? 'At least one linked certificate had already lapsed prior to application submission or contains a contradictory date sequence.'
+      : 'All linked certificate issue and validity dates are chronologically consistent with the application timeline.',
+    reviewGuidance: hasDateIssue
+      ? 'Request a renewed statutory certificate or verify the renewal endorsement date.'
+      : 'Chronological date alignment verified.',
+  });
+
+  // 4. Infrastructure & Carpet Area Measurements (when infrastructure documents are present)
+  const infraDocs = linkedDocs.filter(
+    (d) =>
+      d.category === 'Infrastructure' ||
+      Boolean(d.isInfrastructureEvidence) ||
+      typeof d.facilityAreaSqm === 'number' ||
+      Boolean(d.extractedSummary['Declared Carpet Area'] || d.extractedSummary['Instructional Area'])
+  );
+
+  if (infraDocs.length > 0) {
+    const infraValues = infraDocs.map((doc) => ({
+      documentId: doc.id,
+      internalCode: doc.internalCode,
+      documentTitle: doc.name,
+      value:
+        doc.extractedSummary['Declared Carpet Area'] ||
+        doc.extractedSummary['Instructional Area'] ||
+        (typeof doc.facilityAreaSqm === 'number' ? `${doc.facilityAreaSqm} sq.m` : `Cert #${doc.certificateNumber}`),
+      valueSource: getValueSource(doc),
+    }));
+    const lowArea = infraDocs.some((d) => typeof d.facilityAreaSqm === 'number' && d.facilityAreaSqm < 66);
+    rows.push({
+      id: `CMP-${application.id}-INFRA`,
+      fieldName: 'Infrastructure & Instructional Area Declarations',
+      comparisonRule: 'Declared laboratory/classroom carpet area must meet AICTE APH minimum instructional area norms (>= 66 sq.m per lab/classroom).',
+      valuesByDocument: infraValues,
+      status: lowArea ? 'Review required' : 'Passed',
+      discrepancyReason: lowArea
+        ? 'Declared facility carpet area is below the 66 sq.m minimum statutory instructional norm.'
+        : 'Declared infrastructure and safety measurements align with statutory thresholds.',
+      reviewGuidance: 'Advisory calculation only; physical Expert Visit Committee (EVC) inspection remains mandatory.',
+    });
+  } else {
+    rows.push({
+      id: `CMP-${application.id}-INFRA`,
+      fieldName: 'Infrastructure & Instructional Area Declarations',
+      comparisonRule: 'Compare declared carpet area across building/lab safety records when present.',
+      valuesByDocument: [],
+      status: 'Not applicable',
+      discrepancyReason: 'No infrastructure measurement records are attached to this dossier.',
+      reviewGuidance: 'Applicable when infrastructure or laboratory readiness certificates are attached.',
+    });
+  }
+
+  return rows;
+}
+
+/**
+ * 6.4 Structured Document Authenticity & Fraud-Indicator Breakdown (SIH26261)
+ * Produces honest, transparent status labels for all 8 authenticity and integrity checks.
+ * Never fabricates live cryptographic signature verification, QR decoding, or external government registry validation.
+ */
+export function evaluateDocumentAuthenticityChecks(
+  doc: DocumentRecord,
+  allDocs: DocumentRecord[],
+  referenceDate: string = getLocalTodayDate()
+): AuthenticityCheckItem[] {
+  const expiry = calculateExpiryDetails(doc.expiryDate, referenceDate);
+  const cleanCert = doc.certificateNumber.trim().toUpperCase();
+  const duplicateDoc =
+    cleanCert.length >= 3
+      ? allDocs.find(
+          (d) =>
+            d.id !== doc.id &&
+            d.internalCode !== doc.internalCode &&
+            d.certificateNumber.trim().toUpperCase() === cleanCert
+        )
+      : undefined;
+
+  const isPlaceholderRef = /^(TEST|DUMMY|SAMPLE|XXXX|0000|12345?)$/i.test(cleanCert);
+  const hasValidFormat = cleanCert.length >= 4 && !isPlaceholderRef;
+  const hasDateContradiction =
+    Boolean(doc.issueDate && doc.expiryDate && doc.expiryDate < doc.issueDate) ||
+    Boolean(doc.issueDate && doc.issueDate > referenceDate);
+
+  // 1. Expiry & Validity Window Check
+  const expiryStatus: HonestCheckStatus =
+    expiry.status === 'Expired'
+      ? 'Failed'
+      : expiry.status === 'Expiring Soon'
+        ? 'Review required'
+        : 'Passed';
+
+  // 2. Duplicate Certificate Detection
+  const duplicateStatus: HonestCheckStatus = duplicateDoc ? 'Review required' : 'Passed';
+
+  // 3. Metadata & File Attribute Inspection
+  const hasSupportedMime =
+    doc.mimeType === 'application/pdf' ||
+    doc.mimeType === 'image/jpeg' ||
+    doc.mimeType === 'image/png';
+  const metadataStatus: HonestCheckStatus =
+    hasSupportedMime && doc.completenessStatus === 'Complete'
+      ? 'Passed'
+      : doc.completenessStatus === 'Missing Pages/Fields'
+        ? 'Review required'
+        : 'Pending';
+
+  // 4. Reference Number Format Check
+  const refFormatStatus: HonestCheckStatus = hasValidFormat ? 'Passed' : 'Review required';
+
+  // 5. Document Integrity / Alteration Screening (Rule-Based)
+  const integrityStatus: HonestCheckStatus =
+    doc.anomalyStatus === 'Suspected Alteration / Duplicate' || hasDateContradiction
+      ? 'Review required'
+      : doc.anomalyStatus === 'No Anomaly Detected'
+        ? 'Passed'
+        : 'Not checked';
+
+  // 6. External Issuer Registry Reference Check
+  const issuerStatus: HonestCheckStatus =
+    doc.issuerVerificationStatus === 'Verified'
+      ? 'Demonstration result'
+      : doc.issuerVerificationStatus === 'Failed'
+        ? 'Review required'
+        : 'Unable to verify';
+
+  // 7. Cryptographic Digital Signature (PKI / DSC) Validation
+  const dscStatus: HonestCheckStatus = 'Unable to verify';
+
+  // 8. QR Code Payload & Official Signing Verification
+  const qrStatus: HonestCheckStatus = 'Unable to verify';
+
+  return [
+    {
+      id: `${doc.id}-AUTH-EXP`,
+      checkName: 'Expiry & Validity Window Check',
+      category: 'Expiry & Validity',
+      status: expiryStatus,
+      observedEvidence: doc.expiryDate
+        ? `Issued ${doc.issueDate} · Expires ${doc.expiryDate} (${expiry.label})`
+        : `Issued ${doc.issueDate} · Permanent / No Expiry`,
+      explanation:
+        expiry.status === 'Expired'
+          ? `Certificate validity lapsed on ${doc.expiryDate} relative to ${referenceDate}.`
+          : expiry.status === 'Expiring Soon'
+            ? `Certificate expires within the 45-day statutory renewal window (${expiry.label}).`
+            : 'Certificate is within its valid effective date window.',
+      requiresExternalAuthority: false,
+    },
+    {
+      id: `${doc.id}-AUTH-DUP`,
+      checkName: 'Cross-Repository Duplicate Certificate Detection',
+      category: 'Duplicate Certificate Detection',
+      status: duplicateStatus,
+      observedEvidence: duplicateDoc
+        ? `Cert #${doc.certificateNumber} also appears on ${duplicateDoc.internalCode} (${duplicateDoc.personName})`
+        : `Cert #${doc.certificateNumber} is unique across ${allDocs.length} repository records`,
+      explanation: duplicateDoc
+        ? `Duplicate certificate number detected on ${duplicateDoc.internalCode} ("${duplicateDoc.name}"). Requires officer inspection.`
+        : 'No duplicate certificate reference number found across registered portal documents.',
+      requiresExternalAuthority: false,
+    },
+    {
+      id: `${doc.id}-AUTH-META`,
+      checkName: 'Metadata & File Attribute Inspection',
+      category: 'Metadata & File Attribute Inspection',
+      status: metadataStatus,
+      observedEvidence: `${doc.fileName} (${doc.mimeType}, ${doc.fileSize}) · Completeness: ${doc.completenessStatus}`,
+      explanation:
+        metadataStatus === 'Passed'
+          ? 'File MIME type, attachment metadata, and mandatory schema fields are complete.'
+          : 'Missing pages, unsigned annexure signals, or incomplete metadata fields require manual inspection.',
+      requiresExternalAuthority: false,
+    },
+    {
+      id: `${doc.id}-AUTH-REF`,
+      checkName: 'Reference Number Format & Structure Check',
+      category: 'Reference Number Format',
+      status: refFormatStatus,
+      observedEvidence: `Reference #${doc.certificateNumber} · Authority: ${doc.issuingAuthority}`,
+      explanation: hasValidFormat
+        ? 'Certificate reference number satisfies statutory alphanumeric formatting rules.'
+        : 'Certificate reference number is missing, too short, or matches a placeholder pattern.',
+      requiresExternalAuthority: false,
+    },
+    {
+      id: `${doc.id}-AUTH-INT`,
+      checkName: 'Rule-Based Document Integrity & Chronology Screening',
+      category: 'Document Integrity / Alteration Screening',
+      status: integrityStatus,
+      observedEvidence: `Anomaly status: ${doc.anomalyStatus} · Issue: ${doc.issueDate}${doc.expiryDate ? ` → Expiry: ${doc.expiryDate}` : ''}`,
+      explanation:
+        integrityStatus === 'Passed'
+          ? 'Chronological date sequence and rule-based metadata anomaly checks passed.'
+          : 'Rule-based anomaly indicator triggered (such as contradictory date sequence or duplicate reference). This is a review signal, not conclusive proof of forgery.',
+      requiresExternalAuthority: false,
+    },
+    {
+      id: `${doc.id}-AUTH-ISS`,
+      checkName: 'External Issuing Authority Registry Verification',
+      category: 'Issuer Information',
+      status: issuerStatus,
+      observedEvidence: `Declared Issuer: ${doc.issuingAuthority} · Portal Status: ${doc.issuerVerificationStatus}`,
+      explanation:
+        doc.issuerVerificationStatus === 'Verified'
+          ? 'Marked verified in portal demonstration dataset; live external government registry API (e.g., NAD / DigiLocker / Municipal Portal) is not connected.'
+          : 'Live external issuing authority lookup is not connected in this frontend environment; requires manual officer verification against official issuer records.',
+      requiresExternalAuthority: true,
+    },
+    {
+      id: `${doc.id}-AUTH-DSC`,
+      checkName: 'Cryptographic Digital Signature (PKI / DSC) Validation',
+      category: 'Digital Signature Validation',
+      status: dscStatus,
+      observedEvidence: `Attachment: ${doc.fileName}`,
+      explanation:
+        'Unable to verify cryptographically in browser: live X.509 / CCA India Root CA certificate chain and revocation (CRL/OCSP) verification require a backend PKI validation service.',
+      requiresExternalAuthority: true,
+    },
+    {
+      id: `${doc.id}-AUTH-QR`,
+      checkName: 'Embedded QR Code & Issuer Signature Verification',
+      category: 'QR Code Detection & Validation',
+      status: qrStatus,
+      observedEvidence: `Attachment: ${doc.fileName}`,
+      explanation:
+        'Unable to verify against external authority: live QR cryptographic signature verification requires issuer public keys or an external verification endpoint.',
+      requiresExternalAuthority: true,
+    },
+  ];
+}
+
+/**
+ * 6.5 Regulatory Compliance Matrix Evaluator (SIH26261)
+ * Maps active ComplianceRule records to an ApplicationRecord and its linked DocumentRecords,
+ * producing an auditable compliance table with Requirement, Source & Version, Evidence, Result, and Reviewer Status.
+ */
+export function evaluateApplicationComplianceMatrix(
+  application: ApplicationRecord,
+  linkedDocs: DocumentRecord[],
+  complianceRules: ComplianceRule[],
+  referenceDate: string = getLocalTodayDate()
+): ComplianceRuleEvaluationRow[] {
+  const applicableRules = complianceRules.filter(
+    (r) =>
+      r.active &&
+      (r.applicableCategory === 'All Categories' || r.applicableCategory === application.category)
+  );
+
+  return applicableRules.map((rule) => {
+    const matchingDocs = linkedDocs.filter((d) => d.category === rule.requiredDocumentCategory);
+    const primaryDoc = matchingDocs[0];
+
+    if (!primaryDoc) {
+      return {
+        ruleId: rule.id,
+        ruleCode: rule.code,
+        ruleName: rule.name,
+        ruleVersion: rule.version,
+        effectiveDate: rule.effectiveDate,
+        applicableCategory: rule.applicableCategory,
+        mandatory: rule.mandatory,
+        requiredEvidence: `${rule.requiredDocumentCategory} certificate (min. validity: ${rule.minValidityDays > 0 ? `${rule.minValidityDays} days` : 'Permanent / Valid'})`,
+        observedEvidence: `No ${rule.requiredDocumentCategory} document attached to ${application.id}`,
+        status: rule.mandatory ? 'Failed' : 'Review required',
+        reason: `Missing mandatory ${rule.requiredDocumentCategory} evidence required by ${rule.code} (${rule.version}).`,
+        reviewerStatus: 'Deficiency / Pending Upload',
+      };
+    }
+
+    const expiry = calculateExpiryDetails(primaryDoc.expiryDate, referenceDate);
+    const daysRem = expiry.daysRemaining;
+    const hasUnresolvedFlags =
+      primaryDoc.completenessStatus === 'Missing Pages/Fields' ||
+      primaryDoc.consistencyStatus === 'Mismatch Flagged' ||
+      primaryDoc.anomalyStatus === 'Suspected Alteration / Duplicate' ||
+      primaryDoc.findings.some((f) => f.status === 'Flagged' && !f.resolutionDecision);
+
+    let status: HonestCheckStatus = 'Passed';
+    let reason = `Supporting document ${primaryDoc.internalCode} satisfies ${rule.code} (${rule.version}) category and validity window requirements.`;
+
+    if (expiry.status === 'Expired') {
+      status = 'Failed';
+      reason = `Supporting certificate ${primaryDoc.internalCode} expired on ${primaryDoc.expiryDate} (${expiry.label}).`;
+    } else if (rule.minValidityDays > 0 && daysRem !== null && daysRem < rule.minValidityDays) {
+      status = 'Review required';
+      reason = `Supporting certificate ${primaryDoc.internalCode} has ${daysRem} day(s) remaining, which is below the ${rule.minValidityDays}-day minimum threshold set by ${rule.code}.`;
+    } else if (hasUnresolvedFlags) {
+      status = 'Review required';
+      reason = `Supporting certificate ${primaryDoc.internalCode} has active completeness, consistency, or anomaly flags requiring officer review.`;
+    } else if (primaryDoc.humanReviewStatus !== 'Reviewed') {
+      status = 'Pending';
+      reason = `Automated rule checks passed for ${primaryDoc.internalCode}; awaiting human compliance officer sign-off.`;
+    }
+
+    return {
+      ruleId: rule.id,
+      ruleCode: rule.code,
+      ruleName: rule.name,
+      ruleVersion: rule.version,
+      effectiveDate: rule.effectiveDate,
+      applicableCategory: rule.applicableCategory,
+      mandatory: rule.mandatory,
+      requiredEvidence: `${rule.requiredDocumentCategory} (${rule.minValidityDays > 0 ? `>= ${rule.minValidityDays}d validity` : 'Valid statutory record'})`,
+      observedEvidence: `${primaryDoc.internalCode} · ${primaryDoc.name} (Cert #${primaryDoc.certificateNumber}, ${expiry.label})`,
+      supportingDocumentId: primaryDoc.id,
+      supportingDocumentCode: primaryDoc.internalCode,
+      supportingDocumentName: primaryDoc.name,
+      status,
+      reason,
+      reviewerStatus: primaryDoc.humanReviewStatus,
+    };
+  });
+}
+
+/**
+ * 6.8 Human-in-the-Loop Finding Resolution & Override with Mandatory Justification
+ * Allows an authorized reviewer to resolve, override, or confirm a verification finding
+ * while recording their name, timestamp, and justification.
+ */
+export function resolveDocumentFindingWithJustification(
+  doc: DocumentRecord,
+  findingId: string,
+  reviewer: Pick<UserAccount, 'fullName' | 'role'>,
+  decision: 'Resolved' | 'Overridden' | 'Confirmed Deficiency',
+  justification: string,
+  timestamp: string = formatTimestampForDisplay(getCurrentIsoTimestamp())
+): DocumentRecord {
+  const cleanJustification = justification.trim();
+  if (!cleanJustification) {
+    throw new Error('A written reviewer justification is mandatory to resolve or override a finding.');
+  }
+
+  const updatedFindings: VerificationFinding[] = doc.findings.map((f) => {
+    if (f.id !== findingId) return f;
+    return {
+      ...f,
+      status: decision === 'Confirmed Deficiency' ? 'Flagged' : 'Passed',
+      resolvedByReviewer: `${reviewer.fullName} (${formatRoleDisplayName(reviewer.role)})`,
+      resolvedAt: timestamp,
+      resolutionJustification: cleanJustification,
+      resolutionDecision: decision,
+    };
+  });
+
+  const anyRemainingFlagged = updatedFindings.some((f) => f.status === 'Flagged');
+
+  return {
+    ...doc,
+    humanReviewStatus: anyRemainingFlagged ? 'Action Required' : 'Reviewed',
+    consistencyStatus: updatedFindings.some((f) => f.pillar === 'Consistency' && f.status === 'Flagged')
+      ? 'Mismatch Flagged'
+      : 'Consistent',
+    completenessStatus: updatedFindings.some((f) => f.pillar === 'Completeness' && f.status === 'Flagged')
+      ? 'Missing Pages/Fields'
+      : 'Complete',
+    anomalyStatus: updatedFindings.some(
+      (f) => (f.pillar === 'Anomaly' || f.pillar === 'Anomaly Indicators') && f.status === 'Flagged'
+    )
+      ? 'Suspected Alteration / Duplicate'
+      : 'No Anomaly Detected',
+    findings: updatedFindings,
+  };
+}
+
+/**
+ * 6.10 SIH26261 Dashboard Operational Validation Summary
+ * Computes accurate, non-fabricated counts from actual state for the validation overview bar.
+ */
+export function computeSihValidationSummary(
+  applications: ApplicationRecord[],
+  documents: DocumentRecord[],
+  referenceDate: string = getLocalTodayDate()
+) {
+  const awaitingReview = applications.filter(
+    (a) =>
+      a.status === 'Submitted' ||
+      a.status === 'Automated Checks Complete' ||
+      a.status === 'Pending Verification' ||
+      a.status === 'Under Manual Review'
+  ).length;
+
+  const missingDocumentsCount = applications.reduce((sum, app) => {
+    const missingItems = app.checklist.filter(
+      (item) => item.required && (!item.linkedDocumentId || item.status === 'Pending Upload')
+    ).length;
+    return sum + missingItems;
+  }, 0);
+
+  const validationFlagsCount = documents.filter((d) => {
+    const exp = calculateExpiryDetails(d.expiryDate, referenceDate);
+    return (
+      exp.status === 'Expired' ||
+      d.completenessStatus === 'Missing Pages/Fields' ||
+      d.consistencyStatus === 'Mismatch Flagged' ||
+      d.anomalyStatus === 'Suspected Alteration / Duplicate'
+    );
+  }).length;
+
+  const findingsRequiringHumanReview = documents.reduce((sum, doc) => {
+    const unresolved = doc.findings.filter(
+      (f) => (f.status === 'Flagged' || f.status === 'Advisory') && !f.resolutionDecision
+    ).length;
+    return sum + unresolved;
+  }, 0);
+
+  const pendingRectifications = applications.filter(
+    (a) => a.status === 'Additional Information Required'
+  ).length;
+
+  const completedReviews = applications.filter((a) => a.status === 'Decision Recorded').length;
+
+  return {
+    awaitingReview,
+    missingDocumentsCount,
+    validationFlagsCount,
+    findingsRequiringHumanReview,
+    pendingRectifications,
+    completedReviews,
+  };
+}
+
+export const CONTACT_ENQUIRY_CATEGORIES: readonly ContactEnquiryCategory[] = [
+  'General enquiry',
+  'Technical support',
+  'Application or document issue',
+  'Document verification concern',
+  'Privacy or data handling concern',
+  'Security concern',
+  'Feedback or suggestion',
+] as const;
+
+/**
+ * Pure validation helper for the /contact form (Part 4.3).
+ */
+export function validateContactEnquiryInput(input: {
+  name: string;
+  email: string;
+  category: string;
+  subject: string;
+  message: string;
+  applicationReference?: string;
+}): {
+  valid: boolean;
+  errors: Record<string, string>;
+  sanitized: {
+    name: string;
+    email: string;
+    category: ContactEnquiryCategory;
+    subject: string;
+    message: string;
+    applicationReference?: string;
+  };
+} {
+  const errors: Record<string, string> = {};
+  const name = (input.name || '').trim();
+  const email = (input.email || '').trim();
+  const categoryRaw = (input.category || '').trim() as ContactEnquiryCategory;
+  const subject = (input.subject || '').trim();
+  const message = (input.message || '').trim();
+  const applicationReference = (input.applicationReference || '').trim();
+
+  if (name.length < 2) {
+    errors.name = 'Please enter your full name (at least 2 characters).';
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.email = 'Please enter a valid email address for follow-up communication.';
+  }
+  if (!CONTACT_ENQUIRY_CATEGORIES.includes(categoryRaw)) {
+    errors.category = 'Please select a valid enquiry category.';
+  }
+  if (subject.length < 4) {
+    errors.subject = 'Please provide a clear subject line (at least 4 characters).';
+  }
+  if (message.length < 15) {
+    errors.message = 'Please describe your enquiry or concern in detail (at least 15 characters).';
+  }
+  if (applicationReference && !/^[A-Za-z0-9_-]{3,40}$/.test(applicationReference)) {
+    errors.applicationReference =
+      'Application or document reference should contain only letters, numbers, hyphens, or underscores.';
+  }
+
+  return {
+    valid: Object.keys(errors).length === 0,
+    errors,
+    sanitized: {
+      name,
+      email,
+      category: CONTACT_ENQUIRY_CATEGORIES.includes(categoryRaw)
+        ? categoryRaw
+        : 'General enquiry',
+      subject,
+      message,
+      applicationReference: applicationReference || undefined,
+    },
+  };
+}
+
 
 

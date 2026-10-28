@@ -52,6 +52,8 @@ interface AppShellProps {
   darkMode: boolean;
   onToggleDarkMode: () => void;
   onOpenPublicLanding?: () => void;
+  onOpenPrivacyPolicy?: () => void;
+  onOpenContactUs?: () => void;
   children: React.ReactNode;
 }
 
@@ -77,6 +79,8 @@ export const AppShell: React.FC<AppShellProps> = ({
   darkMode,
   onToggleDarkMode,
   onOpenPublicLanding,
+  onOpenPrivacyPolicy,
+  onOpenContactUs,
   children,
 }) => {
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
@@ -806,6 +810,45 @@ export const AppShell: React.FC<AppShellProps> = ({
               {children}
             </motion.div>
           </AnimatePresence>
+
+          {(onOpenPrivacyPolicy || onOpenContactUs) && (
+            <footer className="mt-10 pt-5 border-t border-[#C7A56A]/35 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-stone-600 dark:text-stone-400">
+              <span>
+                <strong className="font-display text-stone-800 dark:text-stone-200">VERIDEX</strong> · SIH26261 Application Validation, Document Authentication &amp; Regulatory Compliance
+              </span>
+              <div className="flex flex-wrap items-center gap-4 font-semibold">
+                {onOpenPublicLanding && (
+                  <button
+                    type="button"
+                    onClick={onOpenPublicLanding}
+                    className="hover:text-[#C2410C] dark:hover:text-amber-400 transition-colors cursor-pointer"
+                  >
+                    Platform Overview
+                  </button>
+                )}
+                {onOpenPrivacyPolicy && (
+                  <button
+                    type="button"
+                    onClick={onOpenPrivacyPolicy}
+                    data-testid="appshell-footer-privacy-link"
+                    className="hover:text-[#C2410C] dark:hover:text-amber-400 transition-colors cursor-pointer"
+                  >
+                    Privacy Policy
+                  </button>
+                )}
+                {onOpenContactUs && (
+                  <button
+                    type="button"
+                    onClick={onOpenContactUs}
+                    data-testid="appshell-footer-contact-link"
+                    className="hover:text-[#C2410C] dark:hover:text-amber-400 transition-colors cursor-pointer"
+                  >
+                    Contact Us
+                  </button>
+                )}
+              </div>
+            </footer>
+          )}
         </main>
       </div>
 
